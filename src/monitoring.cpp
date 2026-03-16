@@ -595,6 +595,9 @@ esp_err_t monitoring_update_config(const monitoring_config_t *config)
 static void apply_config_task(void *pvParameters)
 {
     monitoring_config_t *config = (monitoring_config_t *)pvParameters;
+    // Brief delay so the HTTP response is fully transmitted before we
+    // stop/restart network services (MQTT, CheckMK)
+    vTaskDelay(pdMS_TO_TICKS(300));
     monitoring_update_config(config);
     free(config);
     vTaskDelete(NULL);
@@ -610,7 +613,10 @@ esp_err_t monitoring_schedule_update_config(const monitoring_config_t *config)
     }
     memcpy(config_copy, config, sizeof(monitoring_config_t));
 
-    BaseType_t ret = xTaskCreate(apply_config_task, "mon_update", 4096, config_copy, 5, NULL);
+    // 8192 bytes: NVS write + MQTT client init/stop/start + CheckMK socket
+    // operations require significantly more than 4096 bytes of stack.
+    // A stack overflow at 4096 corrupts the heap and makes the device unresponsive.
+    BaseType_t ret = xTaskCreate(apply_config_task, "mon_update", 8192, config_copy, 5, NULL);
     if (ret != pdPASS) {
         ESP_LOGE(TAG, "Failed to create config update task");
         free(config_copy);
