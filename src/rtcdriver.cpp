@@ -59,7 +59,7 @@ static void i2c_master_init()
         .scl_io_num = HM_SCL_PIN,
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
-        .flags = { .enable_internal_pullup = true }
+        .flags = { .enable_internal_pullup = true, .allow_pd = false }
     };
 
     esp_err_t ret = i2c_new_master_bus(&bus_config, &i2c_bus);
@@ -112,6 +112,7 @@ bool Rtc::begin()
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = _address,
         .scl_speed_hz = 100000,
+        .scl_wait_us = 0,
     };
 
     esp_err_t ret = i2c_master_bus_add_device(i2c_bus, &dev_config, &device_handle);
@@ -137,6 +138,7 @@ struct timeval Rtc::GetTime()
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = _address,
         .scl_speed_hz = 100000,
+        .scl_wait_us = 0,
     };
 
     esp_err_t ret = i2c_master_bus_add_device(i2c_bus, &dev_config, &device_handle);
@@ -236,6 +238,7 @@ void Rtc::SetTime(struct timeval now)
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = _address,
         .scl_speed_hz = 100000,
+        .scl_wait_us = 0,
     };
 
     esp_err_t ret = i2c_master_bus_add_device(i2c_bus, &dev_config, &device_handle);
