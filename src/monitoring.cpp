@@ -34,7 +34,7 @@ static monitoring_config_t current_config = {};
 static bool snmp_running = false;
 static volatile bool checkmk_running = false;
 static volatile bool update_in_progress = false;
-static TaskHandle_t checkmk_task_handle = NULL;
+static volatile TaskHandle_t checkmk_task_handle = NULL;
 static int checkmk_listen_sock = -1;
 
 // NVS keys
@@ -375,12 +375,13 @@ esp_err_t checkmk_stop(void)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    // Force-delete only as last resort - this can leak lwIP resources, so
-    // the timeout above should always be sufficient with SO_RCVTIMEO.
-    if (checkmk_task_handle != NULL) {
+    // Use a local snapshot of the handle to avoid a race where the task
+    // sets checkmk_task_handle=NULL between our NULL check and vTaskDelete().
+    TaskHandle_t cmk_handle = checkmk_task_handle;
+    if (cmk_handle != NULL) {
         ESP_LOGW(TAG, "CheckMK task did not exit cleanly, force deleting");
-        vTaskDelete(checkmk_task_handle);
         checkmk_task_handle = NULL;
+        vTaskDelete(cmk_handle);
     }
 
     return ESP_OK;

@@ -21,8 +21,8 @@
 static const char *TAG = "MQTT";
 
 static esp_mqtt_client_handle_t client = NULL;
-static bool mqtt_running = false;
-static TaskHandle_t mqtt_publish_task_handle = NULL;
+static volatile bool mqtt_running = false;
+static volatile TaskHandle_t mqtt_publish_task_handle = NULL;
 static mqtt_config_t current_mqtt_config;
 
 // Forward declarations
@@ -180,9 +180,13 @@ void mqtt_handler_publish_status(void)
     char payload[64];
 
     // Helper macro to publish
+    // QoS=0 (fire-and-forget): status data is refreshed every 60s so
+    // occasional loss is acceptable, and QoS=0 is non-blocking which
+    // prevents the publish task from getting stuck waiting for PUBACK.
+    // retain=1 so HA sensors always show the last known value.
     #define PUBLISH(subtopic, value) \
         snprintf(topic, sizeof(topic), "%s/%s", current_mqtt_config.topic_prefix, subtopic); \
-        esp_mqtt_client_publish(client, topic, value, 0, 1, 1)
+        esp_mqtt_client_publish(client, topic, value, 0, 0, 1)
 
     // Helper macro to publish double
     #define PUBLISH_DOUBLE(subtopic, value, prec) \
@@ -529,20 +533,34 @@ esp_err_t mqtt_handler_stop(void)
     ESP_LOGI(TAG, "Stopping MQTT client");
     mqtt_running = false;
 
-    // Wait for publish task to exit on its own (max 2 seconds)
-    for (int i = 0; i < 20 && mqtt_publish_task_handle != NULL; i++) {
+    // Stop the MQTT client BEFORE waiting for the publish task.
+    // If QoS>0 publishes are in flight, esp_mqtt_client_stop() disconnects
+    // the underlying transport, causing any pending publish to return
+    // immediately. Without this, the publish task can be stuck waiting for
+    // a PUBACK from an unreachable broker, making the force-delete below
+    // fire while the task is inside lwIP - corrupting network state.
+    if (client) {
+        esp_mqtt_client_stop(client);
+    }
+
+    // Wait for publish task to exit on its own (max 3 seconds).
+    // With QoS=0 publishes and the client already stopped, this should
+    // complete within one loop iteration.
+    for (int i = 0; i < 30 && mqtt_publish_task_handle != NULL; i++) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    // Force-delete only if it didn't exit in time
-    if (mqtt_publish_task_handle != NULL) {
+    // Use a local snapshot of the handle to avoid a race where the task
+    // sets mqtt_publish_task_handle=NULL between our NULL check and
+    // vTaskDelete() call.
+    TaskHandle_t pub_handle = (TaskHandle_t)mqtt_publish_task_handle;
+    if (pub_handle != NULL) {
         ESP_LOGW(TAG, "MQTT publish task did not exit cleanly, force deleting");
-        vTaskDelete(mqtt_publish_task_handle);
         mqtt_publish_task_handle = NULL;
+        vTaskDelete(pub_handle);
     }
 
     if (client) {
-        esp_mqtt_client_stop(client);
         esp_mqtt_client_destroy(client);
         client = NULL;
     }
