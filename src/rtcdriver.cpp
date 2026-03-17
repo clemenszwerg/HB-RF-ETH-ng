@@ -54,8 +54,9 @@ static void i2c_master_init()
         return;
 
     i2c_master_bus_config_t bus_config = {
-        .scl_io_num = HM_SCL_PIN,
+        .i2c_port = I2C_NUM_0,
         .sda_io_num = HM_SDA_PIN,
+        .scl_io_num = HM_SCL_PIN,
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = true,
