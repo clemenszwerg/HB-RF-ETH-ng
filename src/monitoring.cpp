@@ -18,6 +18,7 @@
 #include "esp_timer.h"
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 // SNMP support (optional, requires CONFIG_LWIP_SNMP=y)
 #if CONFIG_LWIP_SNMP
@@ -128,6 +129,12 @@ static void checkmk_agent_task(void *pvParameters)
         return;
     }
 
+    // Periodic timeout so the task can check checkmk_running even if no
+    // client connects and even if shutdown() does not unblock accept() on
+    // this lwIP version.
+    struct timeval accept_tv = { .tv_sec = 1, .tv_usec = 0 };
+    setsockopt(checkmk_listen_sock, SOL_SOCKET, SO_RCVTIMEO, &accept_tv, sizeof(accept_tv));
+
     ESP_LOGI(TAG, "CheckMK Agent listening on port %d", config->port);
 
     while (checkmk_running) {
@@ -136,8 +143,9 @@ static void checkmk_agent_task(void *pvParameters)
 
         int client_sock = accept(checkmk_listen_sock, (struct sockaddr *)&client_addr, &client_addr_len);
         if (client_sock < 0) {
-            if (checkmk_running) {
-                ESP_LOGE(TAG, "Accept failed");
+            // EAGAIN/EWOULDBLOCK = 1s timeout expired, just re-check the loop condition
+            if (checkmk_running && errno != EAGAIN && errno != EWOULDBLOCK) {
+                ESP_LOGE(TAG, "Accept failed: errno %d", errno);
             }
             continue;
         }
@@ -352,18 +360,23 @@ esp_err_t checkmk_stop(void)
     ESP_LOGI(TAG, "Stopping CheckMK agent");
     checkmk_running = false;
 
-    // Close listening socket to unblock accept() so the task can exit cleanly
+    // shutdown() + close() to unblock accept(). shutdown() is more reliable
+    // than close() alone for interrupting a blocking accept() call on lwIP.
+    // The SO_RCVTIMEO set in the task ensures it wakes up within 1s regardless.
     if (checkmk_listen_sock >= 0) {
+        shutdown(checkmk_listen_sock, SHUT_RDWR);
         close(checkmk_listen_sock);
         checkmk_listen_sock = -1;
     }
 
-    // Wait for task to self-delete (max 2 seconds)
-    for (int i = 0; i < 20 && checkmk_task_handle != NULL; i++) {
+    // Wait up to 2.5s for the task to exit (accept timeout is 1s, so it
+    // will detect checkmk_running==false within one timeout cycle).
+    for (int i = 0; i < 25 && checkmk_task_handle != NULL; i++) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    // Force-delete if task didn't exit in time
+    // Force-delete only as last resort - this can leak lwIP resources, so
+    // the timeout above should always be sufficient with SO_RCVTIMEO.
     if (checkmk_task_handle != NULL) {
         ESP_LOGW(TAG, "CheckMK task did not exit cleanly, force deleting");
         vTaskDelete(checkmk_task_handle);
