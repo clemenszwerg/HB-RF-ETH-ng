@@ -54,18 +54,14 @@ static void i2c_master_init()
         return;
 
     i2c_master_bus_config_t bus_config = {
-        .i2c_scl_io_num = HM_SCL_PIN,
-        .i2c_sda_io_num = HM_SDA_PIN,
+        .scl_io_num = HM_SCL_PIN,
+        .sda_io_num = HM_SDA_PIN,
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
-        .flags.enable_pullup = true,
+        .flags.enable_internal_pullup = true,
     };
 
-    i2c_master_config_t master_config = {
-        .max_speed_hz = 100000,
-    };
-
-    esp_err_t ret = i2c_new_master_bus(&bus_config, &master_config, &i2c_bus);
+    esp_err_t ret = i2c_new_master_bus(&bus_config, &i2c_bus);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize I2C bus: %s", esp_err_to_name(ret));
     }
