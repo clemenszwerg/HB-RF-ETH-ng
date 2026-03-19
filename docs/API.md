@@ -128,8 +128,8 @@ curl -X GET http://192.168.1.100/sysinfo.json \
 {
   "sysInfo": {
     "serial": "A1B2C3D4E5F6",
-    "currentVersion": "2.1.9",
-    "latestVersion": "2.1.9",
+    "currentVersion": "2.1.10",
+    "latestVersion": "2.1.10",
     "boardRevision": "REV 1.10 (PUB)",
     "uptimeSeconds": 345678,
     "resetReason": "Power-On Reset",

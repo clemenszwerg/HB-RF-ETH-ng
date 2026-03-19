@@ -26,8 +26,8 @@ test.describe('Generate Assets', () => {
         body: JSON.stringify({
           sysInfo: {
             serial: "MEQ1234567",
-            currentVersion: "2.1.9",
-            latestVersion: "2.1.9",
+            currentVersion: "2.1.10",
+            latestVersion: "2.1.10",
             rawUartRemoteAddress: "192.168.1.10",
             memoryUsage: 45.2,
             cpuUsage: 12.5,
@@ -134,7 +134,7 @@ test.describe('Generate Assets', () => {
     await page.route('**/api/changelog', async route => {
         await route.fulfill({
             contentType: 'text/markdown',
-            body: "# Changelog\n\n## v2.1.10 (Latest)\n- **New Feature**: Added dark mode support for all pages.\n- **Improvement**: Enhanced radio communication stability.\n- **Fix**: Resolved issue with static IP configuration.\n\n## v2.1.9\n- **Feature**: Redesigned dashboard layout.\n- **Fix**: Memory leak in long-running sessions fixed.\n- **Security**: Updated dependency versions."
+            body: "# Changelog\n\n## v2.1.10 (Latest)\n- **Removed**: SNMP Support Removed - SNMP functionality has been completely removed from the firmware and WebUI. This change was necessary because ESP-IDF 5.5.3 no longer supports `CONFIG_LWIP_SNMP`.\n- **Changed**: Bumped version to 2.1.10\n\n## v2.1.9\n- **Changed**: Bumped version to 2.1.9"
         });
     });
 

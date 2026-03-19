@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.10] - 2025-03-10
+
+### Removed
+- 🗑️ **SNMP Support Removed** - SNMP functionality has been completely removed from the firmware and WebUI. This change was necessary because ESP-IDF 5.5.3 no longer supports `CONFIG_LWIP_SNMP`.
+
+### Changed
+- Bumped version to 2.1.10
+
 ## [2.1.9] - 2026-03-09
 
 ### Changed
@@ -324,7 +332,8 @@ This version builds on his excellent work and modernizes it for current developm
 
 For changes in versions before 2.0.0, see the [Original Repository](https://github.com/alexreinert/HB-RF-ETH).
 
-[Unreleased]: https://github.com/Xerolux/HB-RF-ETH-ng/compare/v2.1.9...HEAD
+[Unreleased]: https://github.com/Xerolux/HB-RF-ETH-ng/compare/v2.1.10...HEAD
+[2.1.10]: https://github.com/Xerolux/HB-RF-ETH-ng/compare/v2.1.9...v2.1.10
 [2.1.9]: https://github.com/Xerolux/HB-RF-ETH-ng/compare/v2.1.8...v2.1.9
 [2.1.8]: https://github.com/Xerolux/HB-RF-ETH-ng/compare/v2.1.7...v2.1.8
 [2.1.7]: https://github.com/Xerolux/HB-RF-ETH-ng/compare/v2.1.6...v2.1.7
