@@ -50,9 +50,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Update all version numbers
+      - name: Update all version numbers and changelog
         run: |
           NEW_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          echo "Updating changelog for $NEW_VERSION..."
+          python update_changelog.py "$NEW_VERSION"
+
           echo "Updating all version numbers to $NEW_VERSION..."
           python update_version.py "$NEW_VERSION"
           
