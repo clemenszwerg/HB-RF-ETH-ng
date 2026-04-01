@@ -33,6 +33,7 @@
             {{ t('about.firmwareLicense') }} HB-RF-ETH-ng {{ t('about.under') }}
             <a href="https://github.com/Xerolux/HB-RF-ETH-ng/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a>
           </p>
+          <p>{{ t('privacy.updateCheck') }}</p>
         </div>
       </div>
     </div>
@@ -59,17 +60,6 @@
             <a href="https://github.com/alexreinert/PCB/blob/master/LICENSE.md" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a>
           </p>
         </div>
-      </div>
-    </div>
-
-    <!-- Privacy Info -->
-    <div class="about-section">
-      <div class="section-header">
-        <span class="section-icon">🔒</span>
-        <h3 class="section-title">{{ t('privacy.title') }}</h3>
-      </div>
-      <div class="info-card">
-        <p>{{ t('privacy.updateCheck') }}</p>
       </div>
     </div>
 
@@ -123,6 +113,7 @@ const libs = ref([
   { name: 'Vuelidate', license: 'MIT', website: 'https://vuelidate-next.netlify.app/' },
   { name: 'Vue I18n', license: 'MIT', website: 'https://vue-i18n.intlify.dev/' },
   { name: 'axios', license: 'MIT', website: 'https://github.com/axios/axios' },
+  { name: 'marked', license: 'MIT', website: 'https://github.com/markedjs/marked' },
   { name: 'Vite', license: 'MIT', website: 'https://vitejs.dev/' },
   { name: 'ESP-IDF', license: 'Apache 2.0', website: 'https://docs.espressif.com/projects/esp-idf/' }
 ])

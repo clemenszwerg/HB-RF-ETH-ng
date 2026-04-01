@@ -175,7 +175,8 @@ export default {
     mbits: 'Mbit/s',
     online: 'Online',
     offline: 'Offline',
-    dashboardTitle: 'Systemstatus'
+    dashboardTitle: 'Systemstatus',
+    monitoringSummary: 'MQTT och CheckMK'
   },
 
   // Update
@@ -273,7 +274,7 @@ export default {
     title: 'Om',
     version: 'Version 2.1.11',
     fork: 'Moderniserad Fork',
-    forkDescription: 'Denna version är en moderniserad fork av Xerolux (2025), baserad på den ursprungliga HB-RF-ETH-firmwaren. Uppdaterad till ESP-IDF 5.3, moderna verktygskedjor och nuvarande WebUI-teknologier (Vue 3, Vite, Pinia).',
+    forkDescription: 'Denna version är en moderniserad fork av Xerolux (2025), baserad på den ursprungliga HB-RF-ETH-firmwaren. Uppdaterad till ESP-IDF 5.x, moderna verktygskedjor och nuvarande WebUI-teknologier (Vue 3, Vite, Pinia).',
     original: 'Ursprunglig Författare',
     firmwareLicense: 'Den',
     hardwareLicense: 'Den',

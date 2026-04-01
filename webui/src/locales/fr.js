@@ -175,7 +175,8 @@ export default {
     mbits: 'Mbit/s',
     online: 'En ligne',
     offline: 'Hors ligne',
-    dashboardTitle: 'État du système'
+    dashboardTitle: 'État du système',
+    monitoringSummary: 'MQTT et CheckMK'
   },
 
   // Update
@@ -273,7 +274,7 @@ export default {
     title: 'À propos',
     version: 'Version 2.1.11',
     fork: 'Fork Modernisé',
-    forkDescription: 'Cette version est un fork modernisé par Xerolux (2025), basé sur le firmware original HB-RF-ETH. Mis à jour vers ESP-IDF 5.3, chaînes d\'outils modernes et technologies WebUI actuelles (Vue 3, Vite, Pinia).',
+    forkDescription: 'Cette version est un fork modernisé par Xerolux (2025), basé sur le firmware original HB-RF-ETH. Mis à jour vers ESP-IDF 5.x, chaînes d\'outils modernes et technologies WebUI actuelles (Vue 3, Vite, Pinia).',
     original: 'Auteur Original',
     firmwareLicense: 'Le',
     hardwareLicense: 'Le',

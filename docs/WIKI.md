@@ -45,7 +45,7 @@ Willkommen im Wiki der modernisierten HB-RF-ETH-ng Firmware. Hier finden Sie all
 
 ### Firmware Updates
 * Upload als .bin Datei mit Fortschrittsanzeige in Prozent
-* **Download per URL** (z.B. direkt von GitHub Releases)
+* **Online-Update über URL** über den integrierten Update-Dienst
 * Automatische Prüfung auf neue Versionen mit Update-Banner in der WebUI
 * Automatischer Neustart nach erfolgreichem Update
 * Robuste Fehlerbehandlung verhindert Panic bei fehlerhaften Updates
@@ -83,17 +83,17 @@ Willkommen im Wiki der modernisierten HB-RF-ETH-ng Firmware. Hier finden Sie all
 * **Hardware-Überwachung** - Echtzeit-Temperatur, Spannung, CPU- und Speicheranzeige
 
 ### Technische Basis
-* **ESP-IDF 5.x** auf Espressif32 Platform ^6.12.0
+* **ESP-IDF 5.5.x** auf Espressif32 Platform ^6.13.0
 * **GCC 14.2.0** Toolchain (xtensa-esp-elf)
-* **Vue.js 3.5.27** mit Composition API, Vue Router 5, Pinia 3, Vue i18n 11
-* **Bootstrap Vue Next 0.43.0** UI-Komponentenbibliothek
-* **Vite 6.3.5** Build-System (schnelle Builds, optimierte Bundles)
+* **Vue.js 3.5.30** mit Composition API, Vue Router 5, Pinia 3, Vue i18n 11
+* **Bootstrap Vue Next 0.44.0** UI-Komponentenbibliothek
+* **Vite 8.x** Build-System (schnelle Builds, optimierte Bundles)
 
 ## Mobile Ansicht
 Die Benutzeroberfläche wurde speziell für mobile Endgeräte optimiert und bietet eine intuitive Bedienung auf Smartphones und Tablets.
 
 ## Bekannte Einschränkungen
-* Nach einem Neustart der Platine (z.B. bei Stromausfall) findet kein automatischer Reconnect statt, in diesem Fall muss die CCU Software daher neu gestartet werden.
+* Nach einem Firmware-Wechsel oder Netzwerkproblem kann es je nach CCU-Setup kurz dauern, bis die Verbindung wieder sichtbar ist. Mit aktuellen Versionen wurden Reconnect und mDNS-Ankündigung bereits verbessert.
 * Die Stromversorgung mittels des Funkmoduls RPI-RF-MOD darf nur erfolgen, wenn keine andere Stromversorgung (USB oder PoE) angeschlossen ist.
 
 ## Werksreset
@@ -137,7 +137,7 @@ Firmware Updates sind fertig kompiliert in den [Releases](https://github.com/Xer
 **Per Webinterface (URL Download):**
 1. In der WebUI zur Seite "Firmware Update" navigieren
 2. Direkte URL zur .bin Datei eingeben (z.B. von GitHub)
-3. Quick-Button für die neueste GitHub-Version nutzen
+3. Online-Update starten; die WebUI nutzt dafür den konfigurierten Update-Dienst
 4. Firmware wird heruntergeladen, installiert und die Platine neu gestartet
 
 **Sicherheitshinweise:**

@@ -13,7 +13,7 @@ def run(playwright):
     page.route("**/sysinfo.json", lambda route: route.fulfill(
         status=200,
         content_type="application/json",
-        body='{"sysInfo": {"ethernetConnected": true, "ethernetSpeed": 1000, "ethernetDuplex": "Full", "cpuUsage": 15, "memoryUsage": 30, "serial": "ABC1234567", "currentVersion": "2.1.10", "latestVersion": "2.1.10", "uptimeSeconds": 3600, "boardRevision": "1.0", "radioModuleType": "RPI-RF-MOD"}}'
+        body='{"sysInfo": {"ethernetConnected": true, "ethernetSpeed": 1000, "ethernetDuplex": "Full", "cpuUsage": 15, "memoryUsage": 30, "serial": "ABC1234567", "currentVersion": "2.1.11", "latestVersion": "2.1.11", "uptimeSeconds": 3600, "boardRevision": "1.0", "radioModuleType": "RPI-RF-MOD"}}'
     ))
 
     page.route("**/login.json", lambda route: route.fulfill(
@@ -31,7 +31,7 @@ def run(playwright):
     page.route("**/api/monitoring", lambda route: route.fulfill(
         status=200,
         content_type="application/json",
-        body='{"snmp": {"enabled": false}, "checkmk": {"enabled": false}, "mqtt": {"enabled": false}}'
+        body='{"checkmk": {"enabled": false}, "mqtt": {"enabled": false}}'
     ))
 
     # 1. Login Page Verification

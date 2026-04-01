@@ -32,6 +32,18 @@ Hierbei gilt, dass bei einer debmatic oder piVCCU3 Installation immer nur ein Fu
 
 ---
 
+### Kurzüberblick
+- Firmware für HB-RF-ETH mit Unterstützung für `HM-MOD-RPI-PCB` und `RPI-RF-MOD`
+- Moderne WebUI auf Basis von Vue 3, Vite und Bootstrap 5
+- Monitoring via MQTT und CheckMK
+- OTA-Updates per Datei-Upload oder über den integrierten Online-Update-Dienst
+- ESP-IDF 5.5.x Toolchain über PlatformIO
+
+### Update- und Release-Hinweise
+- Die WebUI prüft neue Versionen standardmäßig über den gehosteten Update-Dienst unter `https://xerolux.de/firmware/HB-RF-ETH-ng/`.
+- Releases auf GitHub bleiben die zentrale Quelle für Release Notes, Artefakte und Historie.
+- Für produktive Systeme sollten bevorzugt Stable-Releases verwendet werden; Pre-Releases eignen sich zum Vorabtesten neuer Fixes.
+
 ### Screenshots
 | Login | Dashboard |
 | :---: | :---: |

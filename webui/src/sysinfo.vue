@@ -48,7 +48,7 @@
           <span class="icon-badge info"><AppIcon name="monitoring" /></span>
           <div>
             <strong>{{ t('nav.monitoring') }}</strong>
-            <p>MQTT, SNMP and CheckMK</p>
+            <p>{{ t('sysinfo.monitoringSummary') }}</p>
           </div>
         </router-link>
 
