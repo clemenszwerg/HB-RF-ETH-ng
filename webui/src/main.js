@@ -153,6 +153,7 @@ themeStore.init()
 
 // Activity tracking for idle timeout
 let lastUpdate = 0
+let idleCheckInterval = null
 const updateActivity = () => {
   const now = Date.now()
   if (now - lastUpdate > 1000) { // Throttle updates to once per second
@@ -164,13 +165,13 @@ const updateActivity = () => {
   }
 }
 
-window.addEventListener('mousemove', updateActivity)
-window.addEventListener('keydown', updateActivity)
-window.addEventListener('click', updateActivity)
-window.addEventListener('touchstart', updateActivity)
+const activityEvents = ['mousemove', 'keydown', 'click', 'touchstart']
+for (const eventName of activityEvents) {
+  window.addEventListener(eventName, updateActivity)
+}
 
 // Check for inactivity every 30 seconds
-setInterval(() => {
+idleCheckInterval = window.setInterval(() => {
   const loginStore = useLoginStore()
   if (loginStore.isLoggedIn) {
     if (loginStore.checkActivity()) {
@@ -178,5 +179,16 @@ setInterval(() => {
     }
   }
 }, 30000)
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    for (const eventName of activityEvents) {
+      window.removeEventListener(eventName, updateActivity)
+    }
+    if (idleCheckInterval !== null) {
+      window.clearInterval(idleCheckInterval)
+    }
+  })
+}
 
 app.mount('#app')

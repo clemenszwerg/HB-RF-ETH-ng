@@ -178,7 +178,7 @@ container                            -- Layout
 | `/` | Home → SysInfo anzeigen | Nein |
 | `/settings` | Alle Einstellungen (eine lange Seite) | Ja |
 | `/firmware` | Firmware-Upload + Neustart | Ja |
-| `/monitoring` | SNMP, CheckMK, MQTT Config | Ja |
+| `/monitoring` | CheckMK, MQTT Config | Ja |
 | `/log` | System-Log (nicht implementiert) | Ja |
 | `/analyzer` | Paket-Analyzer (nicht implementiert) | Ja |
 | `/change-password` | Passwort aendern | Ja |

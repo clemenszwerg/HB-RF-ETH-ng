@@ -14,7 +14,7 @@
 default_envs = hb-rf-eth-ng-standard
 
 [env]
-platform = espressif32@6.12.0
+platform = espressif32@6.13.0
 framework = espidf
 
 ; Base configuration shared by all variants
@@ -31,8 +31,6 @@ board_build.partitions = partitions.csv
 build_flags =
     -DCONFIG_COMPILER_CXX_RTTI=1
     -DIDF_MAINTAINER=1
-    -DCONFIG_LWIP_SNMP=1
-    -DCONFIG_LWIP_SNMP_MAX_OBJ_ID_LEN=50
     -DCONFIG_LWIP_MIB2_CALLBACKS=1
     -DCONFIG_HTTPD_WS_SUPPORT=1
     -DCONFIG_FREERTOS_USE_TRACE_FACILITY=1

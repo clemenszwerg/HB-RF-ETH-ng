@@ -175,7 +175,8 @@ export default {
     mbits: 'Mbit/s',
     online: 'Online',
     offline: 'Offline',
-    dashboardTitle: 'Stav systému'
+    dashboardTitle: 'Stav systému',
+    monitoringSummary: 'MQTT a CheckMK'
   },
 
   // Update
@@ -273,7 +274,7 @@ export default {
     title: 'O programu',
     version: 'Verze 2.1.11',
     fork: 'Modernizovaný Fork',
-    forkDescription: 'Tato verze je modernizovaný fork od Xerolux (2025), založený na původním firmwaru HB-RF-ETH. Aktualizováno na ESP-IDF 5.3, moderní toolchainy a současné technologie WebUI (Vue 3, Vite, Pinia).',
+    forkDescription: 'Tato verze je modernizovaný fork od Xerolux (2025), založený na původním firmwaru HB-RF-ETH. Aktualizováno na ESP-IDF 5.x, moderní toolchainy a současné technologie WebUI (Vue 3, Vite, Pinia).',
     original: 'Původní Autor',
     firmwareLicense: 'Tento',
     hardwareLicense: 'Tento',

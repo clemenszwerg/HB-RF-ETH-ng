@@ -128,8 +128,8 @@ curl -X GET http://192.168.1.100/sysinfo.json \
 {
   "sysInfo": {
     "serial": "A1B2C3D4E5F6",
-    "currentVersion": "2.1.10",
-    "latestVersion": "2.1.10",
+    "currentVersion": "2.1.11",
+    "latestVersion": "2.1.12",
     "boardRevision": "REV 1.10 (PUB)",
     "uptimeSeconds": 345678,
     "resetReason": "Power-On Reset",
@@ -333,7 +333,7 @@ All settings are validated on the backend before being applied. Invalid values w
 - IP address format validation (both IPv4 and IPv6)
 - Hostname and domain name DNS compliance checking
 - Port number range validation
-- SNMP community string validation
+- Monitoring input validation for MQTT and CheckMK
 
 **Example:**
 ```bash
@@ -349,19 +349,22 @@ curl -X POST http://192.168.1.100/settings.json \
 
 ### GET /api/monitoring
 
-Retrieve monitoring configuration for SNMP and CheckMK.
+Retrieve monitoring configuration for MQTT and CheckMK.
 
 **Authentication:** Required
 
 **Response (200 OK):**
 ```json
 {
-  "snmp": {
+  "mqtt": {
     "enabled": false,
-    "community": "public",
-    "location": "",
-    "contact": "",
-    "port": 161
+    "server": "",
+    "port": 1883,
+    "user": "",
+    "password": "",
+    "topicPrefix": "hb-rf-eth",
+    "haDiscoveryEnabled": false,
+    "haDiscoveryPrefix": "homeassistant"
   },
   "checkmk": {
     "enabled": false,
@@ -373,12 +376,15 @@ Retrieve monitoring configuration for SNMP and CheckMK.
 
 **Fields:**
 
-**SNMP:**
-- `enabled`: Enable/disable SNMP agent
-- `community`: SNMP community string (max 32 characters, validated for length and content)
-- `location`: SNMP system location
-- `contact`: SNMP system contact
-- `port`: SNMP agent port (default: 161, range: 1-65535)
+**MQTT:**
+- `enabled`: Enable/disable MQTT client
+- `server`: MQTT broker hostname or IP address
+- `port`: MQTT broker port (default: 1883, range: 1-65535)
+- `user`: Optional username
+- `password`: Optional password; an empty string keeps the stored password unchanged
+- `topicPrefix`: Topic prefix for published entities and status messages
+- `haDiscoveryEnabled`: Enable Home Assistant auto-discovery payloads
+- `haDiscoveryPrefix`: Discovery prefix used for Home Assistant
 
 **CheckMK:**
 - `enabled`: Enable/disable CheckMK agent
@@ -400,12 +406,15 @@ Update monitoring configuration.
 **Request:**
 ```json
 {
-  "snmp": {
-    "enabled": true,
-    "community": "private",
-    "location": "Server Room",
-    "contact": "admin@example.com",
-    "port": 161
+    "mqtt": {
+      "enabled": true,
+      "server": "mqtt.local",
+      "port": 1883,
+      "user": "hb-rf-eth",
+      "password": "secret",
+      "topicPrefix": "hb-rf-eth",
+      "haDiscoveryEnabled": true,
+      "haDiscoveryPrefix": "homeassistant"
   },
   "checkmk": {
     "enabled": true,
@@ -441,8 +450,8 @@ Upload and install a firmware update.
 **Authentication:** Required
 
 **Request:**
-- Content-Type: `multipart/form-data`
-- Form field: `file` (firmware binary)
+- Content-Type: `application/octet-stream`
+- Body: raw firmware binary
 
 **Response (200 OK):**
 ```json
@@ -458,7 +467,7 @@ Upload and install a firmware update.
 }
 ```
 
-**Note:** After successful upload, the device must be manually restarted for the firmware to take effect.
+**Note:** After a successful upload, the device restarts automatically after a short delay.
 
 **Example:**
 ```bash
@@ -530,11 +539,11 @@ Returned when an internal error occurs.
 
 1. **Default Password**: The default admin password is `admin`. **Change this immediately after first login.**
 
-2. **Token Storage**: Tokens are stored in sessionStorage and expire when the browser tab is closed.
+2. **Token Storage**: Tokens are stored in `localStorage` and expire on device reboot or after inactivity-based logout.
 
 3. **HTTPS**: The device does not use HTTPS by default. For production deployments, consider using a reverse proxy with SSL/TLS.
 
-4. **SNMP Community**: The default SNMP community string is `public`. Change this to a secure value if SNMP is enabled.
+4. **Monitoring Access**: Restrict CheckMK access to trusted hosts and protect MQTT broker credentials appropriately.
 
 5. **Rate Limiting**: Login attempts are rate-limited to prevent brute-force attacks.
 
@@ -570,16 +579,16 @@ curl -X POST http://192.168.1.100/settings.json \
     "ledBrightness": 50
   }'
 
-# 5. Enable SNMP monitoring
+# 5. Enable MQTT monitoring
 curl -X POST http://192.168.1.100/api/monitoring \
   -H "Authorization: Token $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "snmp": {
+    "mqtt": {
       "enabled": true,
-      "community": "private",
-      "location": "Server Room",
-      "contact": "admin@example.com"
+      "server": "mqtt.local",
+      "port": 1883,
+      "topicPrefix": "hb-rf-eth"
     }
   }'
 ```

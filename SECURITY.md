@@ -65,14 +65,15 @@ We have updated to the latest available version (2.16.3), which is currently the
 - Set a strong, unique password
 - Recommended: Use 12+ characters with mixed case, numbers, and symbols
 
-### SNMP Configuration
+### Monitoring Configuration
 
-The firmware includes SNMP monitoring with a default community string of `public`.
+The firmware currently supports monitoring via **MQTT** and **CheckMK**.
 
 **Recommendations**:
-- Change the default SNMP community string in production environments
-- Use SNMPv3 with authentication if your monitoring system supports it
-- Restrict SNMP access to trusted monitoring hosts only
+- Restrict CheckMK access to trusted hosts only
+- Use strong credentials for MQTT brokers
+- Prefer isolated network segments for management and monitoring traffic
+- Disable monitoring services that are not needed in production
 
 ### Network Security
 

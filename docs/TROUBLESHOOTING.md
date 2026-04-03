@@ -189,18 +189,19 @@ arp -a | grep <MAC>      # Find device by MAC address
    - Verify radio module is detected
    - Check LED indicators on radio module
 
-### No Reconnect After Restart
+### Reconnect After Restart
 
-**Known Limitation:**
-After a device restart (e.g., power failure), the CCU does not automatically reconnect.
+With current firmware versions, reconnect handling after restarts has been improved. If the CCU connection is still missing after a reboot:
 
-**Workaround:**
-- Restart CCU/debmatic/piVCCU3 software
-- This re-establishes the Raw UART connection
+**Checks:**
+- Wait a short moment for Ethernet, mDNS and Raw UART services to finish starting
+- Verify the configured CCU IP in the WebUI
+- Check `/sysinfo.json` for `rawUartRemoteAddress`
 
-**Permanent Solution:**
-- Use UPS for device and CCU
-- Implement automatic CCU restart script on network changes
+**Workarounds if needed:**
+- Restart the CCU/debmatic/piVCCU3 service
+- Verify that no firewall or network ACL blocks the UDP path
+- Check switch and link negotiation after boot
 
 ---
 
@@ -484,7 +485,7 @@ See radio module documentation:
    - Check CCU for excessive polling
 
 2. **Reduce Monitoring**
-   - Disable SNMP if not needed
+   - Disable unused monitoring services if not needed
    - Reduce CheckMK polling frequency
    - Lower LED brightness
 
@@ -626,7 +627,7 @@ If problems persist:
    - Avoid power cycling during updates
 
 4. **Monitoring**
-   - Enable SNMP/CheckMK for production
+   - Enable CheckMK or MQTT only where needed
    - Monitor uptime and resource usage
 
 5. **Change Default Password**
@@ -636,4 +637,4 @@ If problems persist:
 6. **Network Security**
    - Isolate management interface
    - Use firewall rules
-   - Disable unused services (SNMP if not needed)
+   - Disable unused monitoring services

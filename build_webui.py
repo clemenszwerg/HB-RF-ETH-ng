@@ -18,14 +18,17 @@ def is_tool(name):
 def build_web():
     """Build the web UI using npm."""
     if not is_tool("npm"):
-        print("WARNING: npm not found in PATH. Skipping web UI build.")
-        print("Please install Node.js and npm to build the web UI.")
-        return
+        if os.environ.get("HB_RF_ETH_ALLOW_PREBUILT_WEBUI") == "1":
+            print("WARNING: npm not found in PATH. Using prebuilt WebUI assets because HB_RF_ETH_ALLOW_PREBUILT_WEBUI=1 is set.")
+            return
+        print("ERROR: npm not found in PATH.")
+        print("Install Node.js and npm, or explicitly set HB_RF_ETH_ALLOW_PREBUILT_WEBUI=1 to build with existing dist assets.")
+        sys.exit(1)
 
     webui_dir = Path("webui")
     if not webui_dir.exists():
         print("ERROR: webui directory not found!")
-        return
+        sys.exit(1)
 
     original_dir = os.getcwd()
     try:
@@ -55,7 +58,7 @@ def build_web():
 
             if result.returncode != 0:
                 print(f"ERROR: npm install failed:\n{result.stderr}")
-                return
+                sys.exit(1)
         else:
             print("npm dependencies are up to date, skipping install.")
 
