@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  *  dcf.h is part of the HB-RF-ETH firmware v2.0
  *

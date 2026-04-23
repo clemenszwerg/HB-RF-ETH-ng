@@ -107,6 +107,8 @@ uint16_t HMFrame::encode(unsigned char *buffer, uint16_t len, bool escaped)
         {
             if (buffer[i] == 0xfc || buffer[i] == 0xfd)
             {
+                if (res >= len)
+                    break;
                 memmove(buffer + i + 1, buffer + i, res - i);
                 buffer[i++] = 0xfc;
                 buffer[i] &= 0x7f;

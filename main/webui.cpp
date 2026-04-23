@@ -212,7 +212,7 @@ esp_err_t post_login_json_handler_func(httpd_req_t *req)
             httpd_resp_sendstr(req, json);
             free((void *)json);
         } else {
-            httpd_resp_send_500(req);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON alloc failed");
         }
         cJSON_Delete(root);
 
@@ -288,7 +288,7 @@ esp_err_t get_sysinfo_json_handler_func(httpd_req_t *req)
         httpd_resp_sendstr(req, json);
         free((void *)json);
     } else {
-        httpd_resp_send_500(req);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON alloc failed");
     }
     cJSON_Delete(root);
 
@@ -370,7 +370,7 @@ esp_err_t get_settings_json_handler_func(httpd_req_t *req)
         httpd_resp_sendstr(req, json);
         free((void *)json);
     } else {
-        httpd_resp_send_500(req);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON alloc failed");
     }
     cJSON_Delete(root);
 
@@ -612,7 +612,7 @@ esp_err_t get_backup_handler_func(httpd_req_t *req)
         httpd_resp_sendstr(req, json);
         free((void *)json);
     } else {
-        httpd_resp_send_500(req);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON alloc failed");
     }
     cJSON_Delete(root);
 
@@ -1300,7 +1300,7 @@ esp_err_t post_change_password_handler_func(httpd_req_t *req)
         httpd_resp_sendstr(req, json);
         free((void *)json);
     } else {
-        httpd_resp_send_500(req);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON alloc failed");
     }
     cJSON_Delete(response);
 
