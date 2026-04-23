@@ -182,6 +182,7 @@ Ethernet::Ethernet(Settings *settings) : _settings(settings), _isConnected(false
     phy_config.reset_gpio_num = ETH_POWER_PIN;
     phy_config.reset_timeout_ms = 1000;
     _phy = esp_eth_phy_new_lan87xx(&phy_config);
+    ESP_LOGI(TAG, "PHY created: %s", _phy ? "OK" : "FAILED");
 
     // Configure MAC
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
@@ -193,16 +194,22 @@ Ethernet::Ethernet(Settings *settings) : _settings(settings), _isConnected(false
     esp32_emac_config.clock_config.rmii.clock_mode = EMAC_CLK_OUT;
     esp32_emac_config.clock_config.rmii.clock_gpio = GPIO_NUM_17;
     _mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
+    ESP_LOGI(TAG, "MAC created: %s", _mac ? "OK" : "FAILED");
 
     _eth_config = ETH_DEFAULT_CONFIG(_mac, _phy);
     _eth_handle = NULL;
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_eth_driver_install(&_eth_config, &_eth_handle));
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_attach(_eth_netif, esp_eth_new_netif_glue(_eth_handle)));
+    esp_err_t ret = esp_eth_driver_install(&_eth_config, &_eth_handle);
+    ESP_LOGI(TAG, "ETH driver install: %s (0x%x)", esp_err_to_name(ret), ret);
+    if (ret == ESP_OK) {
+        ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_attach(_eth_netif, esp_eth_new_netif_glue(_eth_handle)));
+    }
 }
 
 void Ethernet::start()
 {
+    ESP_LOGI(TAG, "Starting Ethernet...");
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_eth_start(_eth_handle));
+    ESP_LOGI(TAG, "Ethernet start() called, waiting for link...");
 }
 
 void Ethernet::stop()
