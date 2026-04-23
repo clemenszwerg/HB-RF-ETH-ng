@@ -70,7 +70,7 @@ jobs:
           python -m pip install --upgrade pip
           git clone --depth 1 --branch v6.0 https://github.com/espressif/esp-idf.git "$HOME/esp-idf"
           git -C "$HOME/esp-idf" submodule update --init --recursive --depth 1
-          python -m pip install -r "$HOME/esp-idf/requirements.txt"
+          "$HOME/esp-idf/install.sh" esp32
 
       - name: Build with ESP-IDF
         if: matrix.language == 'cpp'
@@ -120,7 +120,7 @@ jobs:
           python -m pip install --upgrade pip
           git clone --depth 1 --branch v6.0 https://github.com/espressif/esp-idf.git "$HOME/esp-idf"
           git -C "$HOME/esp-idf" submodule update --init --recursive --depth 1
-          python -m pip install -r "$HOME/esp-idf/requirements.txt"
+          "$HOME/esp-idf/install.sh" esp32
 
       - name: Check ESP-IDF tool versions
         run: |
