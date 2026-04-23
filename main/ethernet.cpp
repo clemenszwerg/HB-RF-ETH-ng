@@ -140,8 +140,8 @@ Ethernet::Ethernet(Settings *settings) : _settings(settings), _isConnected(false
 
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_loop_create_default());
 
-    _netif_cfg = ESP_NETIF_DEFAULT_ETH();
-    _eth_netif = esp_netif_new(_netif_cfg);
+    esp_netif_config_t netif_cfg = ESP_NETIF_DEFAULT_ETH();
+    _eth_netif = esp_netif_new(&netif_cfg);
 
     if (settings->getUseDHCP())
     {
