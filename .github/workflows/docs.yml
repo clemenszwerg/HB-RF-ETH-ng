@@ -97,7 +97,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin ${{ github.base_ref }}
-          if git diff origin/${{ github.base_ref }} --name-only | grep -q "^src/\|^webui/"; then
+          if git diff origin/${{ github.base_ref }} --name-only | grep -q "^main/\|^webui/"; then
             if ! git diff origin/${{ github.base_ref }} --name-only | grep -q "README.md"; then
               echo "⚠️ Warning: Code changed but README.md not updated"
             fi

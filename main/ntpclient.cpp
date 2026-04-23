@@ -42,7 +42,7 @@ void NtpClient::start()
 {
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, _settings->getNtpServer());
-    sntp_set_time_sync_notification_cb(_time_sync_notification_cb);
+    esp_sntp_set_sync_notification_cb(_time_sync_notification_cb);
     esp_sntp_init();
 }
 

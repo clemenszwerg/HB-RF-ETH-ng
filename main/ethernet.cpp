@@ -172,14 +172,14 @@ Ethernet::Ethernet(Settings *settings) : _settings(settings), _isConnected(false
     }
 
     // Register event handlers
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &::_handleETHEvent, (void *)this));
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &::_handleIPEvent, (void *)this));
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(ETH_EVENT, ESP_EVENT_ANY_ID, &::_handleETHEvent, (void *)this, &_eth_event_instance));
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &::_handleIPEvent, (void *)this, &_ip_event_instance));
 
     // Configure PHY (LAN8720)
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
     phy_config.phy_addr = ETH_PHY_ADDR;
     phy_config.reset_gpio_num = ETH_POWER_PIN;
-    _phy = esp_eth_phy_new_lan87xx(&phy_config);
+    _phy = esp_eth_phy_new_generic(&phy_config);
 
     // Configure MAC
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();

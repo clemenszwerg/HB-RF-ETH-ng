@@ -218,7 +218,7 @@ ip4_addr_t RawUartUdpListener::getConnectedRemoteAddress()
     }
     else
     {
-        return IP4_ADDR_ANY->u_addr.ip4;
+        return (ip4_addr_t{.addr = IPADDR_ANY});
     }
 }
 

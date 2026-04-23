@@ -46,6 +46,8 @@ private:
   esp_eth_mac_t *_mac;
   esp_eth_phy_t *_phy;
   esp_eth_config_t _eth_config;
+  esp_event_handler_instance_t _eth_event_instance;
+  esp_event_handler_instance_t _ip_event_instance;
 
   Settings *_settings;
   bool _isConnected;

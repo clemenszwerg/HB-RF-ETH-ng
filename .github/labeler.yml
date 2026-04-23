@@ -8,9 +8,8 @@ webui:
 # Label Firmware changes
 firmware:
 - changed-files:
-  - any-glob-to-any-file: 'src/**/*'
+  - any-glob-to-any-file: 'main/**/*'
   - any-glob-to-any-file: 'include/**/*'
-  - any-glob-to-any-file: 'platformio.ini'
 
 # Label Documentation changes
 documentation:
