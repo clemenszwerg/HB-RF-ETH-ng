@@ -1,3 +1,7 @@
 dependencies:
   espressif/mdns:
     version: "^1.4.3"
+  espressif/mqtt:
+    version: "*"
+  espressif/cjson:
+    version: "^1.7.19"
