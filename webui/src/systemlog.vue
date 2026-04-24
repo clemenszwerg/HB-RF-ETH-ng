@@ -169,7 +169,7 @@ const appendChunk = (chunk) => {
 const startPolling = () => {
   stopPolling()
   fetchLog()
-  pollTimer = setInterval(fetchLog, 3000)
+  pollTimer = setInterval(fetchLog, 5000)
 }
 
 const stopPolling = () => {

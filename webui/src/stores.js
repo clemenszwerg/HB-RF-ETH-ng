@@ -293,17 +293,24 @@ export const useUpdateStore = defineStore('update', {
 
     compareVersions(current, latest) {
       const parseVersion = (v) => {
-        const match = v.match(/(\d+)\.(\d+)\.(\d+)/)
-        if (!match) return [0, 0, 0]
-        return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
+        const match = v.match(/(\d+)\.(\d+)\.(\d+)(?:-(.+))?/)
+        if (!match) return { parts: [0, 0, 0], pre: null }
+        const pre = match[4] || null
+        return { parts: [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])], pre }
       }
 
-      const [major1, minor1, patch1] = parseVersion(current)
-      const [major2, minor2, patch2] = parseVersion(latest)
+      const cur = parseVersion(current)
+      const lat = parseVersion(latest)
 
-      if (major1 !== major2) return major1 - major2
-      if (minor1 !== minor2) return minor1 - minor2
-      return patch1 - patch2
+      for (let i = 0; i < 3; i++) {
+        if (cur.parts[i] !== lat.parts[i]) return cur.parts[i] - lat.parts[i]
+      }
+
+      if (cur.pre === null && lat.pre === null) return 0
+      if (cur.pre === null) return 1
+      if (lat.pre === null) return -1
+
+      return cur.pre.localeCompare(lat.pre)
     }
   }
 })
