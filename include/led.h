@@ -72,6 +72,7 @@ public:
     static void stop();
 
     // LED Programme Management
+    static void setBrightness(int brightness);
     static void setProgram(led_program_t program, led_state_t state);
     static led_state_t getProgram(led_program_t program);
     static void setProgramState(led_program_t program);

@@ -464,6 +464,9 @@ esp_err_t post_settings_json_handler_func(httpd_req_t *req)
 
     cJSON *ledBrightnessItem = cJSON_GetObjectItem(root, "ledBrightness");
     int ledBrightness = ledBrightnessItem ? ledBrightnessItem->valueint : _settings->getLEDBrightness();
+    if (ledBrightnessItem) {
+        LED::setBrightness(ledBrightness);
+    }
 
     cJSON *ledPrograms = cJSON_GetObjectItem(root, "ledPrograms");
     if (ledPrograms) {
@@ -680,6 +683,9 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
 
     cJSON *ledBrightnessItem = cJSON_GetObjectItem(root, "ledBrightness");
     int ledBrightness = ledBrightnessItem ? ledBrightnessItem->valueint : _settings->getLEDBrightness();
+    if (ledBrightnessItem) {
+        LED::setBrightness(ledBrightness);
+    }
 
     cJSON *ledPrograms = cJSON_GetObjectItem(root, "ledPrograms");
     if (ledPrograms) {

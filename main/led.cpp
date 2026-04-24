@@ -87,6 +87,11 @@ void LED::start(Settings *settings)
     }
 }
 
+void LED::setBrightness(int brightness)
+{
+    _highDuty = brightness * (1 << 11) / 100;
+}
+
 void LED::stop()
 {
     if (_switchTaskHandle)
