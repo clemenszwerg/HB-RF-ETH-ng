@@ -31,7 +31,7 @@ static const char *TAG = "Ethernet";
 
 // DNS Cache Implementierung
 Ethernet::dns_cache_entry Ethernet::_dns_cache[Ethernet::DNS_CACHE_SIZE] = {};
-uint32_t Ethernet::_current_time = 0;
+uint64_t Ethernet::_current_time = 0;
 
 void Ethernet::dnsCacheInit()
 {
