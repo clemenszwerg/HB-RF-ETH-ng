@@ -103,9 +103,6 @@ const loginClick = async () => {
   showError.value = false
   loading.value = true
 
-  // Simulate network delay for smoother UX
-  await new Promise(resolve => setTimeout(resolve, 500))
-
   const success = await loginStore.tryLogin(password.value)
   loading.value = false
 
@@ -285,23 +282,21 @@ const loginClick = async () => {
 }
 
 /* Dark Mode Overrides */
-@media (prefers-color-scheme: dark) {
-  .login-page {
-    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-  }
+[data-bs-theme="dark"] .login-page {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+}
 
-  .glass-panel {
-    background: rgba(30, 30, 30, 0.8);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
+[data-bs-theme="dark"] .glass-panel {
+  background: rgba(30, 30, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
 
-  .modern-input {
-    background: rgba(0, 0, 0, 0.3);
-    color: white;
-  }
+[data-bs-theme="dark"] .modern-input {
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+}
 
-  .modern-input:focus {
-    background: rgba(0, 0, 0, 0.5);
-  }
+[data-bs-theme="dark"] .modern-input:focus {
+  background: rgba(0, 0, 0, 0.5);
 }
 </style>

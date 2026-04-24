@@ -158,7 +158,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useLoginStore, useThemeStore, useUpdateStore, useSysInfoStore, useSettingsStore } from './stores.js'
+import { useLoginStore, useThemeStore, useUpdateStore, useSysInfoStore } from './stores.js'
 import { availableLocales } from './locales/index.js'
 
 const { t, locale } = useI18n()
@@ -167,7 +167,6 @@ const loginStore = useLoginStore()
 const themeStore = useThemeStore()
 const updateStore = useUpdateStore()
 const sysInfoStore = useSysInfoStore()
-const settingsStore = useSettingsStore()
 
 const showBanner = ref(true)
 const localeOpen = ref(false)
@@ -203,12 +202,6 @@ const dismissUpdate = () => {
 
 onMounted(async () => {
   try {
-    await settingsStore.load()
-  } catch (e) {
-    console.error('Failed to load settings', e)
-  }
-
-  try {
     if (!sysInfoStore.currentVersion) {
       await sysInfoStore.update()
     }
@@ -241,6 +234,21 @@ onUnmounted(() => {
   position: relative;
   z-index: 1000;
   margin-bottom: var(--spacing-lg);
+}
+
+.update-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  padding: 14px 18px;
+  border-radius: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-lg);
 }
 
 .header-nav {
@@ -311,7 +319,7 @@ onUnmounted(() => {
 .nav-item:hover,
 .nav-item.active {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(127, 127, 127, 0.18);
 }
 
 .mini-dot {
@@ -405,16 +413,6 @@ onUnmounted(() => {
 .locale-menu-item.active,
 .locale-menu-item:hover {
   background: rgba(255, 255, 255, 0.5);
-}
-
-.update-banner {
-  margin-bottom: 12px;
-  padding: 14px 18px;
-  border-radius: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
 }
 
 .update-banner-copy {
@@ -579,6 +577,7 @@ onUnmounted(() => {
   .update-banner {
     flex-direction: column;
     align-items: flex-start;
+    top: 52px;
   }
 
   .update-banner-actions {

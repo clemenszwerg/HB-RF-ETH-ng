@@ -154,7 +154,12 @@ const appendChunk = (chunk) => {
 
   if (!lines.length) return
 
-  logEntries.value = [...logEntries.value, ...lines].slice(-MAX_LOG_LINES)
+  for (const line of lines) {
+    if (logEntries.value.length >= MAX_LOG_LINES) {
+      logEntries.value.shift()
+    }
+    logEntries.value.push(line)
+  }
 
   if (paused.value || !autoScroll.value) {
     newEntriesCount.value += lines.length
@@ -428,7 +433,8 @@ onUnmounted(() => {
 .log-container {
   height: 500px;
   overflow-y: auto;
-  background: rgba(19, 25, 37, 0.96);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   margin: var(--spacing-sm);
 }
@@ -444,11 +450,11 @@ onUnmounted(() => {
   gap: 10px;
   padding: 8px 10px;
   border-radius: 12px;
-  color: #dbe4f0;
+  color: var(--color-text);
 }
 
 .log-line:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(127, 127, 127, 0.1);
 }
 
 .log-line code {
@@ -460,27 +466,27 @@ onUnmounted(() => {
 }
 
 .log-line.info {
-  color: #b7d8ff;
+  color: var(--color-text);
 }
 
 .log-line.warning {
-  color: #facc75;
+  color: var(--color-warning);
 }
 
 .log-line.error {
-  color: #fca5a5;
+  color: var(--color-danger);
 }
 
 .line-copy {
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.74);
+  color: var(--color-text-secondary);
   padding: 2px;
 }
 
 .log-empty {
   padding: 24px;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--color-text-secondary);
 }
 
 .log-disabled {

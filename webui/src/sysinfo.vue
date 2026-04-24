@@ -296,7 +296,7 @@ const startPolling = async () => {
   }
   updateTimer = setInterval(() => {
     sysInfoStore.update()
-  }, 2000)
+  }, 5000)
 }
 
 const stopPolling = () => {

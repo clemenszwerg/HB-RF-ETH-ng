@@ -123,7 +123,7 @@
     </div>
 
     <Transition name="slide-up">
-      <div class="floating-footer">
+      <div v-if="hasChanges" class="floating-footer">
         <div class="footer-container">
           <BButton
             variant="primary"
@@ -142,7 +142,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMonitoringStore, useUiStore } from './stores.js'
 import { storeToRefs } from 'pinia'
@@ -155,6 +155,12 @@ const { checkmk: checkmkConfig, mqtt: mqttConfig } = storeToRefs(monitoringStore
 
 const saving = ref(false)
 const diagnosticBusy = ref({ checkmk: false, mqtt: false })
+const hasChanges = ref(false)
+const originalConfig = ref('')
+
+const markDirty = () => {
+  hasChanges.value = true
+}
 
 const diagnosticCards = computed(() => [
   { key: 'checkmk', title: 'CheckMK', icon: 'logs', tone: 'warning' },
@@ -172,10 +178,16 @@ const diagnosticState = (target) => {
 onMounted(async () => {
   try {
     await monitoringStore.load()
+    originalConfig.value = JSON.stringify({ checkmk: { ...checkmkConfig.value }, mqtt: { ...mqttConfig.value } })
   } catch (error) {
-    // Error is logged in store
   }
 })
+
+watch([checkmkConfig, mqttConfig], () => {
+  if (originalConfig.value) {
+    hasChanges.value = JSON.stringify({ checkmk: { ...checkmkConfig.value }, mqtt: { ...mqttConfig.value } }) !== originalConfig.value
+  }
+}, { deep: true })
 
 const saveConfig = async () => {
   if (mqttConfig.value.enabled && !mqttConfig.value.server) {
@@ -196,6 +208,8 @@ const saveConfig = async () => {
       title: t('common.success'),
       message: t('monitoring.saveSuccess')
     })
+    hasChanges.value = false
+    originalConfig.value = JSON.stringify({ checkmk: { ...checkmkConfig.value }, mqtt: { ...mqttConfig.value } })
   } catch (error) {
     uiStore.pushToast({
       type: 'error',

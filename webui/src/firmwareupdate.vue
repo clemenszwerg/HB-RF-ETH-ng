@@ -353,13 +353,16 @@ const pollOtaStatus = () => {
   })
 }
 
+let countdownTimer = null
+
 const startCountdown = () => {
   showCountdown.value = true
   countdown.value = 30
-  const timer = setInterval(() => {
+  countdownTimer = setInterval(() => {
     countdown.value--
     if (countdown.value <= 0) {
-      clearInterval(timer)
+      clearInterval(countdownTimer)
+      countdownTimer = null
       window.location.reload()
     }
   }, 1000)
@@ -425,6 +428,10 @@ onUnmounted(() => {
   if (updateCheckInterval) {
     clearInterval(updateCheckInterval)
   }
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
 })
 </script>
 
@@ -471,25 +478,14 @@ onUnmounted(() => {
   padding: 4px 12px;
   border: 1px solid var(--color-border);
   transition: all 0.2s;
-  color: #343a40;
+  color: var(--color-text);
   background: transparent;
 }
 
 .version-badge .changelog-btn:hover {
-  border-color: #343a40;
-  background-color: #343a40;
-  color: #fff;
-}
-
-:global([data-bs-theme="dark"]) .version-badge .changelog-btn {
-  color: #e9ecef;
-  border-color: var(--color-border);
-}
-
-:global([data-bs-theme="dark"]) .version-badge .changelog-btn:hover {
-  background-color: #e9ecef;
-  color: #000;
-  border-color: #e9ecef;
+  border-color: var(--color-text);
+  background-color: var(--color-text);
+  color: var(--color-surface);
 }
 
 /* Banners */

@@ -751,7 +751,9 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .btn {
+  .btn-block,
+  form .btn[type="submit"],
+  form button[type="submit"] {
     width: 100%;
   }
 }

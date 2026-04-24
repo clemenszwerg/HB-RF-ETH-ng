@@ -688,7 +688,18 @@ const buildSettingsPayload = () => ({
 
 const serializeSettings = () => JSON.stringify(buildSettingsPayload())
 
-const hasUnsavedChanges = computed(() => loadedSnapshot.value !== '' && serializeSettings() !== loadedSnapshot.value)
+const serializedCurrent = ref('')
+let dirtyTimer = null
+const updateDirtyState = () => {
+  clearTimeout(dirtyTimer)
+  dirtyTimer = setTimeout(() => {
+    serializedCurrent.value = serializeSettings()
+  }, 300)
+}
+
+watch([hostname, useDHCP, localIP, netmask, gateway, dns1, dns2, ccuIP, timesource, dcfOffset, gpsBaudrate, ntpServer, ledBrightness, ledProgramValues, enableIPv6, ipv6Mode, ipv6Address, ipv6PrefixLength, ipv6Gateway, ipv6Dns1, ipv6Dns2], updateDirtyState)
+
+const hasUnsavedChanges = computed(() => loadedSnapshot.value !== '' && serializedCurrent.value !== '' && serializedCurrent.value !== loadedSnapshot.value)
 
 // Load settings from store
 const loadSettings = () => {
@@ -723,6 +734,7 @@ const loadSettings = () => {
   }
 
   loadedSnapshot.value = serializeSettings()
+  serializedCurrent.value = loadedSnapshot.value
   showError.value = null
   v$.value.$reset()
 }

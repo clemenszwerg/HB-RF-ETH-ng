@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import axios from 'axios'
-import { useLoginStore, useThemeStore } from './stores.js'
+import { useLoginStore, useThemeStore, useUiStore } from './stores.js'
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
