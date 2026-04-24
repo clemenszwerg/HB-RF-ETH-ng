@@ -58,11 +58,11 @@ private:
   struct dns_cache_entry {
     char hostname[64];
     ip4_addr_t ip_addr;
-    uint32_t expiry_time; // TTL in seconds
+    uint64_t expiry_time;
     bool valid;
   };
   static dns_cache_entry _dns_cache[DNS_CACHE_SIZE];
-  static uint32_t _current_time;
+  static uint64_t _current_time;
 
 public:
   Ethernet(Settings *settings);
