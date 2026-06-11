@@ -153,18 +153,15 @@ bool NtpServer::_udpReceivePacket(pbuf *pb, const ip_addr_t *addr, uint16_t port
 
     e->pb = pb;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpointer-arith"
+    // Use the source address and port provided directly by lwIP in the callback
+    // instead of reading raw pbuf header memory (which is unsafe and fragile).
+    e->addr.addr = addr->u_addr.ip4.addr;
+    e->port = port;
 
-    ip_hdr *iphdr = reinterpret_cast<ip_hdr *>(pb->payload - UDP_HLEN - IP_HLEN);
-    e->addr.addr = iphdr->src.addr;
-
-    udp_hdr *udphdr = reinterpret_cast<udp_hdr *>(pb->payload - UDP_HLEN);
-    e->port = ntohs(udphdr->src);
-
-#pragma GCC diagnostic pop
-
-    if (xQueueSend(_udp_queue, &e, portMAX_DELAY) != pdPASS)
+    // Runs in the lwIP tcpip thread - never block here. If the queue is full
+    // (e.g. NTP request flood), drop the packet instead of freezing the whole
+    // network stack including the latency-critical raw-uart UDP bridge.
+    if (xQueueSend(_udp_queue, &e, 0) != pdPASS)
     {
         free((void *)(e));
         return false;

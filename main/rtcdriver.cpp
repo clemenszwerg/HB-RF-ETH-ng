@@ -87,15 +87,15 @@ Rtc *Rtc::detect()
         delete ds3231;
     }
 
-    RtcRX8130 *rx9130 = new RtcRX8130();
-    if (rx9130->begin())
+    RtcRX8130 *rx8130 = new RtcRX8130();
+    if (rx8130->begin())
     {
-        ESP_LOGI(TAG, "RX9130 RTC found and initialized.");
-        return rx9130;
+        ESP_LOGI(TAG, "RX8130 RTC found and initialized.");
+        return rx8130;
     }
     else
     {
-        delete rx9130;
+        delete rx8130;
     }
 
     ESP_LOGE(TAG, "No RTC found.");

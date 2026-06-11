@@ -13,10 +13,13 @@
 #include "esp_log.h"
 #include "cJSON.h"
 #include <string.h>
+#include <memory>
+#include <new>
 
 
-// Helper function to validate authentication (extern from webui.cpp)
+// Helper functions implemented in webui.cpp
 extern esp_err_t validate_auth(httpd_req_t *req);
+extern int recv_full_body(httpd_req_t *req, char *buf, size_t buf_size);
 
 static esp_err_t send_json_error(httpd_req_t *req, const char *message)
 {
@@ -54,7 +57,14 @@ esp_err_t get_monitoring_handler_func(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, NULL);
     }
 
-    monitoring_config_t config;
+    // monitoring_config_t is ~6.7 KB (three 2 KB PEM buffers) - far too large
+    // for the 8 KB httpd task stack, so it must live on the heap.
+    std::unique_ptr<monitoring_config_t> config_heap(new (std::nothrow) monitoring_config_t());
+    if (!config_heap)
+    {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+    monitoring_config_t &config = *config_heap;
     if (monitoring_get_config(&config) != ESP_OK)
     {
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get config");
@@ -117,7 +127,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
     {
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
     }
-    int ret = httpd_req_recv(req, content, 16383);
+    int ret = recv_full_body(req, content, 16384);
     if (ret <= 0)
     {
         free(content);
@@ -125,7 +135,6 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
         httpd_resp_sendstr(req, "{\"error\":\"Invalid request\"}");
         return ESP_FAIL;
     }
-    content[ret] = '\0';
 
     cJSON *root = cJSON_Parse(content);
     free(content);
@@ -138,8 +147,15 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
     }
 
     // Load current config first to preserve fields not sent by frontend
-    // (e.g., MQTT password is never sent back for security reasons)
-    monitoring_config_t config = {};
+    // (e.g., MQTT password is never sent back for security reasons).
+    // Heap-allocated: the ~6.7 KB struct would overflow the httpd task stack.
+    std::unique_ptr<monitoring_config_t> config_heap(new (std::nothrow) monitoring_config_t());
+    if (!config_heap)
+    {
+        cJSON_Delete(root);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+    monitoring_config_t &config = *config_heap;
     monitoring_get_config(&config);
 
     // Parse CheckMK config
