@@ -372,7 +372,7 @@ bool validateServerAddress(const char *server, size_t maxLength)
         ESP_LOGW(TAG, "Invalid server address: hostname too long");
         return false;
     }
-    strncpy(host, server, hostLen);
+    memcpy(host, server, hostLen);
     host[hostLen] = '\0';
 
     // Validate port if present
