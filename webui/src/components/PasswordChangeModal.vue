@@ -184,7 +184,9 @@ const handleSubmit = async () => {
       error.value = response.data.error || 'Unknown error'
     }
   } catch (e) {
-    error.value = e.response?.data?.message || e.message || 'Failed to change password'
+    // The firmware sends validation errors as a plain-text body, not JSON
+    const data = e.response?.data
+    error.value = (typeof data === 'string' && data) || data?.message || e.message || 'Failed to change password'
   } finally {
     loading.value = false
   }

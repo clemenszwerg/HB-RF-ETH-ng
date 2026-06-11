@@ -813,8 +813,10 @@ const performRestart = async () => {
   try {
     await axios.post('/api/restart')
     showRestartModal.value = false
-    uiStore.pushToast({ type: 'info', title: t('common.success'), message: t('firmware.restartingText'), duration: 1800 })
-    window.location.reload()
+    uiStore.pushToast({ type: 'info', title: t('common.success'), message: t('firmware.restartingText'), duration: 18000 })
+    // The device needs a moment to actually restart plus boot time - an
+    // immediate reload just lands on a dead socket.
+    setTimeout(() => window.location.reload(), 20000)
   } catch (e) {
     console.error("Restart request failed", e)
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: 'Error restarting device' })

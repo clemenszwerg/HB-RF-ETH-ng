@@ -193,7 +193,8 @@ const fetchLog = async () => {
   try {
     const response = await axios.get('/api/log', {
       params: { offset: offset.value },
-      timeout: 5000
+      timeout: 5000,
+      silent: true
     })
     if (response.data) {
       appendChunk(response.data)
@@ -201,7 +202,10 @@ const fetchLog = async () => {
       if (!isNaN(totalWritten)) {
         offset.value = totalWritten
       } else {
-        offset.value += response.data.length
+        // The device-side offset counts bytes - measure the chunk in UTF-8
+        // bytes, not JS string characters, or multi-byte log content
+        // desyncs the poll window.
+        offset.value += new TextEncoder().encode(response.data).length
       }
       if (autoScroll.value) {
         newEntriesCount.value = 0

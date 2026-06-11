@@ -292,11 +292,13 @@ const startPolling = async () => {
   if (updateTimer) return
   try {
     await sysInfoStore.update()
+  } catch (e) {
+    console.warn('System info poll failed:', e.response?.status || e.message)
   } finally {
     isLoading.value = false
   }
   updateTimer = setInterval(() => {
-    sysInfoStore.update()
+    sysInfoStore.update().catch(() => { /* logged in the store; avoid unhandled rejection per tick */ })
   }, 5000)
 }
 
