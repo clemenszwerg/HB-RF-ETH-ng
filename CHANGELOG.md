@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.3] - 2026-06-12
+
+### Changes
+- performance-stability-upgrade
+- feat: async monitoring diagnostic, i18n for hardcoded UI strings
+- perf(webui): move update-check/changelog proxies off the httpd task
+- fix(webui): OTA upload timeout, 401 redirect for visitors, polling robustness
+- fix: boot hang hardening, httpd/MQTT/NTP stability fixes
+- fix: RTC detection broken on IDF 6.0 and perf-oriented build config
+
 ## [2.2.0-Beta.2] - 2026-05-27
 
 ### Changes
