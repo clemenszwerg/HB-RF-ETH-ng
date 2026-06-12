@@ -675,8 +675,27 @@ esp_err_t monitoring_run_diagnostic(const char *target, bool *ok, char *message,
     *ok = false;
     message[0] = '\0';
 
+    // Snapshot the needed fields under the config mutex - apply_config_task
+    // may memcpy the whole config struct concurrently, and tcp_probe_endpoint
+    // below blocks for seconds, so don't read current_config directly.
+    bool checkmk_enabled, mqtt_enabled, mqtt_tls;
+    uint16_t checkmk_port, mqtt_port;
+    char mqtt_server[sizeof(current_config.mqtt.server)];
+
+    if (config_mutex)
+        xSemaphoreTake(config_mutex, portMAX_DELAY);
+    checkmk_enabled = current_config.checkmk.enabled;
+    checkmk_port = current_config.checkmk.port;
+    mqtt_enabled = current_config.mqtt.enabled;
+    mqtt_port = current_config.mqtt.port;
+    mqtt_tls = current_config.mqtt.tls_enable;
+    strncpy(mqtt_server, current_config.mqtt.server, sizeof(mqtt_server) - 1);
+    mqtt_server[sizeof(mqtt_server) - 1] = '\0';
+    if (config_mutex)
+        xSemaphoreGive(config_mutex);
+
     if (strcmp(target, "checkmk") == 0) {
-        if (!current_config.checkmk.enabled) {
+        if (!checkmk_enabled) {
             snprintf(message, message_len, "CheckMK is disabled");
             return ESP_OK;
         }
@@ -685,19 +704,19 @@ esp_err_t monitoring_run_diagnostic(const char *target, bool *ok, char *message,
         snprintf(message, message_len, *ok
             ? "CheckMK agent listening on TCP port %u"
             : "CheckMK is enabled but listener is not ready",
-            current_config.checkmk.port);
+            checkmk_port);
         return ESP_OK;
     }
 
     if (strcmp(target, "mqtt") == 0) {
-        if (!current_config.mqtt.enabled) {
+        if (!mqtt_enabled) {
             snprintf(message, message_len, "MQTT is disabled");
             return ESP_OK;
         }
 
-        esp_err_t probe = tcp_probe_endpoint(current_config.mqtt.server, current_config.mqtt.port, 3000, message, message_len);
+        esp_err_t probe = tcp_probe_endpoint(mqtt_server, mqtt_port, 3000, message, message_len);
         *ok = (probe == ESP_OK);
-        if (current_config.mqtt.tls_enable) {
+        if (mqtt_tls) {
             // Append TLS note — TCP probe only; TLS handshake not tested here
             size_t used = strlen(message);
             snprintf(message + used, message_len - used, " (TLS enabled — cert validation not tested)");

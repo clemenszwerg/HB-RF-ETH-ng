@@ -59,6 +59,11 @@ axios.interceptors.response.use(
     const uiStore = useUiStore()
     const loginStore = useLoginStore()
 
+    // Background polling requests set `silent: true` in their config so a
+    // rebooting/offline device doesn't produce an endless toast stream from
+    // the periodic sysinfo/log/status pollers.
+    const silent = error.config?.silent === true
+
     if (error.response) {
       // Handle 401 Unauthorized
       if (error.response.status === 401) {
@@ -66,28 +71,32 @@ axios.interceptors.response.use(
         router.push('/login')
       }
       // Handle network/server errors
-      else if (error.response.status >= 500) {
+      else if (error.response.status >= 500 && !silent) {
         uiStore.pushToast({
-          type: 'danger',
+          type: 'error',
           title: 'Server Error',
           message: `Server error: ${error.response.status}`,
           duration: 5000
         })
       }
     } else if (error.code === 'ECONNABORTED') {
-      uiStore.pushToast({
-        type: 'warning',
-        title: 'Request Timeout',
-        message: 'The request took too long. Please try again.',
-        duration: 4000
-      })
+      if (!silent) {
+        uiStore.pushToast({
+          type: 'warning',
+          title: 'Request Timeout',
+          message: 'The request took too long. Please try again.',
+          duration: 4000
+        })
+      }
     } else if (!error.response) {
-      uiStore.pushToast({
-        type: 'danger',
-        title: 'Connection Error',
-        message: 'Unable to connect to the device. Check your network.',
-        duration: 5000
-      })
+      if (!silent) {
+        uiStore.pushToast({
+          type: 'error',
+          title: 'Connection Error',
+          message: 'Unable to connect to the device. Check your network.',
+          duration: 5000
+        })
+      }
     }
 
     return Promise.reject(error)

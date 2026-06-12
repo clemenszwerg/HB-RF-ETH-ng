@@ -137,7 +137,9 @@ export const useSysInfoStore = defineStore('sysInfo', {
   actions: {
     async update() {
       try {
-        const response = await axios.get("/sysinfo.json", { timeout: 5000 })
+        // silent: polled periodically - failures must not flood the UI with
+        // connection-error toasts while the device reboots or is offline.
+        const response = await axios.get("/sysinfo.json", { timeout: 5000, silent: true })
         if (response.data?.sysInfo) {
           Object.assign(this.$state, response.data.sysInfo)
         } else {
@@ -226,14 +228,16 @@ export const useFirmwareUpdateStore = defineStore('firmwareUpdate', {
         const headers = {
           'Content-Type': 'application/octet-stream'
         }
-        if (options.otaPassword) {
-          headers['X-OTA-Password'] = options.otaPassword
-        }
 
         const externalProgressCb = options.onUploadProgress
 
         await axios.post("/ota_update", file, {
           headers,
+          // Flash-write throttling makes a ~1.5 MB upload take well over the
+          // global 10 s default timeout - allow up to 10 minutes. (Must be a
+          // non-zero value: the request interceptor replaces falsy timeouts
+          // with the 10 s default.)
+          timeout: 600000,
           onUploadProgress: event => {
             if (event.lengthComputable) {
               this.progress = Math.ceil((event.loaded || event.position) / event.total * 100)

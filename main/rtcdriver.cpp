@@ -34,6 +34,10 @@
 
 static const char *TAG = "RTC";
 
+// Bounded I2C transaction timeout - an unresponsive RTC must not block the
+// calling task forever (SystemClock syncs run periodically).
+static const int I2C_TIMEOUT_MS = 100;
+
 static uint8_t bcd2bin(uint8_t val)
 {
     return val - 6 * (val >> 4);
@@ -83,15 +87,15 @@ Rtc *Rtc::detect()
         delete ds3231;
     }
 
-    RtcRX8130 *rx9130 = new RtcRX8130();
-    if (rx9130->begin())
+    RtcRX8130 *rx8130 = new RtcRX8130();
+    if (rx8130->begin())
     {
-        ESP_LOGI(TAG, "RX9130 RTC found and initialized.");
-        return rx9130;
+        ESP_LOGI(TAG, "RX8130 RTC found and initialized.");
+        return rx8130;
     }
     else
     {
-        delete rx9130;
+        delete rx8130;
     }
 
     ESP_LOGE(TAG, "No RTC found.");
@@ -109,25 +113,13 @@ Rtc::~Rtc()
 
 bool Rtc::begin()
 {
-    i2c_master_dev_handle_t device_handle;
-    i2c_device_config_t dev_config = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = _address,
-        .scl_speed_hz = 100000,
-        .scl_wait_us = 0,
-        .flags = { .disable_ack_check = false },
-    };
-
-    esp_err_t ret = i2c_master_bus_add_device(i2c_bus, &dev_config, &device_handle);
-    if (ret != ESP_OK) {
+    if (i2c_bus == NULL) {
         return false;
     }
 
-    // Zero-length write to check device presence
-    ret = i2c_master_transmit(device_handle, NULL, 0, -1);
-    i2c_master_bus_rm_device(device_handle);
-
-    return ret == ESP_OK;
+    // i2c_master_transmit() rejects zero-length writes with ESP_ERR_INVALID_ARG,
+    // so device presence must be checked with the dedicated probe API.
+    return i2c_master_probe(i2c_bus, _address, I2C_TIMEOUT_MS) == ESP_OK;
 }
 
 struct timeval Rtc::GetTime()
@@ -155,7 +147,7 @@ struct timeval Rtc::GetTime()
 
     // Write register address, then read data
     uint8_t reg_addr = _reg_start;
-    ret = i2c_master_transmit_receive(device_handle, &reg_addr, 1, rawData, sizeof(rawData), -1);
+    ret = i2c_master_transmit_receive(device_handle, &reg_addr, 1, rawData, sizeof(rawData), I2C_TIMEOUT_MS);
     i2c_master_bus_rm_device(device_handle);
 
     if (ret != ESP_OK)
@@ -248,7 +240,7 @@ void Rtc::SetTime(struct timeval now)
 
     esp_err_t ret = i2c_master_bus_add_device(i2c_bus, &dev_config, &device_handle);
     if (ret == ESP_OK) {
-        ret = i2c_master_transmit(device_handle, writeData, sizeof(writeData), -1);
+        ret = i2c_master_transmit(device_handle, writeData, sizeof(writeData), I2C_TIMEOUT_MS);
         i2c_master_bus_rm_device(device_handle);
     }
 
@@ -283,7 +275,7 @@ bool RtcRX8130::begin()
 
         esp_err_t ret = i2c_master_bus_add_device(i2c_bus, &dev_config, &device_handle);
         if (ret == ESP_OK) {
-            ret = i2c_master_transmit(device_handle, writeData, sizeof(writeData), -1);
+            ret = i2c_master_transmit(device_handle, writeData, sizeof(writeData), I2C_TIMEOUT_MS);
             i2c_master_bus_rm_device(device_handle);
         }
 

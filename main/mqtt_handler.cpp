@@ -80,7 +80,16 @@ static void handle_mqtt_command(const char* command)
         ESP_LOGI(TAG, "Update command received via MQTT");
         UpdateCheck* updateCheck = monitoring_get_updatecheck();
         if (updateCheck) {
-            updateCheck->performOnlineUpdate();
+            // esp_https_ota needs more stack than the 6 KB MQTT task offers
+            // (TLS handshake alone takes several KB) and would block the MQTT
+            // keepalive loop for the whole download - run it in its own task.
+            BaseType_t created = xTaskCreate([](void *p) {
+                static_cast<UpdateCheck *>(p)->performOnlineUpdate();
+                vTaskDelete(NULL);
+            }, "mqtt_ota", 8192, updateCheck, 5, NULL);
+            if (created != pdPASS) {
+                ESP_LOGE(TAG, "Failed to create OTA update task");
+            }
         } else {
             ESP_LOGW(TAG, "UpdateCheck not available");
         }

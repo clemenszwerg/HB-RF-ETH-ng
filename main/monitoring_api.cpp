@@ -13,10 +13,16 @@
 #include "esp_log.h"
 #include "cJSON.h"
 #include <string.h>
+#include <memory>
+#include <new>
+#include <atomic>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 
-// Helper function to validate authentication (extern from webui.cpp)
+// Helper functions implemented in webui.cpp
 extern esp_err_t validate_auth(httpd_req_t *req);
+extern int recv_full_body(httpd_req_t *req, char *buf, size_t buf_size);
 
 static esp_err_t send_json_error(httpd_req_t *req, const char *message)
 {
@@ -54,7 +60,14 @@ esp_err_t get_monitoring_handler_func(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, NULL);
     }
 
-    monitoring_config_t config;
+    // monitoring_config_t is ~6.7 KB (three 2 KB PEM buffers) - far too large
+    // for the 8 KB httpd task stack, so it must live on the heap.
+    std::unique_ptr<monitoring_config_t> config_heap(new (std::nothrow) monitoring_config_t());
+    if (!config_heap)
+    {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+    monitoring_config_t &config = *config_heap;
     if (monitoring_get_config(&config) != ESP_OK)
     {
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get config");
@@ -117,7 +130,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
     {
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
     }
-    int ret = httpd_req_recv(req, content, 16383);
+    int ret = recv_full_body(req, content, 16384);
     if (ret <= 0)
     {
         free(content);
@@ -125,7 +138,6 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
         httpd_resp_sendstr(req, "{\"error\":\"Invalid request\"}");
         return ESP_FAIL;
     }
-    content[ret] = '\0';
 
     cJSON *root = cJSON_Parse(content);
     free(content);
@@ -138,8 +150,15 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
     }
 
     // Load current config first to preserve fields not sent by frontend
-    // (e.g., MQTT password is never sent back for security reasons)
-    monitoring_config_t config = {};
+    // (e.g., MQTT password is never sent back for security reasons).
+    // Heap-allocated: the ~6.7 KB struct would overflow the httpd task stack.
+    std::unique_ptr<monitoring_config_t> config_heap(new (std::nothrow) monitoring_config_t());
+    if (!config_heap)
+    {
+        cJSON_Delete(root);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+    monitoring_config_t &config = *config_heap;
     monitoring_get_config(&config);
 
     // Parse CheckMK config
@@ -367,6 +386,38 @@ httpd_uri_t post_monitoring_handler = {
     .user_ctx = NULL
 };
 
+// The connectivity diagnostic blocks for seconds (getaddrinfo + up to 3 s
+// TCP probe), so it runs in a short-lived worker task on an async copy of
+// the request instead of stalling the single-threaded httpd task.
+struct DiagnosticJob {
+    httpd_req_t *req; // async copy of the request
+    char target[16];
+};
+
+static std::atomic<bool> _diag_busy{false};
+
+static void _monitoring_diag_task(void *arg)
+{
+    DiagnosticJob *job = (DiagnosticJob *)arg;
+    bool ok = false;
+    char message[160];
+    message[0] = '\0';
+
+    esp_err_t result = monitoring_run_diagnostic(job->target, &ok, message, sizeof(message));
+    if (result == ESP_ERR_NOT_SUPPORTED) {
+        send_json_error(job->req, "Unsupported diagnostic target");
+    } else if (result != ESP_OK && message[0] == '\0') {
+        send_json_error(job->req, "Diagnostic failed");
+    } else {
+        send_monitoring_test_response(job->req, job->target, ok, message);
+    }
+
+    httpd_req_async_handler_complete(job->req);
+    free(job);
+    _diag_busy.store(false);
+    vTaskDelete(NULL);
+}
+
 esp_err_t get_monitoring_test_handler_func(httpd_req_t *req)
 {
     add_security_headers(req);
@@ -384,17 +435,41 @@ esp_err_t get_monitoring_test_handler_func(httpd_req_t *req)
         return send_json_error(req, "Missing diagnostic target");
     }
 
-    bool ok = false;
-    char message[160];
-    esp_err_t result = monitoring_run_diagnostic(target, &ok, message, sizeof(message));
-    if (result == ESP_ERR_NOT_SUPPORTED) {
-        return send_json_error(req, "Unsupported diagnostic target");
-    }
-    if (result != ESP_OK && message[0] == '\0') {
-        return send_json_error(req, "Diagnostic failed");
+    // The diagnostic blocks for seconds (getaddrinfo + up to 3 s TCP probe)
+    // and must not run in the single-threaded httpd task. Detach the request
+    // and answer from a short-lived worker task.
+    bool expected = false;
+    if (!_diag_busy.compare_exchange_strong(expected, true))
+    {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_sendstr(req, "{\"error\":\"A diagnostic is already running, try again shortly\"}");
+        return ESP_OK;
     }
 
-    return send_monitoring_test_response(req, target, ok, message);
+    DiagnosticJob *job = (DiagnosticJob *)calloc(1, sizeof(DiagnosticJob));
+    if (!job)
+    {
+        _diag_busy.store(false);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+    snprintf(job->target, sizeof(job->target), "%s", target);
+
+    if (httpd_req_async_handler_begin(req, &job->req) != ESP_OK)
+    {
+        free(job);
+        _diag_busy.store(false);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+
+    if (xTaskCreate(_monitoring_diag_task, "mon_diag", 5120, job, 5, NULL) != pdPASS)
+    {
+        httpd_resp_send_err(job->req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        httpd_req_async_handler_complete(job->req);
+        free(job);
+        _diag_busy.store(false);
+    }
+    return ESP_OK;
 }
 
 httpd_uri_t get_monitoring_test_handler = {

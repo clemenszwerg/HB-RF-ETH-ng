@@ -26,6 +26,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <sys/param.h>
+#include <atomic>
 #include "webui.h"
 #include "esp_log.h"
 #include "cJSON.h"
@@ -82,8 +83,8 @@ static char _token[46];
 void generateToken()
 {
     char tokenBase[21];
-    *((uint32_t *)tokenBase) = esp_random();
-    *((uint32_t *)(tokenBase + sizeof(uint32_t))) = esp_random();
+    uint32_t rnd[2] = {esp_random(), esp_random()};
+    memcpy(tokenBase, rnd, sizeof(rnd));
     strncpy(tokenBase + 2 * sizeof(uint32_t), _sysInfo->getSerialNumber(), sizeof(tokenBase) - 2 * sizeof(uint32_t) - 1);
     tokenBase[sizeof(tokenBase) - 1] = '\0';
 
@@ -151,6 +152,31 @@ esp_err_t validate_auth(httpd_req_t *req)
     return ESP_OK;
 }
 
+// Receive the complete request body into buf (NUL-terminated).
+// httpd_req_recv() performs a single socket read and may return fewer bytes
+// than requested when the body spans multiple TCP segments, so loop until
+// content_len bytes have arrived. Returns the body length, or -1 if the body
+// does not fit into buf or the connection failed.
+int recv_full_body(httpd_req_t *req, char *buf, size_t buf_size)
+{
+    if (req->content_len >= buf_size)
+        return -1;
+
+    size_t received = 0;
+    int timeout_retries = 3;
+    while (received < req->content_len)
+    {
+        int ret = httpd_req_recv(req, buf + received, req->content_len - received);
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT && timeout_retries-- > 0)
+            continue;
+        if (ret <= 0)
+            return -1;
+        received += ret;
+    }
+    buf[received] = '\0';
+    return (int)received;
+}
+
 esp_err_t post_login_json_handler_func(httpd_req_t *req)
 {
     add_security_headers(req);
@@ -175,12 +201,10 @@ esp_err_t post_login_json_handler_func(httpd_req_t *req)
     }
 
     char buffer[1024];
-    int len = httpd_req_recv(req, buffer, sizeof(buffer) - 1);
+    int len = recv_full_body(req, buffer, sizeof(buffer));
 
     if (len > 0)
     {
-        buffer[len] = 0;
-
         cJSON *root = cJSON_Parse(buffer);
 
         if (!root) {
@@ -427,14 +451,13 @@ esp_err_t post_settings_json_handler_func(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
     }
 
-    int len = httpd_req_recv(req, buffer, 4095);
+    int len = recv_full_body(req, buffer, 4096);
 
     if (len <= 0) {
         free(buffer);
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No data received");
     }
 
-    buffer[len] = 0;
     cJSON *root = cJSON_Parse(buffer);
     free(buffer);
     buffer = NULL;
@@ -644,7 +667,7 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
     }
 
-    int len = httpd_req_recv(req, buffer, 4095);
+    int len = recv_full_body(req, buffer, 4096);
 
     if (len <= 0)
     {
@@ -652,7 +675,6 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No data received");
     }
 
-    buffer[len] = 0;
     cJSON *root = cJSON_Parse(buffer);
     free(buffer);
 
@@ -780,6 +802,20 @@ httpd_uri_t post_restore_handler = {
 
 #define OTA_BUFFER_SIZE 4096
 
+// OTA status tracking - shared between the push upload handler (/ota_update)
+// and the URL download handler (/api/ota_url) so the two cannot write the
+// update partition concurrently.
+enum ota_status_t {
+    OTA_IDLE = 0,
+    OTA_DOWNLOADING,
+    OTA_SUCCESS,
+    OTA_FAILED
+};
+
+static volatile ota_status_t _ota_status = OTA_IDLE;
+static volatile int _ota_progress = 0;  // 0-100
+static char _ota_error[128] = {0};
+
 esp_err_t post_ota_update_handler_func(httpd_req_t *req)
 {
     add_security_headers(req);
@@ -791,6 +827,13 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
+    if (_ota_status == OTA_DOWNLOADING)
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "OTA update already in progress");
+        return ESP_OK;
+    }
+    _ota_status = OTA_DOWNLOADING;
+
     esp_ota_handle_t ota_handle = 0;
     bool ota_begun = false;
 
@@ -798,12 +841,14 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
     if (!ota_buff) {
         ESP_LOGE(TAG, "Failed to allocate OTA buffer");
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
+        _ota_status = OTA_FAILED;
         return ESP_FAIL;
     }
 
     int content_length = req->content_len;
     int content_received = 0;
     int recv_len;
+    int timeout_retries = 5;
     bool is_req_body_started = false;
     const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
     const esp_partition_t *running = NULL;
@@ -821,9 +866,11 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
     {
         if ((recv_len = httpd_req_recv(req, ota_buff, MIN(content_length - content_received, OTA_BUFFER_SIZE))) < 0)
         {
-            if (recv_len == HTTPD_SOCK_ERR_TIMEOUT)
+            if (recv_len == HTTPD_SOCK_ERR_TIMEOUT && timeout_retries-- > 0)
             {
-                // Timeout - continue waiting
+                // Transient timeout - retry a bounded number of times. An
+                // unbounded retry loop would wedge the single httpd task
+                // forever if the client stalls mid-upload.
                 continue;
             }
             else
@@ -845,45 +892,26 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
         {
             is_req_body_started = true;
 
-            // Check content type to decide how to handle the body
+            // Only raw binary uploads are supported (the WebUI posts the file
+            // as the request body). The previous multipart/form-data path was
+            // broken by design: it compared stripped body bytes against the
+            // full content length (loop never terminated) and wrote the
+            // trailing boundary into flash.
             char content_type[64] = {0};
-            bool is_multipart = false;
-
-            if (httpd_req_get_hdr_value_str(req, "Content-Type", content_type, sizeof(content_type)) == ESP_OK) {
-                if (strstr(content_type, "multipart/form-data") != NULL) {
-                    is_multipart = true;
-                }
+            if (httpd_req_get_hdr_value_str(req, "Content-Type", content_type, sizeof(content_type)) == ESP_OK &&
+                strstr(content_type, "multipart/form-data") != NULL) {
+                ESP_LOGE(TAG, "Multipart firmware uploads are not supported - send the raw binary as request body");
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Multipart uploads not supported, send raw binary body");
+                goto err;
             }
 
-            char *body_start_p = ota_buff;
-            int body_part_len = recv_len;
-
-            if (is_multipart) {
-                // Legacy multipart support
-                char *header_end = strstr(ota_buff, "\r\n\r\n");
-                if (header_end) {
-                    body_start_p = header_end + 4;
-                    body_part_len = recv_len - (body_start_p - ota_buff);
-                } else {
-                    // Header not found in first chunk - this is likely invalid for multipart
-                     ESP_LOGE(TAG, "Multipart header not found in first chunk");
-                     httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Invalid multipart format");
-                     goto err;
-                }
-            }
-
-            size_t image_size = OTA_SIZE_UNKNOWN;
-            if (!is_multipart) {
-                image_size = content_length;
-            }
-
-            OTA_CHECK(esp_ota_begin(update_partition, image_size, &ota_handle) == ESP_OK, "Could not start OTA");
+            OTA_CHECK(esp_ota_begin(update_partition, content_length, &ota_handle) == ESP_OK, "Could not start OTA");
             ota_begun = true;
             ESP_LOGW(TAG, "Begin OTA Update to partition %s, File Size: %d", update_partition->label, content_length);
             _statusLED->setState(LED_STATE_BLINK_FAST);
 
-            OTA_CHECK(esp_ota_write(ota_handle, body_start_p, body_part_len) == ESP_OK, "Error writing OTA");
-            content_received += body_part_len;
+            OTA_CHECK(esp_ota_write(ota_handle, ota_buff, recv_len) == ESP_OK, "Error writing OTA");
+            content_received += recv_len;
             ESP_LOGI(TAG, "OTA progress: %d / %d bytes (%d%%)", content_received, content_length, (content_received * 100) / content_length);
         }
         else
@@ -922,6 +950,7 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
     httpd_resp_sendstr(req, "{\"success\":true,\"message\":\"Firmware update completed, restarting in 3 seconds...\"}");
 
     _statusLED->setState(LED_STATE_OFF);
+    _ota_status = OTA_SUCCESS;
 
     // Store reset reason for successful firmware update
     ResetInfo::storeResetReason(RESET_REASON_FIRMWARE_UPDATE);
@@ -935,6 +964,7 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
 err:
     if (ota_buff) free(ota_buff);
     _statusLED->setState(LED_STATE_OFF);
+    _ota_status = OTA_FAILED;
 
     // Abort OTA if it was started but not completed
     if (ota_begun) {
@@ -1014,18 +1044,6 @@ httpd_uri_t post_factory_reset_handler = {
     .handler = post_factory_reset_handler_func,
     .user_ctx = NULL};
 
-// OTA status tracking
-enum ota_status_t {
-    OTA_IDLE = 0,
-    OTA_DOWNLOADING,
-    OTA_SUCCESS,
-    OTA_FAILED
-};
-
-static volatile ota_status_t _ota_status = OTA_IDLE;
-static volatile int _ota_progress = 0;  // 0-100
-static char _ota_error[128] = {0};
-
 static esp_err_t get_ota_status_handler_func(httpd_req_t *req)
 {
     add_security_headers(req);
@@ -1079,7 +1097,7 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
 
     // Read request body to get URL
     char buffer[512];
-    int len = httpd_req_recv(req, buffer, sizeof(buffer) - 1);
+    int len = recv_full_body(req, buffer, sizeof(buffer));
 
     if (len <= 0)
     {
@@ -1088,7 +1106,6 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
-    buffer[len] = 0;
     cJSON *root = cJSON_Parse(buffer);
     if (root == NULL)
     {
@@ -1121,7 +1138,21 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
+    // Reject concurrent OTA starts - two tasks writing the same update
+    // partition would corrupt the image.
+    if (_ota_status == OTA_DOWNLOADING)
+    {
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_sendstr(req, "{\"success\":false,\"error\":\"OTA update already in progress\"}");
+        return ESP_OK;
+    }
+
     ESP_LOGI(TAG, "Starting OTA update from URL: %s", url_buf);
+
+    // Mark as downloading before the response is sent so a second request
+    // arriving immediately afterwards is rejected.
+    _ota_status = OTA_DOWNLOADING;
+    _ota_progress = 0;
 
     // Send success response immediately
     httpd_resp_set_type(req, "application/json");
@@ -1138,6 +1169,7 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
     if (args->url == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory for URL");
         delete args;
+        _ota_status = OTA_IDLE;
         // Response already sent above, just log the error
         return ESP_OK;
     }
@@ -1225,6 +1257,7 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         ESP_LOGE(TAG, "Failed to create OTA update task");
         free(args->url);
         delete args;
+        _ota_status = OTA_IDLE;
         // Response already sent above, just log the error
         return ESP_OK;
     }
@@ -1248,14 +1281,13 @@ esp_err_t post_change_password_handler_func(httpd_req_t *req)
     }
 
     char buffer[512];
-    int len = httpd_req_recv(req, buffer, sizeof(buffer) - 1);
+    int len = recv_full_body(req, buffer, sizeof(buffer));
 
     if (len <= 0)
     {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid request");
     }
 
-    buffer[len] = 0;
     cJSON *root = cJSON_Parse(buffer);
     if (root == NULL)
     {
@@ -1322,25 +1354,40 @@ httpd_uri_t post_change_password_handler = {
     .user_ctx = NULL};
 
 
-struct UpdateCheckContext {
-    httpd_req_t *req;
+// ---- Async proxy for external HTTPS fetches --------------------------------
+// /api/check_update and /api/changelog relay content from external servers.
+// The fetch (DNS + TLS handshake + download, up to 10 s) must not run inside
+// the httpd task: esp_http_server is single-threaded, so every other request
+// (login, sysinfo polling, OTA status) would stall for the duration. The
+// handler detaches the request with the async handler API and a short-lived
+// worker task streams the upstream body to the client.
+
+struct AsyncProxyJob {
+    httpd_req_t *req;          // async copy of the request
+    const char *url;
+    const char *content_type;
+    const char *error_message; // sent to the client if the upstream fetch fails
     bool failed;
     bool header_sent;
 };
 
-static esp_err_t _update_check_http_event_handler(esp_http_client_event_t *evt)
+// Only one upstream fetch at a time - each worker needs ~9 KB task stack for
+// the TLS handshake and these requests are rare (manual checks, 24 h timer).
+static std::atomic<bool> _proxy_busy{false};
+
+static esp_err_t _proxy_http_event_handler(esp_http_client_event_t *evt)
 {
-    UpdateCheckContext *ctx = (UpdateCheckContext *)evt->user_data;
+    AsyncProxyJob *job = (AsyncProxyJob *)evt->user_data;
 
     switch(evt->event_id) {
         case HTTP_EVENT_ON_DATA:
-            if (!ctx->failed && esp_http_client_get_status_code(evt->client) == 200) {
-                esp_err_t err = httpd_resp_send_chunk(ctx->req, (const char *)evt->data, evt->data_len);
+            if (!job->failed && esp_http_client_get_status_code(evt->client) == 200) {
+                esp_err_t err = httpd_resp_send_chunk(job->req, (const char *)evt->data, evt->data_len);
                 if (err != ESP_OK) {
-                    ctx->failed = true;
+                    job->failed = true;
                     return ESP_FAIL;
                 }
-                ctx->header_sent = true;
+                job->header_sent = true;
             }
             break;
         default:
@@ -1349,7 +1396,46 @@ static esp_err_t _update_check_http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-esp_err_t get_check_update_handler_func(httpd_req_t *req)
+static void _async_proxy_task(void *arg)
+{
+    AsyncProxyJob *job = (AsyncProxyJob *)arg;
+
+    esp_http_client_config_t config = {};
+    configure_ota_http_client(config, job->url);
+    config.event_handler = _proxy_http_event_handler;
+    config.user_data = job;
+    config.timeout_ms = 10000;
+    config.buffer_size = 4096;
+
+    httpd_resp_set_type(job->req, job->content_type);
+    httpd_resp_set_hdr(job->req, "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_err_t err = client ? esp_http_client_perform(client) : ESP_ERR_NO_MEM;
+    int status_code = client ? esp_http_client_get_status_code(client) : 0;
+
+    if ((err == ESP_OK && status_code == 200) || job->header_sent) {
+        // Complete (or at least terminate) the chunked response
+        httpd_resp_send_chunk(job->req, NULL, 0);
+        if (err != ESP_OK || status_code != 200) {
+            ESP_LOGE(TAG, "%s (%s, HTTP %d)", job->error_message, esp_err_to_name(err), status_code);
+        }
+    } else {
+        ESP_LOGE(TAG, "%s (%s, HTTP %d)", job->error_message, esp_err_to_name(err), status_code);
+        httpd_resp_send_err(job->req, HTTPD_500_INTERNAL_SERVER_ERROR, job->error_message);
+    }
+
+    if (client) {
+        esp_http_client_cleanup(client);
+    }
+
+    httpd_req_async_handler_complete(job->req);
+    free(job);
+    _proxy_busy.store(false);
+    vTaskDelete(NULL);
+}
+
+static esp_err_t start_async_proxy(httpd_req_t *req, const char *url, const char *content_type, const char *error_message)
 {
     add_security_headers(req);
 
@@ -1359,41 +1445,47 @@ esp_err_t get_check_update_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
-    UpdateCheckContext ctx = { req, false, false };
-
-    esp_http_client_config_t config = {};
-    configure_ota_http_client(config, "https://xerolux.de/firmware/HB-RF-ETH-ng/version.txt");
-    config.event_handler = _update_check_http_event_handler;
-    config.user_data = &ctx;
-    config.timeout_ms = 10000;
-    config.buffer_size = 4096;
-
-    httpd_resp_set_type(req, "text/plain");
-    httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-
-    esp_http_client_handle_t client = esp_http_client_init(&config);
-    esp_err_t err = esp_http_client_perform(client);
-
-    int status_code = esp_http_client_get_status_code(client);
-
-    if (err == ESP_OK && status_code == 200) {
-        httpd_resp_send_chunk(req, NULL, 0);
-    } else {
-        if (!ctx.header_sent) {
-            if (err != ESP_OK) {
-                 ESP_LOGE(TAG, "Failed to check for updates: %s", esp_err_to_name(err));
-                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to check for updates");
-            } else {
-                 ESP_LOGE(TAG, "Failed to check for updates: HTTP %d", status_code);
-                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Update server returned error");
-            }
-        } else {
-            httpd_resp_send_chunk(req, NULL, 0);
-        }
+    bool expected = false;
+    if (!_proxy_busy.compare_exchange_strong(expected, true)) {
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        httpd_resp_set_type(req, "text/plain");
+        httpd_resp_sendstr(req, "Another external fetch is in progress, try again shortly");
+        return ESP_OK;
     }
 
-    esp_http_client_cleanup(client);
+    AsyncProxyJob *job = (AsyncProxyJob *)calloc(1, sizeof(AsyncProxyJob));
+    if (!job) {
+        _proxy_busy.store(false);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+    job->url = url;
+    job->content_type = content_type;
+    job->error_message = error_message;
+
+    // The async copy carries the already-set security headers (the response
+    // header block is duplicated by httpd_req_async_handler_begin).
+    if (httpd_req_async_handler_begin(req, &job->req) != ESP_OK) {
+        free(job);
+        _proxy_busy.store(false);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+
+    if (xTaskCreate(_async_proxy_task, "ext_proxy", 9216, job, 5, NULL) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create proxy task");
+        httpd_resp_send_err(job->req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        httpd_req_async_handler_complete(job->req);
+        free(job);
+        _proxy_busy.store(false);
+    }
     return ESP_OK;
+}
+
+esp_err_t get_check_update_handler_func(httpd_req_t *req)
+{
+    return start_async_proxy(req,
+                             "https://xerolux.de/firmware/HB-RF-ETH-ng/version.txt",
+                             "text/plain",
+                             "Failed to check for updates");
 }
 
 httpd_uri_t get_check_update_handler = {
@@ -1402,78 +1494,12 @@ httpd_uri_t get_check_update_handler = {
     .handler = get_check_update_handler_func,
     .user_ctx = NULL};
 
-struct ChangelogContext {
-    httpd_req_t *req;
-    bool failed;
-    bool header_sent;
-};
-
-static esp_err_t _changelog_http_event_handler(esp_http_client_event_t *evt)
-{
-    ChangelogContext *ctx = (ChangelogContext *)evt->user_data;
-
-    switch(evt->event_id) {
-        case HTTP_EVENT_ON_DATA:
-            if (!ctx->failed && esp_http_client_get_status_code(evt->client) == 200) {
-                esp_err_t err = httpd_resp_send_chunk(ctx->req, (const char *)evt->data, evt->data_len);
-                if (err != ESP_OK) {
-                    ctx->failed = true;
-                    return ESP_FAIL;
-                }
-                ctx->header_sent = true;
-            }
-            break;
-        default:
-            break;
-    }
-    return ESP_OK;
-}
-
 esp_err_t get_changelog_handler_func(httpd_req_t *req)
 {
-    add_security_headers(req);
-
-    if (validate_auth(req) != ESP_OK) {
-        httpd_resp_set_status(req, "401 Not authorized");
-        httpd_resp_sendstr(req, "401 Not authorized");
-        return ESP_OK;
-    }
-
-    ChangelogContext ctx = { req, false, false };
-
-    esp_http_client_config_t config = {};
-    config.url = "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/CHANGELOG.md";
-    config.crt_bundle_attach = esp_crt_bundle_attach;
-    config.event_handler = _changelog_http_event_handler;
-    config.user_data = &ctx;
-    config.timeout_ms = 10000;
-    config.buffer_size = 4096;
-
-    httpd_resp_set_type(req, "text/markdown");
-
-    esp_http_client_handle_t client = esp_http_client_init(&config);
-    esp_err_t err = esp_http_client_perform(client);
-
-    int status_code = esp_http_client_get_status_code(client);
-
-    if (err == ESP_OK && status_code == 200) {
-        httpd_resp_send_chunk(req, NULL, 0);
-    } else {
-        if (!ctx.header_sent) {
-            if (err != ESP_OK) {
-                 ESP_LOGE(TAG, "Failed to fetch changelog: %s", esp_err_to_name(err));
-                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to fetch changelog from GitHub");
-            } else {
-                 ESP_LOGE(TAG, "Failed to fetch changelog: HTTP %d", status_code);
-                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "GitHub returned error");
-            }
-        } else {
-            httpd_resp_send_chunk(req, NULL, 0);
-        }
-    }
-
-    esp_http_client_cleanup(client);
-    return ESP_OK;
+    return start_async_proxy(req,
+                             "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/CHANGELOG.md",
+                             "text/markdown",
+                             "Failed to fetch changelog from GitHub");
 }
 
 httpd_uri_t get_changelog_handler = {

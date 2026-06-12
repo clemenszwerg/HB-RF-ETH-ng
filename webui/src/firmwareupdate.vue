@@ -28,7 +28,7 @@
         <p class="hero-subtitle">{{ t('firmware.subtitle') }}</p>
       </div>
       <div class="hero-meta version-badge">
-        <span class="label">{{ t('firmware.version') }}</span>
+        <span class="label">{{ t('sysinfo.version') }}</span>
         <span class="value">{{ sysInfoStore.currentVersion }}</span>
         <BButton variant="outline-secondary" size="sm" @click="showChangelogModal = true" class="changelog-btn">
           <AppIcon name="logs" />
@@ -44,11 +44,11 @@
       </button>
       <button class="chip-btn" type="button" @click="scrollToOta">
         <AppIcon name="download" />
-        Jump to OTA
+        {{ t('firmware.jumpToOta') }}
       </button>
       <span class="chip-btn static">
         <AppIcon name="clock" />
-        {{ updateStore.lastCheck ? `Last check: ${formatLastCheck(updateStore.lastCheck)}` : 'No recent check' }}
+        {{ updateStore.lastCheck ? t('firmware.lastCheckAt', { time: formatLastCheck(updateStore.lastCheck) }) : t('firmware.noRecentCheck') }}
       </span>
     </div>
 
@@ -327,17 +327,33 @@ const startOtaUpdate = async () => {
   }
 }
 
+let otaPollTimer = null
+let otaPollCancelled = false
+
 const pollOtaStatus = () => {
+  otaPollCancelled = false
   return new Promise((resolve, reject) => {
+    // The device may briefly stop answering while it writes flash - tolerate
+    // a bounded number of consecutive fetch errors instead of resolving
+    // (= reporting success) on the first 3 s timeout, which used to start
+    // the reboot countdown even when the OTA later failed.
+    let consecutiveErrors = 0
+
     const poll = async () => {
+      otaPollTimer = null
+      if (otaPollCancelled) {
+        resolve()
+        return
+      }
       try {
-        const res = await axios.get('/api/ota_status', { timeout: 3000 })
+        const res = await axios.get('/api/ota_status', { timeout: 3000, silent: true })
         const { status, progress, error: otaError } = res.data
 
+        consecutiveErrors = 0
         otaProgress.value = progress || 0
 
         if (status === 'downloading') {
-          setTimeout(poll, 1000)
+          otaPollTimer = setTimeout(poll, 1000)
         } else if (status === 'success') {
           otaProgress.value = 100
           resolve()
@@ -347,10 +363,15 @@ const pollOtaStatus = () => {
           resolve()
         }
       } catch (err) {
-        resolve()
+        consecutiveErrors++
+        if (consecutiveErrors >= 10) {
+          reject(new Error('Lost connection to the device during the update'))
+        } else {
+          otaPollTimer = setTimeout(poll, 2000)
+        }
       }
     }
-    setTimeout(poll, 1000)
+    otaPollTimer = setTimeout(poll, 1000)
   })
 }
 
@@ -416,8 +437,12 @@ const formatLastCheck = (dateStr) => {
 let updateCheckInterval = null
 
 onMounted(async () => {
-  await sysInfoStore.update()
-  await updateStore.checkForUpdate(sysInfoStore.currentVersion)
+  try {
+    await sysInfoStore.update()
+    await updateStore.checkForUpdate(sysInfoStore.currentVersion)
+  } catch (e) {
+    console.warn('Initial update check failed:', e.response?.status || e.message)
+  }
   updateCheckInterval = setInterval(() => {
     if (sysInfoStore.currentVersion) {
       updateStore.checkForUpdate(sysInfoStore.currentVersion)
@@ -432,6 +457,11 @@ onUnmounted(() => {
   if (countdownTimer) {
     clearInterval(countdownTimer)
     countdownTimer = null
+  }
+  otaPollCancelled = true
+  if (otaPollTimer) {
+    clearTimeout(otaPollTimer)
+    otaPollTimer = null
   }
 })
 </script>

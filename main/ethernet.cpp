@@ -133,7 +133,8 @@ void _handleIPEvent(void *arg, esp_event_base_t event_base, int32_t event_id, vo
     reinterpret_cast<Ethernet *>(arg)->_handleIPEvent(event_base, event_id, event_data);
 }
 
-Ethernet::Ethernet(Settings *settings) : _settings(settings), _isConnected(false), _linkSpeed(ETH_SPEED_10M), _duplexMode(ETH_DUPLEX_HALF)
+Ethernet::Ethernet(Settings *settings) : _eth_netif(NULL), _eth_handle(NULL), _mac(NULL), _phy(NULL),
+                                         _settings(settings), _isConnected(false), _linkSpeed(ETH_SPEED_10M), _duplexMode(ETH_DUPLEX_HALF)
 {
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_init());
 
@@ -141,6 +142,11 @@ Ethernet::Ethernet(Settings *settings) : _settings(settings), _isConnected(false
 
     esp_netif_config_t netif_cfg = ESP_NETIF_DEFAULT_ETH();
     _eth_netif = esp_netif_new(&netif_cfg);
+    if (_eth_netif == NULL)
+    {
+        ESP_LOGE(TAG, "Failed to create Ethernet netif - network unavailable");
+        return;
+    }
 
     if (settings->getUseDHCP())
     {
@@ -200,12 +206,22 @@ Ethernet::Ethernet(Settings *settings) : _settings(settings), _isConnected(false
     esp_err_t ret = esp_eth_driver_install(&_eth_config, &_eth_handle);
     ESP_LOGI(TAG, "ETH driver install: %s (0x%x)", esp_err_to_name(ret), ret);
     if (ret == ESP_OK) {
-        ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_attach(_eth_netif, esp_eth_new_netif_glue(_eth_handle)));
+        esp_eth_netif_glue_handle_t glue = esp_eth_new_netif_glue(_eth_handle);
+        if (glue == NULL) {
+            ESP_LOGE(TAG, "Failed to create Ethernet netif glue");
+        } else {
+            ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_attach(_eth_netif, glue));
+        }
     }
 }
 
 void Ethernet::start()
 {
+    if (_eth_handle == NULL)
+    {
+        ESP_LOGE(TAG, "Ethernet driver not installed - cannot start");
+        return;
+    }
     ESP_LOGI(TAG, "Starting Ethernet...");
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_eth_start(_eth_handle));
     ESP_LOGI(TAG, "Ethernet start() called, waiting for link...");

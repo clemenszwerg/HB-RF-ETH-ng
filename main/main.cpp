@@ -29,6 +29,7 @@
 #include "esp_flash.h"
 #include "driver/uart.h"
 #include "esp_log.h"
+#include "esp_task_wdt.h"
 
 #include "pins.h"
 #include "led.h"
@@ -77,14 +78,19 @@ void app_main()
     uart_param_config(UART_NUM_0, &uart_config);
     uart_set_pin(UART_NUM_0, GPIO_NUM_1, GPIO_NUM_3, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
-    Settings settings;
+    // All long-lived service objects are function-local statics instead of
+    // stack locals: they must outlive app_main's active phase (the task is
+    // suspended at the end, never returns) and keeping them in the frame
+    // pushed the main task close to its stack limit, which caused a silent
+    // boot hang via stack overflow into adjacent heap allocations.
+    static Settings settings;
 
-    LED powerLED(LED_PWR_PIN);
-    LED statusLED(LED_STATUS_PIN);
+    static LED powerLED(LED_PWR_PIN);
+    static LED statusLED(LED_STATUS_PIN);
 
-    LED redLED(HM_RED_PIN);
-    LED greenLED(HM_GREEN_PIN);
-    LED blueLED(HM_BLUE_PIN);
+    static LED redLED(HM_RED_PIN);
+    static LED greenLED(HM_GREEN_PIN);
+    static LED blueLED(HM_BLUE_PIN);
 
     LED::start(&settings);
 
@@ -95,16 +101,26 @@ void app_main()
     greenLED.setState(LED_STATE_OFF);
     blueLED.setState(LED_STATE_OFF);
 
-    SysInfo sysInfo;
+    static SysInfo sysInfo;
 
-    PushButtonHandler pushButton;
+    static PushButtonHandler pushButton;
     pushButton.handleStartupFactoryReset(&powerLED, &statusLED, &settings);
 
-    RadioModuleConnector radioModuleConnector(&redLED, &greenLED, &blueLED);
+    // Watch the rest of the boot sequence with the task WDT: a silent hang
+    // (e.g. blocked forever on a semaphore inside a driver init) then
+    // produces a visible watchdog report with backtrace instead of a dead
+    // board. Subscribed only after the factory-reset button handling, which
+    // legitimately blocks while the button is held.
+    bool bootWdt = (esp_task_wdt_add(NULL) == ESP_OK);
+
+    static RadioModuleConnector radioModuleConnector(&redLED, &greenLED, &blueLED);
     radioModuleConnector.start();
 
-    Ethernet ethernet(&settings);
+    static Ethernet ethernet(&settings);
     ethernet.start();
+
+    if (bootWdt)
+        esp_task_wdt_reset();
 
     setenv("TZ", "UTC0", 1);
     tzset();
@@ -112,12 +128,12 @@ void app_main()
     Rtc *rtc = NULL;
     rtc = Rtc::detect();
 
-    SystemClock clk(rtc);
+    static SystemClock clk(rtc);
     clk.start();
 
-    DCF dcf(&settings, &clk);
-    NtpClient ntpClient(&settings, &clk);
-    GPS gps(&settings, &clk);
+    static DCF dcf(&settings, &clk);
+    static NtpClient ntpClient(&settings, &clk);
+    static GPS gps(&settings, &clk);
 
     switch (settings.getTimesource())
     {
@@ -132,14 +148,23 @@ void app_main()
         break;
     }
 
-    MDns mdns;
+    static MDns mdns;
     mdns.start(&settings);
 
-    NtpServer ntpServer(&clk);
+    static NtpServer ntpServer(&clk);
     ntpServer.start();
 
-    RadioModuleDetector radioModuleDetector;
+    // Radio module detection blocks for up to ~20 s waiting on module
+    // responses - longer than the task-WDT period, so unsubscribe for the
+    // duration of this single well-understood blocking step.
+    if (bootWdt)
+        esp_task_wdt_delete(NULL);
+
+    static RadioModuleDetector radioModuleDetector;
     radioModuleDetector.detectRadioModule(&radioModuleConnector);
+
+    if (bootWdt)
+        bootWdt = (esp_task_wdt_add(NULL) == ESP_OK);
 
     radio_module_type_t radioModuleType = radioModuleDetector.getRadioModuleType();
     if (radioModuleType != RADIO_MODULE_NONE)
@@ -177,7 +202,10 @@ void app_main()
     ESP_LOGI(TAG, "Waiting 2 seconds for network stabilization before starting UDP listener...");
     vTaskDelay(pdMS_TO_TICKS(2000));
 
-    RawUartUdpListener rawUartUdpLister(&radioModuleConnector);
+    if (bootWdt)
+        esp_task_wdt_reset();
+
+    static RawUartUdpListener rawUartUdpLister(&radioModuleConnector);
     rawUartUdpLister.start();
 
     // Initialize log manager early to capture all logs (8KB ring buffer)
@@ -186,10 +214,10 @@ void app_main()
     // Initialize reset info system
     ResetInfo::init();
 
-    UpdateCheck updateCheck(&settings, &sysInfo, &statusLED);
+    static UpdateCheck updateCheck(&settings, &sysInfo, &statusLED);
     updateCheck.start();
 
-    WebUI webUI(&settings, &statusLED, &sysInfo, &updateCheck, &ethernet, &rawUartUdpLister, &radioModuleConnector, &radioModuleDetector);
+    static WebUI webUI(&settings, &statusLED, &sysInfo, &updateCheck, &ethernet, &rawUartUdpLister, &radioModuleConnector, &radioModuleDetector);
     webUI.start();
 
     // Initialize monitoring (CheckMK, MQTT)
@@ -204,6 +232,11 @@ void app_main()
     // This helps CCU 3 and other devices discover us after restart
     ESP_LOGI(TAG, "All services started. Sending mDNS announcements...");
     mdns.announce();
+
+    // Boot finished - stop watching the main task, it stays suspended from
+    // here on and would otherwise trip the WDT.
+    if (bootWdt)
+        esp_task_wdt_delete(NULL);
 
     vTaskSuspend(NULL);
 }
