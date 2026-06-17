@@ -717,9 +717,11 @@ esp_err_t monitoring_run_diagnostic(const char *target, bool *ok, char *message,
         esp_err_t probe = tcp_probe_endpoint(mqtt_server, mqtt_port, 3000, message, message_len);
         *ok = (probe == ESP_OK);
         if (mqtt_tls) {
-            // Append TLS note — TCP probe only; TLS handshake not tested here
+            // Append TLS note; TCP probe only, TLS handshake is not tested here.
             size_t used = strlen(message);
-            snprintf(message + used, message_len - used, " (TLS enabled — cert validation not tested)");
+            if (used < message_len) {
+                snprintf(message + used, message_len - used, " (TLS enabled, cert validation not tested)");
+            }
         }
         return ESP_OK;
     }

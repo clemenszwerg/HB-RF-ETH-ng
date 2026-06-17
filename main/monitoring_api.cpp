@@ -24,6 +24,21 @@
 extern esp_err_t validate_auth(httpd_req_t *req);
 extern int recv_full_body(httpd_req_t *req, char *buf, size_t buf_size);
 
+static void copy_string_field(char *dest, size_t dest_size, const char *src)
+{
+    if (!dest || dest_size == 0) {
+        return;
+    }
+
+    if (!src) {
+        dest[0] = '\0';
+        return;
+    }
+
+    strncpy(dest, src, dest_size - 1);
+    dest[dest_size - 1] = '\0';
+}
+
 static esp_err_t send_json_error(httpd_req_t *req, const char *message)
 {
     char buf[256];
@@ -37,12 +52,22 @@ static esp_err_t send_json_error(httpd_req_t *req, const char *message)
 static esp_err_t send_monitoring_test_response(httpd_req_t *req, const char *target, bool ok, const char *message)
 {
     cJSON *root = cJSON_CreateObject();
+    if (!root)
+    {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+
     cJSON_AddStringToObject(root, "target", target);
     cJSON_AddBoolToObject(root, "ok", ok);
     cJSON_AddStringToObject(root, "message", message);
 
     char *json_string = cJSON_PrintUnformatted(root);
     cJSON_Delete(root);
+
+    if (!json_string)
+    {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, json_string);
@@ -74,9 +99,19 @@ esp_err_t get_monitoring_handler_func(httpd_req_t *req)
     }
 
     cJSON *root = cJSON_CreateObject();
+    if (!root)
+    {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
 
     // MQTT config
     cJSON *mqtt = cJSON_CreateObject();
+    if (!mqtt)
+    {
+        cJSON_Delete(root);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+
     cJSON_AddBoolToObject(mqtt, "enabled", config.mqtt.enabled);
     cJSON_AddStringToObject(mqtt, "server", config.mqtt.server);
     cJSON_AddNumberToObject(mqtt, "port", config.mqtt.port);
@@ -98,6 +133,12 @@ esp_err_t get_monitoring_handler_func(httpd_req_t *req)
 
     // CheckMK config
     cJSON *checkmk = cJSON_CreateObject();
+    if (!checkmk)
+    {
+        cJSON_Delete(root);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+
     cJSON_AddBoolToObject(checkmk, "enabled", config.checkmk.enabled);
     cJSON_AddNumberToObject(checkmk, "port", config.checkmk.port);
     cJSON_AddStringToObject(checkmk, "allowedHosts", config.checkmk.allowed_hosts);
@@ -105,6 +146,11 @@ esp_err_t get_monitoring_handler_func(httpd_req_t *req)
 
     char *json_string = cJSON_Print(root);
     cJSON_Delete(root);
+
+    if (!json_string)
+    {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
 
     httpd_resp_set_type(req, "application/json");
     /* CORS header removed - same-origin requests only */
@@ -190,7 +236,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                 cJSON_Delete(root);
                 return send_json_error(req, "CheckMK allowed hosts string too long");
             }
-            strncpy(config.checkmk.allowed_hosts, allowedHosts->valuestring, sizeof(config.checkmk.allowed_hosts) - 1);
+            copy_string_field(config.checkmk.allowed_hosts, sizeof(config.checkmk.allowed_hosts), allowedHosts->valuestring);
         }
     }
 
@@ -215,7 +261,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                     return send_json_error(req, "MQTT server address is empty or invalid");
                 }
             }
-            strncpy(config.mqtt.server, server->valuestring, sizeof(config.mqtt.server) - 1);
+            copy_string_field(config.mqtt.server, sizeof(config.mqtt.server), server->valuestring);
         }
 
         cJSON *port = cJSON_GetObjectItem(mqtt, "port");
@@ -237,7 +283,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                 cJSON_Delete(root);
                 return send_json_error(req, "MQTT user string too long");
             }
-            strncpy(config.mqtt.user, user->valuestring, sizeof(config.mqtt.user) - 1);
+            copy_string_field(config.mqtt.user, sizeof(config.mqtt.user), user->valuestring);
         }
 
         cJSON *password = cJSON_GetObjectItem(mqtt, "password");
@@ -249,7 +295,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                 return send_json_error(req, "MQTT password too long");
             }
             // Only update password if provided
-            strncpy(config.mqtt.password, password->valuestring, sizeof(config.mqtt.password) - 1);
+            copy_string_field(config.mqtt.password, sizeof(config.mqtt.password), password->valuestring);
         }
 
         cJSON *topicPrefix = cJSON_GetObjectItem(mqtt, "topicPrefix");
@@ -260,7 +306,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                 cJSON_Delete(root);
                 return send_json_error(req, "MQTT topic prefix too long");
             }
-            strncpy(config.mqtt.topic_prefix, topicPrefix->valuestring, sizeof(config.mqtt.topic_prefix) - 1);
+            copy_string_field(config.mqtt.topic_prefix, sizeof(config.mqtt.topic_prefix), topicPrefix->valuestring);
         }
 
         cJSON *haDiscoveryEnabled = cJSON_GetObjectItem(mqtt, "haDiscoveryEnabled");
@@ -277,7 +323,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                 cJSON_Delete(root);
                 return send_json_error(req, "MQTT HA discovery prefix too long");
             }
-            strncpy(config.mqtt.ha_discovery_prefix, haDiscoveryPrefix->valuestring, sizeof(config.mqtt.ha_discovery_prefix) - 1);
+            copy_string_field(config.mqtt.ha_discovery_prefix, sizeof(config.mqtt.ha_discovery_prefix), haDiscoveryPrefix->valuestring);
         }
 
         cJSON *tlsEnable = cJSON_GetObjectItem(mqtt, "tlsEnable");
@@ -305,8 +351,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                 cJSON_Delete(root);
                 return send_json_error(req, "MQTT TLS CA certs too long");
             }
-            strncpy(config.mqtt.tls_ca_certs, tlsCaCerts->valuestring, sizeof(config.mqtt.tls_ca_certs) - 1);
-            config.mqtt.tls_ca_certs[sizeof(config.mqtt.tls_ca_certs) - 1] = '\0';
+            copy_string_field(config.mqtt.tls_ca_certs, sizeof(config.mqtt.tls_ca_certs), tlsCaCerts->valuestring);
         }
 
         cJSON *tlsCertfileClear = cJSON_GetObjectItem(mqtt, "tlsCertfileClear");
@@ -322,8 +367,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                 cJSON_Delete(root);
                 return send_json_error(req, "MQTT TLS client cert too long");
             }
-            strncpy(config.mqtt.tls_certfile, tlsCertfile->valuestring, sizeof(config.mqtt.tls_certfile) - 1);
-            config.mqtt.tls_certfile[sizeof(config.mqtt.tls_certfile) - 1] = '\0';
+            copy_string_field(config.mqtt.tls_certfile, sizeof(config.mqtt.tls_certfile), tlsCertfile->valuestring);
         }
 
         cJSON *tlsKeyfileClear = cJSON_GetObjectItem(mqtt, "tlsKeyfileClear");
@@ -339,8 +383,7 @@ esp_err_t post_monitoring_handler_func(httpd_req_t *req)
                 cJSON_Delete(root);
                 return send_json_error(req, "MQTT TLS client key too long");
             }
-            strncpy(config.mqtt.tls_keyfile, tlsKeyfile->valuestring, sizeof(config.mqtt.tls_keyfile) - 1);
-            config.mqtt.tls_keyfile[sizeof(config.mqtt.tls_keyfile) - 1] = '\0';
+            copy_string_field(config.mqtt.tls_keyfile, sizeof(config.mqtt.tls_keyfile), tlsKeyfile->valuestring);
         }
     }
 

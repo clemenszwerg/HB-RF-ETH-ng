@@ -110,11 +110,21 @@ void LogManager::_clear() {
 }
 
 void LogManager::write(const char* data, size_t len) {
-    if (!log_buffer || len == 0) return;
+    if (!log_buffer || log_buffer_size == 0 || len == 0) return;
 
     if (_mutex) {
         // Use timeout to avoid blocking logging if something is stuck
         if (xSemaphoreTake(_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+            // Only the tail of an oversized log entry can fit in the ring.
+            // Advance total_written for the skipped bytes so client offsets
+            // still reflect the full stream of log data that passed through.
+            if (len > log_buffer_size) {
+                size_t skipped = len - log_buffer_size;
+                data += skipped;
+                len = log_buffer_size;
+                total_written += skipped;
+            }
+
             size_t current_idx = total_written % log_buffer_size;
             size_t space_at_end = log_buffer_size - current_idx;
 
