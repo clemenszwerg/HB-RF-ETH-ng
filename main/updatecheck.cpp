@@ -210,7 +210,10 @@ UpdateCheck::UpdateCheck(Settings* settings, SysInfo* sysInfo, LED *statusLED)
 
 void UpdateCheck::start()
 {
-    xTaskCreate(_update_check_task_func, "UpdateCheck", 8192, this, 3, &_tHandle);
+    // ReleaseInfo body is 4 KB – the struct exceeds 5 KB on the stack when
+    // copied by getReleaseInfo() / refresh(). 12 KB gives the task comfortable
+    // headroom and avoids stack-overflow → watchdog-reset loops.
+    xTaskCreate(_update_check_task_func, "UpdateCheck", 12288, this, 3, &_tHandle);
 }
 
 void UpdateCheck::stop()

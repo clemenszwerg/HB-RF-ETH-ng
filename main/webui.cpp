@@ -83,6 +83,12 @@ static char _token[46];
 
 void generateToken()
 {
+    // Try persisted token first (survives reboots — keeps "remember me" valid
+    // across firmware updates and restarts).
+    if (_settings && _settings->loadAdminToken(_token, sizeof(_token))) {
+        return;
+    }
+
     char tokenBase[21];
     uint32_t rnd[2] = {esp_random(), esp_random()};
     memcpy(tokenBase, rnd, sizeof(rnd));
@@ -102,6 +108,10 @@ void generateToken()
     size_t tokenLength;
     mbedtls_base64_encode((unsigned char *)_token, sizeof(_token), &tokenLength, shaResult, sizeof(shaResult));
     _token[tokenLength] = 0;
+
+    if (_settings) {
+        _settings->saveAdminToken(_token);
+    }
 }
 
 const char *ip2str(ip4_addr_t addr, ip4_addr_t fallback)
@@ -1347,7 +1357,9 @@ esp_err_t post_change_password_handler_func(httpd_req_t *req)
 
     cJSON_Delete(root);
 
-    // Re-generate token for security
+    // Re-generate token for security (clear old persisted one first so
+    // generateToken() creates a fresh token and persists it).
+    _settings->clearAdminToken();
     generateToken();
 
     httpd_resp_set_type(req, "application/json");
@@ -1748,6 +1760,9 @@ void WebUI::start()
     // Suppress noisy httpd warnings
     esp_log_level_set("httpd_txrx", ESP_LOG_ERROR);
     esp_log_level_set("httpd_uri", ESP_LOG_ERROR);
+    esp_log_level_set("httpd_parse", ESP_LOG_ERROR);
+    // Certificate validation per-request log (happens 3+ times per boot)
+    esp_log_level_set("esp-x509-crt-bundle", ESP_LOG_WARN);
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.lru_purge_enable = true;

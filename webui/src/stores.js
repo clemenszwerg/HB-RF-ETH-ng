@@ -57,7 +57,7 @@ export const useLoginStore = defineStore('login', {
     isLoggedIn: localStorage.getItem("hb-rf-eth-ng-pw") != null,
     token: localStorage.getItem("hb-rf-eth-ng-pw") || "",
     passwordChanged: true, // Default to true to avoid blocking if unknown
-    lastActivity: parseInt(localStorage.getItem("hb-rf-eth-ng-last-activity")) || Date.now()
+    lastActivity: Date.now()
   }),
   actions: {
     login(token) {

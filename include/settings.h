@@ -128,4 +128,11 @@ public:
   // Update channel selection
   bool getBetaChannel();
   void setBetaChannel(bool enabled);
+
+  // Authentication token persistence (NVS).  The token survives reboots so
+  // the browser "remember me" stays valid after a firmware update or restart.
+  // Empty on first boot – generateToken() fills and saves it automatically.
+  bool loadAdminToken(char *out, size_t size);
+  void saveAdminToken(const char *token);
+  void clearAdminToken();
 };

@@ -172,7 +172,7 @@ static void handle_mqtt_command(const char* command, const char* payload, int pa
             xTaskCreate([](void *p) {
                 static_cast<UpdateCheck *>(p)->refresh();
                 vTaskDelete(NULL);
-            }, "mqtt_chkupd", 6144, updateCheck, 4, NULL);
+            }, "mqtt_chkupd", 8192, updateCheck, 4, NULL);
             mqtt_handler_publish_event("event/check_update", "requested");
         } else {
             mqtt_handler_publish_event("event/check_update", "updatecheck_unavailable");
@@ -796,10 +796,10 @@ esp_err_t mqtt_handler_start(const mqtt_config_t *config)
 
     mqtt_running = true;
 
-    // 6 KB stack: the publish task now formats many snprintf strings + an
-    // Ethernet IP lookup; 4 KB was getting close to the limit.
+    // ReleaseInfo body is 4 KB – the publish task copies it via
+    // getReleaseInfo(), plus IP/GW formatting. 10 KB gives safe headroom.
     TaskHandle_t pub_handle = NULL;
-    xTaskCreate(mqtt_publish_task, "mqtt_publish", 6144, NULL, 4, &pub_handle);
+    xTaskCreate(mqtt_publish_task, "mqtt_publish", 10240, NULL, 4, &pub_handle);
     mqtt_publish_task_handle = pub_handle;
 
     return ESP_OK;

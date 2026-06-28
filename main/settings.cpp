@@ -560,3 +560,36 @@ void Settings::setBetaChannel(bool enabled)
 {
   _betaChannel = enabled;
 }
+
+// ---- Admin token persistence (survives reboots) ---------------------------
+
+bool Settings::loadAdminToken(char *out, size_t size)
+{
+    if (!out || size == 0) return false;
+    out[0] = '\0';
+    nvs_handle_t handle;
+    if (nvs_open(NVS_NAMESPACE, NVS_READONLY, &handle) != ESP_OK) return false;
+    size_t len = size;
+    esp_err_t err = nvs_get_str(handle, "adminToken", out, &len);
+    nvs_close(handle);
+    return (err == ESP_OK && len > 1);
+}
+
+void Settings::saveAdminToken(const char *token)
+{
+    if (!token || token[0] == '\0') return;
+    nvs_handle_t handle;
+    if (nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle) != ESP_OK) return;
+    nvs_set_str(handle, "adminToken", token);
+    nvs_commit(handle);
+    nvs_close(handle);
+}
+
+void Settings::clearAdminToken()
+{
+    nvs_handle_t handle;
+    if (nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle) != ESP_OK) return;
+    nvs_erase_key(handle, "adminToken");
+    nvs_commit(handle);
+    nvs_close(handle);
+}
