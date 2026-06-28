@@ -731,6 +731,13 @@ onUnmounted(() => {
 }
 
 /* Upload Zone */
+/* Hide the native file input: it sits inside the clickable upload-zone, so a
+ * visible input would open the file dialog twice (native click + the zone's
+ * programmatic click). Display:none keeps it functional but non-interactive. */
+.hidden-input {
+  display: none;
+}
+
 .upload-zone {
   border: 2px dashed var(--color-border);
   border-radius: var(--radius-lg);
