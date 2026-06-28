@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.5] - 2026-06-28
+
+### Fixed
+- **Beta update channel was broken**: the `/releases` payload (15+ entries with their full bodies) exceeded the 24 KB response cap and was truncated, so `cJSON_Parse` failed and beta-channel users never saw an update. The beta endpoint now fetches only the newest release (`?per_page=1`).
+- **Bogus "Failed to determine latest version" error at boot**: `UpdateCheck::_taskFunc` treated a coalesced (already-in-progress) `refresh()` as a hard failure and logged an empty error string. It now uses the cached snapshot's validity as the authority and only logs an error when a real error is present.
+- **Changelog proxy ran out of memory at boot**: opening the WebUI while the background update-check fetch was running opened two TLS connections at once and exhausted the heap (`HTTP_CLIENT: Allocation failed`). The proxy now retries `esp_http_client_init` once after a short delay so the changelog load self-heals.
+
 ## [2.2.0-Beta.4] - 2026-06-28
 
 ### Added
@@ -42,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - npm: vue 3.5.39, vue-router 5.1.0, vite 8.1.0, axios 1.18.1, marked 18.0.5, bootstrap-vue-next 0.45.7, @playwright/test 1.61.1, @vitejs/plugin-vue 6.0.7, esbuild 0.28.1; transitive form-data 4.0.6 fixes a CRLF-injection issue (0 vulnerabilities).
 - ESP-IDF CI pinned to the stable tag v6.0.1; managed components mdns ^1.11.2, mqtt ^1.0.0.
 - GitHub Actions: checkout v6 → v7, crate-ci/typos 1.45.1 → 1.47.2.
+- Build/CI: resolve Beta.4 compile errors (lwIP `NO_DATA` macro clash in `streamparser.h`, `snprintf` format-truncation in `mqtt_handler.cpp`, removed `ESP_ERR_HTTPS_OTA_INCOMPLETE`, `-Wstringop-truncation` in the OTA snapshot); make `update_changelog.py` and `update_version.py` idempotent so release re-runs neither duplicate changelog sections nor accumulate `-Beta.x` version suffixes.
 
 ## [2.2.0-Beta.3] - 2026-06-12
 
