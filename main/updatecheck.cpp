@@ -245,11 +245,11 @@ VersionSnapshot UpdateCheck::getVersionSnapshot()
     VersionSnapshot s;
     if (_stateMutex && xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
         s.valid = _release.valid;
-        strncpy(s.version, _release.version, sizeof(s.version) - 1);
-        s.version[sizeof(s.version) - 1] = '\0';
+        // snprintf (not strncpy) to avoid -Wstringop-truncation when source
+        // and destination have the same size.
+        snprintf(s.version, sizeof(s.version), "%s", _release.version);
         s.isPrerelease = _release.isPrerelease;
-        strncpy(s.error, _release.error, sizeof(s.error) - 1);
-        s.error[sizeof(s.error) - 1] = '\0';
+        snprintf(s.error, sizeof(s.error), "%s", _release.error);
         xSemaphoreGive(_stateMutex);
     }
     return s;
