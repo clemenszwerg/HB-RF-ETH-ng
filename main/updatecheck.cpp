@@ -61,8 +61,12 @@ void buildReleasesApiUrl(bool beta, char* out, size_t outLen)
     // "/releases/latest" excludes prereleases; "/releases" lists every
     // non-draft release including prereleases, newest first.
     if (beta) {
+        // per_page=1: the beta channel only needs the single newest release
+        // (incl. prereleases). The full /releases list ships 15+ entries with
+        // their complete bodies and easily exceeds GH_RESPONSE_CAP (24 KB),
+        // which truncates the JSON and breaks cJSON_Parse.
         snprintf(out, outLen,
-                 "https://api.github.com/repos/%s/releases",
+                 "https://api.github.com/repos/%s/releases?per_page=1",
                  GITHUB_REPO);
     } else {
         snprintf(out, outLen,
@@ -466,10 +470,13 @@ void UpdateCheck::_taskFunc()
     ESP_LOGI(TAG, "Checking for firmware updates...");
     ESP_LOGI(TAG, "Current version: %s", _sysInfo->getCurrentVersion());
 
-    bool ok = refresh();
+    // refresh() is non-blocking: it returns false when a fetch is already in
+    // progress (coalesced) - that is NOT an error. Use info.valid as the
+    // authoritative signal so we don't log a bogus error during the boot race.
+    refresh();
     ReleaseInfo info = getReleaseInfo();
 
-    if (ok && info.valid)
+    if (info.valid)
     {
       ESP_LOGI(TAG, "Latest available version: %s", info.version);
 
@@ -488,9 +495,14 @@ void UpdateCheck::_taskFunc()
         ESP_LOGI(TAG, "Firmware is up to date (version %s)", info.version);
       }
     }
-    else
+    else if (info.error[0])
     {
       ESP_LOGE(TAG, "Failed to determine latest version: %s", info.error);
+    }
+    else
+    {
+      // Cache empty and no error yet - a fetch is in progress or has not run.
+      ESP_LOGI(TAG, "Release info not available yet (fetch in progress).");
     }
 
     vTaskDelay(pdMS_TO_TICKS(24 * 60 * 60000)); // 24h

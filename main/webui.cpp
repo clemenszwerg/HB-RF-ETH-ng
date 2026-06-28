@@ -1433,6 +1433,13 @@ static void _async_proxy_task(void *arg)
     httpd_resp_set_hdr(job->req, "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (!client) {
+        // At boot the UpdateCheck background fetch and this proxy can open two
+        // TLS connections at once and exhaust heap. Retry once after a short
+        // delay so the changelog load self-heals instead of erroring out.
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        client = esp_http_client_init(&config);
+    }
     esp_err_t err = client ? esp_http_client_perform(client) : ESP_ERR_NO_MEM;
     int status_code = client ? esp_http_client_get_status_code(client) : 0;
 
