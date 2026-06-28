@@ -111,7 +111,11 @@ void RadioModuleConnector::sendFrame(unsigned char *buffer, uint16_t len)
 void RadioModuleConnector::_serialQueueHandler()
 {
     uart_event_t event;
-    uint8_t *buffer = (uint8_t *)malloc(UART_HW_FIFO_LEN(UART_NUM_1));
+    /* Match the RX buffer size passed to uart_driver_install() (UART_HW_FIFO_LEN * 2).
+     * event.size can be as large as the full driver RX buffer, so a smaller
+     * allocation would be overflowed by uart_read_bytes() on long bursts. */
+    const size_t bufSize = UART_HW_FIFO_LEN(UART_NUM_1) * 2;
+    uint8_t *buffer = (uint8_t *)malloc(bufSize);
     if (!buffer) {
         ESP_LOGE("RadioModuleConnector", "Failed to allocate UART buffer");
         vTaskDelete(NULL);

@@ -80,8 +80,12 @@ void StreamParser::append(unsigned char chr)
     }
     else
     {
-        // Buffer full - force frame complete to avoid overflow
-        _state = FRAME_COMPLETE;
+        // Frame larger than the buffer: discard the partial frame and resync.
+        // Do NOT process the truncated buffer (its CRC would be invalid and
+        // invoking the processor here can desync the stream, e.g. when the
+        // overflow byte was a fresh 0xfd start marker).
+        _state = NO_DATA;
+        _bufferPos = 0;
     }
 
     if (_state == FRAME_COMPLETE)

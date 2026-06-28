@@ -183,7 +183,12 @@ void Settings::save()
 {
   uint32_t handle;
 
-  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle));
+  esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
+  if (err != ESP_OK)
+  {
+    ESP_LOGE(TAG, "nvs_open failed in save(): %s - settings not persisted", esp_err_to_name(err));
+    return;
+  }
 
   SET_STR(handle, "adminPassword", _adminPassword);
   SET_BOOL(handle, "passwordChanged", _passwordChanged);
@@ -232,7 +237,12 @@ void Settings::clear()
 {
   uint32_t handle;
 
-  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle));
+  esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
+  if (err != ESP_OK)
+  {
+    ESP_LOGE(TAG, "nvs_open failed in clear(): %s", esp_err_to_name(err));
+    return;
+  }
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_erase_all(handle));
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_commit(handle));
   nvs_close(handle);

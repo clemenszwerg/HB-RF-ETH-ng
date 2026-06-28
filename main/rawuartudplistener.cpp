@@ -76,7 +76,12 @@ void RawUartUdpListener::handlePacket(pbuf *pb, ip4_addr_t addr, uint16_t port)
         return;
     }
 
-    if (*((uint16_t *)(data + length - 2)) != htons(HMFrame::crc(data, length - 2)))
+    /* Read the trailing CRC16 with memcpy: the data pointer + length comes from
+     * a network pbuf and is not guaranteed to be 2-byte aligned, and casting an
+     * unsigned char* to uint16_t* also violates strict aliasing. */
+    uint16_t received_crc;
+    memcpy(&received_crc, data + length - 2, sizeof(uint16_t));
+    if (received_crc != htons(HMFrame::crc(data, length - 2)))
     {
         ESP_LOGE(TAG, "Received raw-uart packet with invalid crc.");
         return;
@@ -248,7 +253,11 @@ void RawUartUdpListener::sendMessage(unsigned char command, unsigned char *buffe
     if (len)
         memcpy(sendBuffer + 2, buffer, len);
 
-    *((uint16_t *)(sendBuffer + len + 2)) = htons(HMFrame::crc(sendBuffer, len + 2));
+    /* Store the CRC16 with memcpy: sendBuffer + len + 2 is not guaranteed to be
+     * 2-byte aligned (len is caller-controlled), and the cast violates strict
+     * aliasing. */
+    uint16_t crc_net = htons(HMFrame::crc(sendBuffer, len + 2));
+    memcpy(sendBuffer + len + 2, &crc_net, sizeof(uint16_t));
 
     _udp_sendto(_pcb, pb, &addr, port);
     pbuf_free(pb);

@@ -1073,8 +1073,15 @@ static esp_err_t get_ota_status_handler_func(httpd_req_t *req)
     cJSON_Delete(root);
 
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_sendstr(req, json_string);
-    free(json_string);
+    if (json_string)
+    {
+        httpd_resp_sendstr(req, json_string);
+        free(json_string);
+    }
+    else
+    {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON allocation failed");
+    }
 
     return ESP_OK;
 }

@@ -69,7 +69,9 @@ void GPS::stop()
 void GPS::_gpsSerialQueueHandler()
 {
     uart_event_t event;
-    uint8_t *buffer = (uint8_t *)malloc(UART_HW_FIFO_LEN(UART_NUM_2));
+    /* Match the RX buffer size passed to uart_driver_install() (UART_HW_FIFO_LEN * 2). */
+    const size_t bufSize = UART_HW_FIFO_LEN(UART_NUM_2) * 2;
+    uint8_t *buffer = (uint8_t *)malloc(bufSize);
     if (!buffer) {
         ESP_LOGE("GPS", "Failed to allocate UART buffer");
         vTaskDelete(NULL);

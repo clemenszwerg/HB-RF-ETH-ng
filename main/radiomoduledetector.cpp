@@ -347,8 +347,16 @@ radio_module_type_t RadioModuleDetector::getRadioModuleType()
 
 void RadioModuleDetector::sendFrame(uint8_t counter, uint8_t destination, uint8_t command, unsigned char *data, uint data_len)
 {
+    // Avoid a variable-length array (non-standard C++, unbounded stack use).
+    // The HM header is 8 bytes; byte-stuffing in encode() can at most double
+    // the data region, so cap data_len and use a fixed buffer.
+    static const size_t MAX_DATA_LEN = 128;
+    if (data_len > MAX_DATA_LEN)
+        return;
+
+    unsigned char sendBuffer[8 + MAX_DATA_LEN * 2 + 8];
+
     HMFrame frame;
-    unsigned char sendBuffer[8 + data_len + 10];
 
     frame.counter = counter;
     frame.destination = destination;
