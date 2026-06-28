@@ -69,6 +69,9 @@ private:
 
   char _ccuIP[64] = {0};
 
+  // Update channel: when true, pre-release versions are considered.
+  bool _betaChannel;
+
 public:
   Settings();
   void load();
@@ -121,4 +124,8 @@ public:
 
   char *getCCUIP();
   void setCCUIP(const char *ip);
+
+  // Update channel selection
+  bool getBetaChannel();
+  void setBetaChannel(bool enabled);
 };

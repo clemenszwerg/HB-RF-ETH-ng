@@ -257,7 +257,15 @@ export default {
     updateSuccess: 'Micrologiciel mis à jour avec succès',
     updateError: 'Erreur lors de la mise à jour du micrologiciel',
     warning: 'Attention : Ne débranchez pas l\'alimentation pendant la mise à jour !',
-    restartConfirm: 'Voulez-vous vraiment redémarrer le système ?'
+    restartConfirm: 'Voulez-vous vraiment redémarrer le système ?',
+    beta: 'Beta',
+    betaChannel: 'Mises à jour bêta',
+    betaChannelHint: 'Inclure les versions préliminaires. Les versions bêta peuvent être instables.',
+    betaChannelOn: 'Mises à jour bêta activées – revérifié',
+    betaChannelOff: 'Mises à jour bêta désactivées – revérifié',
+    releaseNotesPreview: 'Notes de version',
+    viewOnGithub: 'Voir sur GitHub',
+    noDownloadUrl: 'Aucun binaire firmware associé à cette version. Réessayez plus tard ou téléversez-le manuellement.'
   },
 
   // Monitoring

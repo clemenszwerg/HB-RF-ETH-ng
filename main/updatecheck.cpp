@@ -26,6 +26,7 @@
 #include "esp_https_ota.h"
 #include "esp_log.h"
 #include "esp_crt_bundle.h"
+#include "esp_timer.h"
 #include "string.h"
 #include "cJSON.h"
 #include "reset_info.h"
@@ -35,112 +36,360 @@
 
 static const char *TAG = "UpdateCheck";
 
+// GitHub repository for HB-RF-ETH-ng. Single source of truth for version,
+// release notes and firmware binary.
+static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
+
+// Cap for the heap buffer used to receive the GitHub releases JSON. A typical
+// release payload is 5-15 KB; we allow generous headroom for verbose bodies
+// and cap the body field of ReleaseInfo separately.
+static const size_t GH_RESPONSE_CAP = 24 * 1024;
+
 void _update_check_task_func(void *parameter)
 {
-  {
-    ((UpdateCheck *)parameter)->_taskFunc();
-  }
+  ((UpdateCheck *)parameter)->_taskFunc();
 }
 
-UpdateCheck::UpdateCheck(Settings* settings, SysInfo* sysInfo, LED *statusLED) : _sysInfo(sysInfo), _statusLED(statusLED), _settings(settings)
+// ---- Testable helpers ------------------------------------------------------
+
+void buildReleasesApiUrl(bool beta, char* out, size_t outLen)
 {
+    // "/releases/latest" excludes prereleases; "/releases" lists every
+    // non-draft release including prereleases, newest first.
+    if (beta) {
+        snprintf(out, outLen,
+                 "https://api.github.com/repos/%s/releases",
+                 GITHUB_REPO);
+    } else {
+        snprintf(out, outLen,
+                 "https://api.github.com/repos/%s/releases/latest",
+                 GITHUB_REPO);
+    }
 }
 
-void UpdateCheck::start()
+void normalizeTag(const char* tag, char* out, size_t outLen)
 {
-  xTaskCreate(_update_check_task_func, "UpdateCheck", 8192, this, 3, &_tHandle);
+    if (outLen == 0) return;
+    out[0] = 0;
+    if (!tag) return;
+
+    const char* p = tag;
+    // Strip a single leading v/V (GitHub tags are typically "v2.1.11").
+    if ((p[0] == 'v' || p[0] == 'V') &&
+        p[1] >= '0' && p[1] <= '9') {
+        p++;
+    }
+    strncpy(out, p, outLen - 1);
+    out[outLen - 1] = 0;
 }
 
-void UpdateCheck::stop()
-{
-  vTaskDelete(_tHandle);
-}
+// ---- HTTP response accumulator --------------------------------------------
 
-const char *UpdateCheck::getLatestVersion()
-{
-  return _latestVersion;
-}
-
-// Buffer for HTTP event handler to collect response body
-struct http_response_data {
-    char buffer[64];
-    int len;
+struct GhResponse {
+    char *buf;        // heap-allocated, NH_RESPONSE_CAP bytes
+    size_t len;
+    size_t cap;
+    int httpStatus;
 };
 
-static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
+static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
 {
-    struct http_response_data *resp = (struct http_response_data *)evt->user_data;
-    if (evt->event_id == HTTP_EVENT_ON_DATA && resp) {
-        int copy_len = evt->data_len;
-        if (resp->len + copy_len >= (int)sizeof(resp->buffer)) {
-            copy_len = sizeof(resp->buffer) - 1 - resp->len;
+    GhResponse *r = (GhResponse *)evt->user_data;
+    if (!r) return ESP_OK;
+
+    if (evt->event_id == HTTP_EVENT_ON_DATA) {
+        if (r->httpStatus == 0) {
+            r->httpStatus = esp_http_client_get_status_code(evt->client);
         }
-        if (copy_len > 0) {
-            memcpy(resp->buffer + resp->len, evt->data, copy_len);
-            resp->len += copy_len;
-            resp->buffer[resp->len] = 0;
+        // Only buffer successful responses. A 403 (rate limit) or 404 (no
+        // releases yet) body is small and not worth parsing.
+        if (r->httpStatus == 200) {
+            size_t copy = evt->data_len;
+            if (r->len + copy > r->cap) {
+                copy = (r->len < r->cap) ? (r->cap - r->len) : 0;
+            }
+            if (copy > 0) {
+                memcpy(r->buf + r->len, evt->data, copy);
+                r->len += copy;
+            }
         }
     }
     return ESP_OK;
 }
 
-void UpdateCheck::_updateLatestVersion()
+// Parse a single GitHub release JSON object into out. Returns true on success.
+static bool _parseReleaseObject(const cJSON *obj, ReleaseInfo *out)
 {
-    const char* url = "https://xerolux.de/firmware/HB-RF-ETH-ng/version.txt";
+    if (!obj) return false;
 
-    struct http_response_data resp = {};
+    const char *tag = cJSON_GetStringValue(cJSON_GetObjectItem(obj, "tag_name"));
+    if (!tag) return false;
+    normalizeTag(tag, out->version, sizeof(out->version));
+
+    const char *html = cJSON_GetStringValue(cJSON_GetObjectItem(obj, "html_url"));
+    if (html) {
+        strncpy(out->releaseUrl, html, sizeof(out->releaseUrl) - 1);
+    }
+
+    const char *published = cJSON_GetStringValue(cJSON_GetObjectItem(obj, "published_at"));
+    if (published) {
+        strncpy(out->publishedAt, published, sizeof(out->publishedAt) - 1);
+    }
+
+    cJSON *preItem = cJSON_GetObjectItem(obj, "prerelease");
+    out->isPrerelease = preItem ? cJSON_IsTrue(preItem) : false;
+
+    const char *body = cJSON_GetStringValue(cJSON_GetObjectItem(obj, "body"));
+    if (body) {
+        // Truncate body to last (sizeof-1) bytes so the WebUI still has a
+        // useful preview; the full CHANGELOG is fetched separately.
+        size_t n = strlen(body);
+        size_t cap = sizeof(out->body) - 1;
+        if (n > cap) {
+            // Keep the most recent entries (end of the markdown body).
+            memcpy(out->body, body + (n - cap), cap);
+            out->body[cap] = 0;
+        } else {
+            strncpy(out->body, body, cap);
+            out->body[cap] = 0;
+        }
+    }
+
+    // Find the firmware binary asset. The release workflow uploads
+    // "firmware_<version>.bin"; other assets (bootloader, partitions,
+    // SHA256SUMS) are skipped.
+    const cJSON *assets = cJSON_GetObjectItem(obj, "assets");
+    bool foundAsset = false;
+    if (cJSON_IsArray(assets)) {
+        cJSON *asset;
+        cJSON_ArrayForEach(asset, assets) {
+            const char *name = cJSON_GetStringValue(cJSON_GetObjectItem(asset, "name"));
+            if (!name) continue;
+            if (strncmp(name, "firmware_", 9) != 0) continue;
+            size_t nl = strlen(name);
+            if (nl < 4 || strcmp(name + nl - 4, ".bin") != 0) continue;
+
+            const char *url = cJSON_GetStringValue(cJSON_GetObjectItem(asset, "browser_download_url"));
+            if (url) {
+                strncpy(out->downloadUrl, url, sizeof(out->downloadUrl) - 1);
+                out->downloadUrl[sizeof(out->downloadUrl) - 1] = 0;
+                foundAsset = true;
+                break;
+            }
+        }
+    }
+
+    if (!foundAsset) {
+        ESP_LOGW(TAG, "Release %s has no matching firmware_*.bin asset", out->version);
+        // Don't fail outright - the version is still informative, but OTA
+        // will not be possible until the asset is uploaded.
+        out->downloadUrl[0] = 0;
+    }
+
+    out->valid = true;
+    out->error[0] = 0;
+    return true;
+}
+
+// ---- UpdateCheck -----------------------------------------------------------
+
+UpdateCheck::UpdateCheck(Settings* settings, SysInfo* sysInfo, LED *statusLED)
+    : _sysInfo(sysInfo), _statusLED(statusLED), _settings(settings)
+{
+    _stateMutex = xSemaphoreCreateMutex();
+    _fetchLock = xSemaphoreCreateMutex();
+}
+
+void UpdateCheck::start()
+{
+    xTaskCreate(_update_check_task_func, "UpdateCheck", 8192, this, 3, &_tHandle);
+}
+
+void UpdateCheck::stop()
+{
+    vTaskDelete(_tHandle);
+}
+
+const char *UpdateCheck::getLatestVersion()
+{
+    return _latestVersion;
+}
+
+ReleaseInfo UpdateCheck::getReleaseInfo()
+{
+    ReleaseInfo snap;
+    if (_stateMutex && xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
+        snap = _release;
+        xSemaphoreGive(_stateMutex);
+    } else {
+        memset(&snap, 0, sizeof(snap));
+        strncpy(snap.version, "n/a", sizeof(snap.version) - 1);
+    }
+    return snap;
+}
+
+bool UpdateCheck::refresh()
+{
+    // Refuse to stack fetches - a single GitHub request can take several
+    // seconds (DNS + TLS handshake + download) and the background timer
+    // and a manual "Check now" can otherwise race.
+    if (!_fetchLock || xSemaphoreTake(_fetchLock, 0) != pdTRUE) {
+        ESP_LOGD(TAG, "refresh: another fetch is already in progress");
+        return false;
+    }
+
+    ReleaseInfo fresh = {};
+    bool ok = _doFetch(&fresh);
+    int64_t now = esp_timer_get_time() / 1000;
+
+    // Publish atomically. On failure we keep the last-known-good snapshot
+    // (version, URLs, body) so the WebUI continues to show useful data,
+    // and just surface the error + retry timestamp.
+    if (_stateMutex && xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
+        if (ok) {
+            fresh.fetchedAtMs = now;
+            _release = fresh;
+            strncpy(_latestVersion, fresh.version, sizeof(_latestVersion) - 1);
+            _latestVersion[sizeof(_latestVersion) - 1] = 0;
+        } else {
+            _release.fetchedAtMs = now;
+            if (fresh.error[0]) {
+                strncpy(_release.error, fresh.error, sizeof(_release.error) - 1);
+                _release.error[sizeof(_release.error) - 1] = 0;
+            }
+            // If we've never had a valid snapshot, keep the "n/a" default
+            // so legacy callers (sysinfo, MQTT) report the same.
+            if (!_release.valid) {
+                strncpy(_latestVersion, "n/a", sizeof(_latestVersion) - 1);
+                _latestVersion[sizeof(_latestVersion) - 1] = 0;
+            }
+        }
+        xSemaphoreGive(_stateMutex);
+    }
+
+    xSemaphoreGive(_fetchLock);
+    return ok;
+}
+
+bool UpdateCheck::isFetchInProgress()
+{
+    if (!_fetchLock) return false;
+    // xSemaphoreGetMutexHolder returns the owning task handle or NULL. We
+    // don't care who owns it - any non-NULL value means "busy".
+    return xSemaphoreGetMutexHolder(_fetchLock) != NULL;
+}
+
+bool UpdateCheck::_doFetch(ReleaseInfo *out)
+{
+    bool beta = _settings ? _settings->getBetaChannel() : false;
+    char url[128];
+    buildReleasesApiUrl(beta, url, sizeof(url));
+
+    ESP_LOGI(TAG, "Fetching %s release info from GitHub (beta channel: %d)",
+             beta ? "latest (incl. pre-release)" : "stable", beta ? 1 : 0);
+
+    char *responseBuf = (char *)malloc(GH_RESPONSE_CAP);
+    if (!responseBuf) {
+        snprintf(out->error, sizeof(out->error), "out of memory");
+        ESP_LOGE(TAG, "Failed to allocate %u bytes for GitHub response", (unsigned)GH_RESPONSE_CAP);
+        return false;
+    }
+
+    GhResponse resp = {};
+    resp.buf = responseBuf;
+    resp.cap = GH_RESPONSE_CAP;
 
     esp_http_client_config_t config = {};
-    config.url = url;
-    config.crt_bundle_attach = esp_crt_bundle_attach;
-    config.transport_type = HTTP_TRANSPORT_OVER_SSL;
-    config.buffer_size = 1024;
-    config.buffer_size_tx = 1024;
+    configure_ota_http_client(config, url);
     config.timeout_ms = 10000;
-    config.user_agent = "HB-RF-ETH-ng";
-    config.event_handler = _http_event_handler;
+    config.buffer_size = 4096;
+    config.event_handler = _gh_event_handler;
     config.user_data = &resp;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
-    if (!client)
-    {
-        ESP_LOGE(TAG, "Failed to init HTTP client (out of memory)");
-        return;
+    if (!client) {
+        free(responseBuf);
+        snprintf(out->error, sizeof(out->error), "HTTP client init failed");
+        ESP_LOGE(TAG, "Failed to init HTTP client");
+        return false;
     }
+
+    // GitHub requires a User-Agent and accepts a vendor media type for JSON.
+    esp_http_client_set_header(client, "User-Agent", "HB-RF-ETH-ng");
+    esp_http_client_set_header(client, "Accept", "application/vnd.github+json");
 
     esp_err_t err = esp_http_client_perform(client);
-    if (err == ESP_OK)
-    {
-        int status = esp_http_client_get_status_code(client);
+    int status = resp.httpStatus;
+    size_t bodyLen = resp.len;
 
-        if (status == 200 && resp.len > 0)
-        {
-            // Trim whitespace and newlines
-            char* pStart = resp.buffer;
-            while (*pStart == ' ' || *pStart == '\t' || *pStart == '\r' || *pStart == '\n') pStart++;
+    bool parsedOk = false;
+    if (err == ESP_OK && status == 200 && bodyLen > 0) {
+        // Null-terminate before parsing.
+        resp.buf[bodyLen < resp.cap ? bodyLen : resp.cap - 1] = 0;
 
-            char* end = pStart + strlen(pStart) - 1;
-            while (end > pStart && (*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
-                *end = 0;
-                end--;
+        cJSON *root = cJSON_Parse(resp.buf);
+        if (root) {
+            // Stable channel returns a single object, beta channel returns
+            // an array (newest first, including prereleases). Skip any
+            // draft entries defensively - drafts should never appear in the
+            // public API response but we check anyway.
+            if (cJSON_IsArray(root)) {
+                int count = cJSON_GetArraySize(root);
+                for (int i = 0; i < count; i++) {
+                    cJSON *item = cJSON_GetArrayItem(root, i);
+                    cJSON *draft = cJSON_GetObjectItem(item, "draft");
+                    if (draft && cJSON_IsTrue(draft)) continue;
+                    if (_parseReleaseObject(item, out)) {
+                        parsedOk = true;
+                        break;
+                    }
+                }
+                if (!parsedOk) {
+                    snprintf(out->error, sizeof(out->error),
+                             "no usable release in list");
+                }
+            } else {
+                parsedOk = _parseReleaseObject(root, out);
+                if (!parsedOk) {
+                    snprintf(out->error, sizeof(out->error),
+                             "release JSON missing tag_name");
+                }
             }
-
-            strncpy(_latestVersion, pStart, sizeof(_latestVersion) - 1);
-            _latestVersion[sizeof(_latestVersion) - 1] = 0;
-
-            ESP_LOGI(TAG, "Latest version from server: %s", _latestVersion);
+            cJSON_Delete(root);
+        } else {
+            snprintf(out->error, sizeof(out->error), "JSON parse failed");
+            ESP_LOGE(TAG, "cJSON_Parse failed for GitHub response");
         }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to read version: HTTP %d, body_len=%d", status, resp.len);
-        }
-    }
-    else
-    {
-        ESP_LOGE(TAG, "HTTP request failed: %s", esp_err_to_name(err));
+    } else if (err == ESP_OK && status == 404) {
+        // /releases/latest returns 404 when no stable release exists yet
+        // (e.g. only prereleases are published).
+        snprintf(out->error, sizeof(out->error),
+                 "no stable release available yet");
+        ESP_LOGW(TAG, "GitHub returned 404 - no stable release published");
+    } else if (err == ESP_OK && status == 403) {
+        snprintf(out->error, sizeof(out->error),
+                 "GitHub API rate limit exceeded");
+        ESP_LOGW(TAG, "GitHub API rate limited (HTTP 403)");
+    } else {
+        snprintf(out->error, sizeof(out->error),
+                 "HTTP %d (%s)", status, esp_err_to_name(err));
+        ESP_LOGE(TAG, "GitHub fetch failed: HTTP %d (%s)", status, esp_err_to_name(err));
     }
 
     esp_http_client_cleanup(client);
+    free(responseBuf);
+
+    if (parsedOk) {
+        ESP_LOGI(TAG, "Latest %s release: %s%s (asset: %s)",
+                 beta ? "any" : "stable",
+                 out->version,
+                 out->isPrerelease ? " [prerelease]" : "",
+                 out->downloadUrl[0] ? out->downloadUrl : "(none)");
+    } else {
+        ESP_LOGW(TAG, "GitHub release fetch failed: %s", out->error);
+    }
+
+    return parsedOk;
 }
 
 void UpdateCheck::_taskFunc()
@@ -153,30 +402,31 @@ void UpdateCheck::_taskFunc()
     ESP_LOGI(TAG, "Checking for firmware updates...");
     ESP_LOGI(TAG, "Current version: %s", _sysInfo->getCurrentVersion());
 
-    _updateLatestVersion();
+    bool ok = refresh();
+    ReleaseInfo info = getReleaseInfo();
 
-    if (strcmp(_latestVersion, "n/a") != 0)
+    if (ok && info.valid)
     {
-      ESP_LOGI(TAG, "Latest available version: %s", _latestVersion);
+      ESP_LOGI(TAG, "Latest available version: %s", info.version);
 
-      if (compareVersions(_sysInfo->getCurrentVersion(), _latestVersion) < 0)
+      if (compareVersions(_sysInfo->getCurrentVersion(), info.version) < 0)
       {
-        ESP_LOGW(TAG, "An updated firmware with version %s is available!", _latestVersion);
+        ESP_LOGW(TAG, "An updated firmware with version %s is available!", info.version);
         _statusLED->setState(LED::getProgram(LED_PROG_UPDATE_AVAILABLE));
       }
-      else if (compareVersions(_sysInfo->getCurrentVersion(), _latestVersion) > 0)
+      else if (compareVersions(_sysInfo->getCurrentVersion(), info.version) > 0)
       {
         ESP_LOGI(TAG, "Running version (%s) is newer than available version (%s)",
-                 _sysInfo->getCurrentVersion(), _latestVersion);
+                 _sysInfo->getCurrentVersion(), info.version);
       }
       else
       {
-        ESP_LOGI(TAG, "Firmware is up to date (version %s)", _latestVersion);
+        ESP_LOGI(TAG, "Firmware is up to date (version %s)", info.version);
       }
     }
     else
     {
-      ESP_LOGE(TAG, "Failed to determine latest version");
+      ESP_LOGE(TAG, "Failed to determine latest version: %s", info.error);
     }
 
     vTaskDelay(pdMS_TO_TICKS(24 * 60 * 60000)); // 24h
@@ -187,24 +437,20 @@ void UpdateCheck::_taskFunc()
 
 void UpdateCheck::performOnlineUpdate()
 {
-    if (strcmp(_latestVersion, "n/a") == 0) {
-        ESP_LOGE(TAG, "No update version available");
+    ReleaseInfo info = getReleaseInfo();
+    if (!info.valid || info.downloadUrl[0] == 0) {
+        ESP_LOGE(TAG, "No firmware asset URL available (latest: %s)",
+                 info.valid ? info.version : "n/a");
         return;
     }
 
-    char url[256];
-    snprintf(url, sizeof(url), "https://xerolux.de/firmware/HB-RF-ETH-ng/firmware_%s.bin", _latestVersion);
-
-    ESP_LOGI(TAG, "Starting OTA update from %s", url);
+    ESP_LOGI(TAG, "Starting OTA update from %s", info.downloadUrl);
     _statusLED->setState(LED_STATE_BLINK_FAST);
 
     esp_http_client_config_t config = {};
-    config.url = url;
-    config.crt_bundle_attach = esp_crt_bundle_attach;
-    config.transport_type = HTTP_TRANSPORT_OVER_SSL;
+    configure_ota_http_client(config, info.downloadUrl);
     config.timeout_ms = 60000;
     config.buffer_size = 4096;
-    config.keep_alive_enable = false;
 
     esp_https_ota_config_t ota_config = {};
     ota_config.http_config = &config;
@@ -215,8 +461,8 @@ void UpdateCheck::performOnlineUpdate()
         ResetInfo::storeResetReason(RESET_REASON_FIRMWARE_UPDATE);
         full_system_restart();
     } else {
-        ESP_LOGE(TAG, "OTA Update failed");
+        ESP_LOGE(TAG, "OTA Update failed: %s", esp_err_to_name(ret));
         ResetInfo::storeResetReason(RESET_REASON_UPDATE_FAILED);
-        _statusLED->setState(LED_STATE_ON); // Reset LED or to previous state?
+        _statusLED->setState(LED_STATE_ON);
     }
 }

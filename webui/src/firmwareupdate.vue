@@ -54,11 +54,21 @@
 
     <!-- Update Available Banner -->
     <Transition name="slide-down">
-      <div v-if="showUpdateBanner" class="alert-banner info">
+      <div v-if="showUpdateBanner" class="alert-banner" :class="updateStore.isPrerelease ? 'warning' : 'info'">
         <div class="banner-icon"><AppIcon name="download" /></div>
         <div class="banner-content">
-          <strong>{{ t('firmware.updateAvailable', { latestVersion: sysInfoStore.latestVersion }) }}</strong>
+          <strong>
+            {{ t('firmware.updateAvailable', { latestVersion: sysInfoStore.latestVersion }) }}
+            <span v-if="updateStore.isPrerelease" class="beta-badge">{{ t('firmware.beta') }}</span>
+          </strong>
           <p>{{ t('firmware.newVersionAvailable', { version: sysInfoStore.latestVersion }) }}</p>
+          <details v-if="updateStore.releaseNotes" class="release-notes-preview">
+            <summary>{{ t('firmware.releaseNotesPreview') }}</summary>
+            <div class="release-notes-body" v-html="releaseNotesExcerpt"></div>
+            <a v-if="updateStore.releaseUrl" :href="updateStore.releaseUrl" target="_blank" rel="noopener noreferrer" class="release-link">
+              {{ t('firmware.viewOnGithub') }} <span>↗</span>
+            </a>
+          </details>
         </div>
         <BButton variant="light" size="sm" @click="showChangelogModal = true" class="banner-action">
           {{ t('firmware.viewUpdate') }}
@@ -147,10 +157,17 @@
             <div class="update-available">
               <span class="update-icon"><AppIcon name="download" /></span>
               <div class="update-text">
-                <strong>{{ t('firmware.updateAvailable') }}</strong>
+                <strong>
+                  {{ t('firmware.updateAvailable') }}
+                  <span v-if="updateStore.isPrerelease" class="beta-badge">{{ t('firmware.beta') }}</span>
+                </strong>
                 <span class="version-info">v{{ updateStore.latestVersion }}</span>
               </div>
             </div>
+            <details v-if="updateStore.releaseNotes" class="release-notes-preview">
+              <summary>{{ t('firmware.releaseNotesPreview') }}</summary>
+              <div class="release-notes-body" v-html="releaseNotesExcerpt"></div>
+            </details>
           </div>
           <div v-else class="update-info">
             <div class="no-update">
@@ -169,6 +186,25 @@
             </div>
           </div>
 
+          <!-- Beta channel toggle -->
+          <div class="beta-toggle-row">
+            <div class="form-check form-switch">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="betaChannelSwitch"
+                :checked="updateStore.betaChannel"
+                @change="onBetaToggle"
+                :disabled="betaToggleSaving"
+              >
+            </div>
+            <label for="betaChannelSwitch" class="beta-toggle-label">
+              {{ t('firmware.betaChannel') }}
+              <span class="beta-toggle-hint">{{ t('firmware.betaChannelHint') }}</span>
+            </label>
+          </div>
+
           <div v-if="otaProgress > 0" class="progress-container">
             <div class="progress-bar">
               <div class="progress-value success" :style="{ width: otaProgress + '%' }"></div>
@@ -180,7 +216,7 @@
             variant="success"
             size="lg"
             block
-            :disabled="!updateStore.updateAvailable || otaUpdating"
+            :disabled="!updateStore.updateAvailable || !updateStore.downloadUrl || otaUpdating"
             @click="startOtaUpdate"
             class="action-btn"
           >
@@ -221,6 +257,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSysInfoStore, useUpdateStore, useFirmwareUpdateStore, useUiStore } from './stores.js'
 import axios from 'axios'
+import { marked } from 'marked'
 import ChangelogModal from './components/ChangelogModal.vue'
 
 const { t } = useI18n()
@@ -241,6 +278,7 @@ const otaSection = ref(null)
 const showCountdown = ref(false)
 const countdown = ref(30)
 const showChangelogModal = ref(false)
+const betaToggleSaving = ref(false)
 
 const showUpdateBanner = computed(() => {
   const current = sysInfoStore.currentVersion
@@ -248,6 +286,53 @@ const showUpdateBanner = computed(() => {
   if (!current || !latest || latest === 'n/a') return false
   return updateStore.compareVersions(current, latest) < 0
 })
+
+const escapeHtml = (value) => value
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#39;')
+
+// Render the GitHub release body markdown to safe HTML. The body is
+// author-controlled (release.yml generates RELEASE_NOTES.md) but we still
+// escape before passing to marked so injected markup can't sneak through.
+const releaseNotesExcerpt = computed(() => {
+  const body = updateStore.releaseNotes
+  if (!body) return ''
+  try {
+    return marked.parse(escapeHtml(body))
+  } catch (e) {
+    return `<pre>${escapeHtml(body)}</pre>`
+  }
+})
+
+const onBetaToggle = async (event) => {
+  const enabled = event.target.checked
+  betaToggleSaving.value = true
+  try {
+    await axios.post('/settings.json', { betaChannel: enabled })
+    updateStore.betaChannel = enabled
+    uiStore.pushToast({
+      type: 'success',
+      title: t('common.success'),
+      message: enabled ? t('firmware.betaChannelOn') : t('firmware.betaChannelOff'),
+      duration: 2000
+    })
+    // Re-check immediately so the user sees the effect of the toggle.
+    await updateStore.checkForUpdate(sysInfoStore.currentVersion)
+  } catch (error) {
+    // Revert checkbox on error.
+    event.target.checked = !enabled
+    uiStore.pushToast({
+      type: 'error',
+      title: t('common.error'),
+      message: error.response?.data?.error || error.message
+    })
+  } finally {
+    betaToggleSaving.value = false
+  }
+}
 
 const formatSize = (bytes) => {
   if (bytes === 0) return '0 B'
@@ -304,9 +389,20 @@ const executeUpload = async () => {
 const startOtaUpdate = async () => {
   const version = updateStore.latestVersion
   if (!version || version === 'n/a') return
-  
-  const updateUrl = `https://xerolux.de/firmware/HB-RF-ETH-ng/firmware_${version}.bin`
-  
+
+  // Prefer the asset URL advertised by the GitHub release. Fall back to the
+  // legacy mirror only if the device somehow has a version but no URL
+  // (e.g. asset upload is still in progress) - this should be rare.
+  const updateUrl = updateStore.downloadUrl
+  if (!updateUrl) {
+    uiStore.pushToast({
+      type: 'error',
+      title: t('common.error'),
+      message: t('firmware.noDownloadUrl')
+    })
+    return
+  }
+
   otaUpdating.value = true
   otaProgress.value = 0
 
@@ -451,15 +547,28 @@ let updateCheckInterval = null
 onMounted(async () => {
   try {
     await sysInfoStore.update()
-    await updateStore.checkForUpdate(sysInfoStore.currentVersion)
+    // Read the device's cached snapshot first so the page renders without
+    // waiting for a GitHub API call. The device has its own 24h background
+    // task that talks to GitHub; we don't want every page open to consume
+    // a (rate-limited) API call.
+    await updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })
+
+    // If the device has never fetched (or was just rebooted and the 30 s
+    // startup timer hasn't fired yet), trigger one explicit refresh so the
+    // user doesn't stare at "Firmware is up to date" with latestVersion=n/a.
+    if (updateStore.latestVersion === 'n/a' && !updateStore.fetchInProgress) {
+      updateStore.checkForUpdate(sysInfoStore.currentVersion).catch(() => {})
+    }
   } catch (e) {
     console.warn('Initial update check failed:', e.response?.status || e.message)
   }
+  // Periodically re-read the cache while the page is open so the
+  // "last check" indicator and download URL stay fresh.
   updateCheckInterval = setInterval(() => {
     if (sysInfoStore.currentVersion) {
-      updateStore.checkForUpdate(sysInfoStore.currentVersion)
+      updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })
     }
-  }, 24 * 60 * 60 * 1000)
+  }, 60 * 1000)
 })
 
 onUnmounted(() => {
@@ -731,6 +840,145 @@ onUnmounted(() => {
 .version-info {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
+}
+
+/* Beta badge shown next to a pre-release version */
+.beta-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #92400e;
+  background: #fde68a;
+  border-radius: var(--radius-full);
+  vertical-align: middle;
+}
+
+/* Beta channel toggle row */
+.beta-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.beta-toggle-row .form-switch {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.beta-toggle-row .form-check-input {
+  cursor: pointer;
+}
+
+.beta-toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.beta-toggle-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+/* Release notes preview (collapsible <details>) */
+.release-notes-preview {
+  margin: var(--spacing-sm) 0 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.release-notes-preview > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-text);
+  list-style: none;
+}
+
+.release-notes-preview > summary::-webkit-details-marker {
+  display: none;
+}
+
+.release-notes-preview > summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.15s ease;
+}
+
+.release-notes-preview[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.release-notes-body {
+  margin-top: var(--spacing-sm);
+  max-height: 240px;
+  overflow-y: auto;
+  color: var(--color-text);
+}
+
+.release-notes-body :deep(h1),
+.release-notes-body :deep(h2),
+.release-notes-body :deep(h3) {
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.release-notes-body :deep(ul),
+.release-notes-body :deep(ol) {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.release-notes-body :deep(li) {
+  margin-bottom: 0.25rem;
+}
+
+.release-notes-body :deep(code) {
+  background: var(--color-border-light);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.release-link {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.release-link:hover {
+  text-decoration: underline;
+}
+
+/* Inside the update banner the preview sits on a tinted background */
+.alert-banner .release-notes-preview {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+}
+
+.alert-banner .release-notes-preview > summary,
+.alert-banner .release-notes-body {
+  color: white;
 }
 
 .no-update {

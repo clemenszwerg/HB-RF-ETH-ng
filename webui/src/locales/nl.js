@@ -257,7 +257,15 @@ export default {
     updateSuccess: 'Firmware succesvol bijgewerkt',
     updateError: 'Fout bij bijwerken firmware',
     warning: 'Waarschuwing: Koppel de stroom niet los tijdens de update!',
-    restartConfirm: 'Wilt u het systeem echt opnieuw opstarten?'
+    restartConfirm: 'Wilt u het systeem echt opnieuw opstarten?',
+    beta: 'Beta',
+    betaChannel: 'Beta-updates',
+    betaChannelHint: 'Voorlopige versies (pre-releases) opnemen. Bèta-versies kunnen instabiel zijn.',
+    betaChannelOn: 'Beta-updates ingeschakeld – opnieuw gecontroleerd',
+    betaChannelOff: 'Beta-updates uitgeschakeld – opnieuw gecontroleerd',
+    releaseNotesPreview: 'Release-opmerkingen',
+    viewOnGithub: 'Bekijk op GitHub',
+    noDownloadUrl: 'Geen firmware-binair bestand gekoppeld aan deze release. Probeer het later opnieuw of upload handmatig.'
   },
 
   // Monitoring

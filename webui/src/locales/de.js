@@ -265,7 +265,15 @@ export default {
     updateSuccess: 'Firmware wurde erfolgreich aktualisiert',
     updateError: 'Fehler beim Aktualisieren der Firmware',
     warning: 'Warnung: Unterbrechen Sie nicht die Stromversorgung während des Updates!',
-    restartConfirm: 'Möchten Sie das System wirklich neu starten?'
+    restartConfirm: 'Möchten Sie das System wirklich neu starten?',
+    beta: 'Beta',
+    betaChannel: 'Beta-Updates',
+    betaChannelHint: 'Vorab-Versionen (Pre-Releases) mit einbeziehen. Beta-Versionen können instabil sein.',
+    betaChannelOn: 'Beta-Updates aktiviert – neu geprüft',
+    betaChannelOff: 'Beta-Updates deaktiviert – neu geprüft',
+    releaseNotesPreview: 'Release Notes',
+    viewOnGithub: 'Auf GitHub ansehen',
+    noDownloadUrl: 'Keine Firmware-Datei mit diesem Release verknüpft. Bitte später erneut versuchen oder manuell hochladen.'
   },
 
   // Monitoring

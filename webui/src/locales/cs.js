@@ -257,7 +257,15 @@ export default {
     updateSuccess: 'Firmware úspěšně aktualizován',
     updateError: 'Chyba při aktualizaci firmwaru',
     warning: 'Varování: Během aktualizace neodpojujte napájení!',
-    restartConfirm: 'Opravdu chcete restartovat systém?'
+    restartConfirm: 'Opravdu chcete restartovat systém?',
+    beta: 'Beta',
+    betaChannel: 'Beta aktualizace',
+    betaChannelHint: 'Zahrnout předběžné verze (pre-release). Beta verze mohou být nestabilní.',
+    betaChannelOn: 'Beta aktualizace povoleny – znovu zkontrolováno',
+    betaChannelOff: 'Beta aktualizace zakázány – znovu zkontrolováno',
+    releaseNotesPreview: 'Poznámky k vydání',
+    viewOnGithub: 'Zobrazit na GitHubu',
+    noDownloadUrl: 'K tomuto vydání není připojen žádný binární soubor firmwaru. Zkuste to prosím později nebo nahrajte ručně.'
   },
 
   // Monitoring

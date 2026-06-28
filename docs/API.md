@@ -234,7 +234,8 @@ Retrieve current device settings.
     "gpsBaudrate": 9600,
     "ntpServer": "string",
     "ledBrightness": 100,
-    "updateLedBlink": true
+    "updateLedBlink": true,
+    "betaChannel": false
   }
 }
 ```
@@ -269,6 +270,7 @@ Retrieve current device settings.
 **System Settings:**
 - `ledBrightness`: LED brightness (0-100)
 - `updateLedBlink`: Enable/disable LED blinking for update notifications
+- `betaChannel`: When `true`, the firmware update check considers pre-release versions published on GitHub (see [Firmware Management](#firmware-management)). Stable channel (default) only reports the latest stable release.
 
 **Example:**
 ```bash
@@ -443,9 +445,146 @@ curl -X POST http://192.168.1.100/api/monitoring \
 
 ## Firmware Management
 
+### GET /api/check_update
+
+Return the cached snapshot of the latest release known to the firmware. The
+snapshot is refreshed automatically every 24 h by a background task and on
+demand via `POST /api/check_update`. No network request is triggered by GET,
+so it is safe to poll.
+
+The release data is sourced from the public GitHub Releases API
+(`https://api.github.com/repos/Xerolux/HB-RF-ETH-ng/releases/latest` for the
+stable channel, `/releases` for the beta channel).
+
+**Authentication:** Required
+
+**Response (200 OK):**
+```json
+{
+  "currentVersion": "2.1.11",
+  "latestVersion": "2.1.12",
+  "updateAvailable": true,
+  "isPrerelease": false,
+  "releaseNotes": "## What's new\n\n- Fixed ...",
+  "releaseUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/v2.1.12",
+  "downloadUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/download/v2.1.12/firmware_2.1.12.bin",
+  "publishedAt": "2025-08-14T12:34:56Z",
+  "fetchedAt": 1735300000000,
+  "betaChannel": false,
+  "fetchInProgress": false,
+  "error": null
+}
+```
+
+**Fields:**
+- `currentVersion`: Firmware version currently running on the device.
+- `latestVersion`: Latest version matching the selected channel (`"n/a"` before the first successful fetch).
+- `updateAvailable`: `true` when `latestVersion > currentVersion` per semver.
+- `isPrerelease`: Mirrors the GitHub `prerelease` flag of the matched release.
+- `releaseNotes`: Markdown body of the GitHub release (truncated to the last 4 KB).
+- `releaseUrl`: `html_url` of the release for the "View on GitHub" link.
+- `downloadUrl`: `browser_download_url` of the `firmware_*.bin` asset. Empty when no asset is attached.
+- `publishedAt`: ISO 8601 timestamp from GitHub.
+- `fetchedAt`: Unix epoch (milliseconds) of the last successful fetch; `0` if never fetched.
+- `betaChannel`: Current value of the `betaChannel` setting.
+- `fetchInProgress`: `true` while a GitHub fetch is in flight.
+- `error`: Human-readable description of the last fetch failure, `null` if the snapshot is valid.
+
+**Example:**
+```bash
+curl http://192.168.1.100/api/check_update \
+  -H "Authorization: Token YOUR_TOKEN_HERE"
+```
+
+---
+
+### POST /api/check_update
+
+Trigger an immediate refresh from the GitHub Releases API. Returns the same
+JSON shape as `GET /api/check_update` once the fetch completes. The endpoint
+runs the fetch in a detached task so the single-threaded HTTP server stays
+responsive; the response is sent after the fetch finishes (typically 3–10 s).
+Concurrent requests coalesce onto the in-flight fetch rather than spawning
+duplicate GitHub API calls.
+
+**Authentication:** Required
+
+**Request:** Empty body accepted (`{}` is also fine).
+
+**Response (200 OK):** Same shape as `GET /api/check_update`.
+
+**Example:**
+```bash
+curl -X POST http://192.168.1.100/api/check_update \
+  -H "Authorization: Token YOUR_TOKEN_HERE"
+```
+
+---
+
+### GET /api/changelog
+
+Proxy to the raw `CHANGELOG.md` on GitHub
+(`https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/CHANGELOG.md`).
+Used by the WebUI to render the full release history in a modal. The fetch
+runs in a detached task; only one upstream fetch is allowed at a time.
+
+**Authentication:** Required
+
+**Response (200 OK):** `text/markdown`, full file contents.
+
+**Response (503 Service Unavailable):** Another external fetch is already in progress. Retry shortly.
+
+---
+
+### POST /api/ota_url
+
+Download and install a firmware image from an HTTPS URL. The download runs
+in a detached task while progress is reported via `GET /api/ota_status`.
+Typically called with the `downloadUrl` returned by `GET /api/check_update`.
+
+**Authentication:** Required
+
+**Request:**
+```json
+{ "url": "https://github.com/.../firmware_2.1.12.bin" }
+```
+
+**Response (200 OK):**
+```json
+{ "success": true, "message": "OTA update started" }
+```
+
+**Response (200 OK, request rejected):**
+```json
+{ "success": false, "error": "OTA update already in progress" }
+```
+
+---
+
+### GET /api/ota_status
+
+Report progress of an OTA download started via `POST /api/ota_url` or a manual
+file upload.
+
+**Authentication:** Required
+
+**Response (200 OK):**
+```json
+{
+  "status": "downloading",
+  "progress": 42,
+  "error": null
+}
+```
+
+`status` is one of `"idle"`, `"downloading"`, `"success"`, `"failed"`.
+
+---
+
 ### POST /ota_update
 
-Upload and install a firmware update.
+Upload and install a firmware update from a local file. Use this when the
+device cannot reach GitHub (e.g. air-gapped network) or for custom builds.
 
 **Authentication:** Required
 

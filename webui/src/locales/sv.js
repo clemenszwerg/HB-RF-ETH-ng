@@ -257,7 +257,15 @@ export default {
     updateSuccess: 'Firmware uppdaterad framgångsrikt',
     updateError: 'Fel vid uppdatering av firmware',
     warning: 'Varning: Koppla inte bort strömmen under uppdateringen!',
-    restartConfirm: 'Vill du verkligen starta om systemet?'
+    restartConfirm: 'Vill du verkligen starta om systemet?',
+    beta: 'Beta',
+    betaChannel: 'Beta-uppdateringar',
+    betaChannelHint: 'Inkludera förhandsversioner (pre-releases). Beta-versioner kan vara instabila.',
+    betaChannelOn: 'Beta-uppdateringar aktiverade – markerade om',
+    betaChannelOff: 'Beta-uppdateringar inaktiverade – markerade om',
+    releaseNotesPreview: 'Versionsanteckningar',
+    viewOnGithub: 'Visa på GitHub',
+    noDownloadUrl: 'Ingen firmware-binär kopplad till denna utgåva. Försök igen senare eller ladda upp manuellt.'
   },
 
   // Monitoring

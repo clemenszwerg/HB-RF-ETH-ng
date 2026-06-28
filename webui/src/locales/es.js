@@ -257,7 +257,15 @@ export default {
     updateSuccess: 'Firmware actualizado correctamente',
     updateError: 'Error al actualizar el firmware',
     warning: 'Advertencia: ¡No desconecte la alimentación durante la actualización!',
-    restartConfirm: '¿Realmente desea reiniciar el sistema?'
+    restartConfirm: '¿Realmente desea reiniciar el sistema?',
+    beta: 'Beta',
+    betaChannel: 'Actualizaciones beta',
+    betaChannelHint: 'Incluir versiones preliminares. Las versiones beta pueden ser inestables.',
+    betaChannelOn: 'Actualizaciones beta activadas – verificación repetida',
+    betaChannelOff: 'Actualizaciones beta desactivadas – verificación repetida',
+    releaseNotesPreview: 'Notas de la versión',
+    viewOnGithub: 'Ver en GitHub',
+    noDownloadUrl: 'Ningún binario de firmware adjunto a esta versión. Vuelva a intentarlo más tarde o súbralo manualmente.'
   },
 
   // Monitoring

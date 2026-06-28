@@ -263,6 +263,19 @@ export const useUpdateStore = defineStore('update', {
     latestVersion: null,
     isChecking: false,
     updateAvailable: false,
+    isPrerelease: false,
+    // Markdown release-notes excerpt straight from the GitHub release body.
+    releaseNotes: '',
+    // html_url of the release (link to "view on GitHub").
+    releaseUrl: '',
+    // browser_download_url of the firmware_*.bin asset. Empty when no asset
+    // is attached (should not happen for normal releases).
+    downloadUrl: '',
+    publishedAt: '',
+    // Whether the device is currently configured to consider pre-releases.
+    betaChannel: false,
+    // True while a refresh is in flight on the device.
+    fetchInProgress: false,
     lastCheck: null,
     checkError: null
   }),
@@ -272,24 +285,48 @@ export const useUpdateStore = defineStore('update', {
     }
   },
   actions: {
-    async checkForUpdate(currentVersion) {
+    // Refreshes the cached release info from the device. By default a POST
+    // is sent which triggers an immediate GitHub API fetch on the device
+    // (slow, ~3-10 s). Pass { cached: true } to only read the cached state.
+    async checkForUpdate(currentVersion, options = {}) {
       if (this.isChecking) return
+      const cached = options && options.cached === true
 
       this.isChecking = true
       this.checkError = null
 
       try {
-        const response = await axios.get('/api/check_update?t=' + Date.now(), { responseType: 'text' })
+        const config = cached
+          ? { params: { t: Date.now() } }
+          : { timeout: 15000 }
+        const response = cached
+          ? await axios.get('/api/check_update', config)
+          : await axios.post('/api/check_update', {}, config)
 
-        const latestVersion = response.data
-        this.latestVersion = latestVersion.trim()
+        const data = response.data || {}
+        this.latestVersion = (data.latestVersion || 'n/a').toString()
+        this.updateAvailable = !!data.updateAvailable
+        this.isPrerelease = !!data.isPrerelease
+        this.releaseNotes = data.releaseNotes || ''
+        this.releaseUrl = data.releaseUrl || ''
+        this.downloadUrl = data.downloadUrl || ''
+        this.publishedAt = data.publishedAt || ''
+        this.betaChannel = !!data.betaChannel
+        this.fetchInProgress = !!data.fetchInProgress
         this.lastCheck = new Date().toISOString()
 
-        // Compare versions
-        this.updateAvailable = this.compareVersions(currentVersion, this.latestVersion) < 0
+        if (data.error) {
+          this.checkError = data.error
+        }
+
+        // Sanity check: trust the device's comparison, but fall back to a
+        // local comparison if it omitted the flag.
+        if (!data.updateAvailable && currentVersion && this.latestVersion !== 'n/a') {
+          this.updateAvailable = this.compareVersions(currentVersion, this.latestVersion) < 0
+        }
       } catch (error) {
         console.error('Update check failed:', error)
-        this.checkError = error.message || 'Unknown error'
+        this.checkError = error.response?.data?.error || error.message || 'Unknown error'
       } finally {
         this.isChecking = false
       }

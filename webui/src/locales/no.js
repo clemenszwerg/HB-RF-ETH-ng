@@ -257,7 +257,15 @@ export default {
     updateSuccess: 'Fastvare oppdatert',
     updateError: 'Feil ved oppdatering av fastvare',
     warning: 'Advarsel: Ikke koble fra strømmen under oppdateringen!',
-    restartConfirm: 'Vil du virkelig starte systemet på nytt?'
+    restartConfirm: 'Vil du virkelig starte systemet på nytt?',
+    beta: 'Beta',
+    betaChannel: 'Beta-oppdateringer',
+    betaChannelHint: 'Inkluder forhåndsversjoner (pre-releases). Beta-versjoner kan være ustabile.',
+    betaChannelOn: 'Beta-oppdateringer aktivert – sjekket på nytt',
+    betaChannelOff: 'Beta-oppdateringer deaktivert – sjekket på nytt',
+    releaseNotesPreview: 'Utgivelsesnotater',
+    viewOnGithub: 'Vis på GitHub',
+    noDownloadUrl: 'Ingen firmware-binær knyttet til denne utgivelsen. Prøv igjen senere eller last opp manuelt.'
   },
 
   // Monitoring

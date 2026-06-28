@@ -176,6 +176,8 @@ void Settings::load()
   len = sizeof(_ccuIP);
   if (nvs_get_str(handle, "ccuIP", _ccuIP, &len) != ESP_OK) _ccuIP[0] = 0;
 
+  GET_BOOL(handle, "betaChannel", _betaChannel, false);
+
   nvs_close(handle);
 }
 
@@ -228,6 +230,8 @@ void Settings::save()
   SET_STR(handle, "ipv6Dns2", _ipv6Dns2);
 
   SET_STR(handle, "ccuIP", _ccuIP);
+
+  SET_BOOL(handle, "betaChannel", _betaChannel);
 
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_commit(handle));
   nvs_close(handle);
@@ -545,4 +549,14 @@ void Settings::setCCUIP(const char *ip)
   }
 
   strncpy(_ccuIP, ip, sizeof(_ccuIP) - 1);
+}
+
+bool Settings::getBetaChannel()
+{
+  return _betaChannel;
+}
+
+void Settings::setBetaChannel(bool enabled)
+{
+  _betaChannel = enabled;
 }

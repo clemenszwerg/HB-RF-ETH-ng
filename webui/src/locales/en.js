@@ -265,7 +265,15 @@ export default {
     updateSuccess: 'Firmware updated successfully',
     updateError: 'Error updating firmware',
     warning: 'Warning: Do not disconnect power during update!',
-    restartConfirm: 'Do you really want to restart the system?'
+    restartConfirm: 'Do you really want to restart the system?',
+    beta: 'Beta',
+    betaChannel: 'Beta updates',
+    betaChannelHint: 'Include pre-release versions. Beta versions may be unstable.',
+    betaChannelOn: 'Beta updates enabled – re-checked',
+    betaChannelOff: 'Beta updates disabled – re-checked',
+    releaseNotesPreview: 'Release notes',
+    viewOnGithub: 'View on GitHub',
+    noDownloadUrl: 'No firmware binary attached to this release. Please try again later or upload manually.'
   },
 
   // Monitoring
