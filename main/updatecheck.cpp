@@ -45,6 +45,10 @@ static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
 // and cap the body field of ReleaseInfo separately.
 static const size_t GH_RESPONSE_CAP = 24 * 1024;
 
+// esp_https_ota in IDF 6.x no longer exposes ESP_ERR_HTTPS_OTA_INCOMPLETE; use
+// a private application code to report a download that ended prematurely.
+#define OTA_ERR_DOWNLOAD_INCOMPLETE 0x10001
+
 void _update_check_task_func(void *parameter)
 {
   ((UpdateCheck *)parameter)->_taskFunc();
@@ -573,7 +577,7 @@ void UpdateCheck::performOnlineUpdate()
         ESP_LOGE(TAG, "OTA perform failed: ret=%s complete=%d",
                  esp_err_to_name(ret), complete ? 1 : 0);
         const char* err_text = (ret == ESP_OK) ? "download incomplete" : esp_err_to_name(ret);
-        int err_code = (ret == ESP_OK) ? ESP_ERR_HTTPS_OTA_INCOMPLETE : ret;
+        int err_code = (ret == ESP_OK) ? OTA_ERR_DOWNLOAD_INCOMPLETE : ret;
         if (_stateMutex && xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
             _setOtaStateLocked(OTA_STATE_FAILED);
             _setOtaErrorLocked(err_code, err_text);
