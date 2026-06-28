@@ -26,9 +26,10 @@ def update_readme(version: str):
     readme_file = Path("README.md")
     content = readme_file.read_text(encoding='utf-8')
 
-    # Update the main title
+    # Update the main title (match full semver incl. optional pre-release so
+    # repeated runs are idempotent)
     content = re.sub(
-        r"# HB-RF-ETH-ng (?:Firmware )?v[\d.]+",
+        r"# HB-RF-ETH-ng (?:Firmware )?v[\d.]+(?:-[A-Za-z]+\.\d+)?",
         f"# HB-RF-ETH-ng v{version}",
         content
     )
@@ -147,9 +148,10 @@ def update_troubleshooting(version: str):
 
     content = troubleshooting_file.read_text(encoding='utf-8')
 
-    # Update version in header
+    # Update version in header (match full semver incl. optional pre-release so
+    # repeated runs are idempotent and don't accumulate -Beta.x suffixes)
     content = re.sub(
-        r"HB-RF-ETH-ng firmware v[\d.]+",
+        r"HB-RF-ETH-ng firmware v[\d.]+(?:-[A-Za-z]+\.\d+)?",
         f"HB-RF-ETH-ng firmware v{version}",
         content
     )
