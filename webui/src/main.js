@@ -65,8 +65,12 @@ axios.interceptors.response.use(
     const silent = error.config?.silent === true
 
     if (error.response) {
-      // Handle 401 Unauthorized
-      if (error.response.status === 401) {
+      // Handle 401 Unauthorized.
+      // Respect the `silent` flag: background polls (e.g. the sysinfo refresh
+      // fired from app.vue on every page, including public ones like /about)
+      // must not log the user out and bounce to /login when the visitor is
+      // simply not authenticated. Only foreground requests revoke the session.
+      if (error.response.status === 401 && !silent) {
         loginStore.logout()
         router.push('/login')
       }

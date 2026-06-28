@@ -314,7 +314,25 @@ export const useUpdateStore = defineStore('update', {
       if (cur.pre === null) return 1
       if (lat.pre === null) return -1
 
-      return cur.pre.localeCompare(lat.pre)
+      // Compare pre-release identifiers per semver: split on '.', compare each
+      // segment numerically when both are numeric, otherwise lexically. This
+      // fixes multi-digit suffixes (e.g. "Beta.3" vs "Beta.10"), which plain
+      // localeCompare gets wrong ('3' > '1' character-wise).
+      const ap = cur.pre.split('.')
+      const bp = lat.pre.split('.')
+      const n = Math.max(ap.length, bp.length)
+      for (let i = 0; i < n; i++) {
+        if (ap[i] === undefined) return -1
+        if (bp[i] === undefined) return 1
+        if (ap[i] === bp[i]) continue
+        const an = /^\d+$/.test(ap[i]) ? parseInt(ap[i], 10) : NaN
+        const bn = /^\d+$/.test(bp[i]) ? parseInt(bp[i], 10) : NaN
+        if (!isNaN(an) && !isNaN(bn)) return an - bn
+        if (!isNaN(an)) return -1 // numeric identifiers have lower precedence
+        if (!isNaN(bn)) return 1
+        return ap[i] < bp[i] ? -1 : 1
+      }
+      return 0
     }
   }
 })

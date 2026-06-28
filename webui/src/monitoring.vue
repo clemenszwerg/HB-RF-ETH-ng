@@ -342,6 +342,9 @@ function loadPemFile(event, field, kind) {
     const normalized = normalizePem(e.target.result)
     mqttConfig.value[field] = normalized
     pemFeedback.value[field] = validatePem(normalized, kind)
+    // Loading a fresh PEM supersedes any earlier "clear" intent; otherwise the
+    // save payload would carry both the new cert body and tlsXxxClear = true.
+    tlsClearFlags.value[`${field}Clear`] = false
   }
   reader.onerror = () => { pemFeedback.value[field] = { kind: 'error', msg: t('monitoring.mqtt.tls.fileReadError') } }
   reader.readAsText(file)

@@ -697,7 +697,7 @@ const updateDirtyState = () => {
   }, 300)
 }
 
-watch([hostname, useDHCP, localIP, netmask, gateway, dns1, dns2, ccuIP, timesource, dcfOffset, gpsBaudrate, ntpServer, ledBrightness, ledProgramValues, enableIPv6, ipv6Mode, ipv6Address, ipv6PrefixLength, ipv6Gateway, ipv6Dns1, ipv6Dns2], updateDirtyState)
+watch([hostname, useDHCP, localIP, netmask, gateway, dns1, dns2, ccuIP, timesource, dcfOffset, gpsBaudrate, ntpServer, ledBrightness, ledProgramValues, enableIPv6, ipv6Mode, ipv6Address, ipv6PrefixLength, ipv6Gateway, ipv6Dns1, ipv6Dns2], updateDirtyState, { deep: true })
 
 const hasUnsavedChanges = computed(() => loadedSnapshot.value !== '' && serializedCurrent.value !== '' && serializedCurrent.value !== loadedSnapshot.value)
 

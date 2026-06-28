@@ -142,12 +142,13 @@ watch(showModal, (newVal) => {
   emit('update:modelValue', newVal)
 })
 
-const handleHide = () => {
-  // Prevent closing if forced and password not changed
+const handleHide = (bvModalEvent) => {
+  // Prevent closing if forced and password not changed.
+  // bootstrap-vue-next requires calling preventDefault() on the BvModalEvent;
+  // returning false from this handler has no effect.
   if (props.forceRedirect && !loginStore.passwordChanged) {
-    return false
+    bvModalEvent.preventDefault()
   }
-  return true
 }
 
 const closeModal = () => {

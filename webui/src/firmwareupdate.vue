@@ -319,6 +319,11 @@ const startOtaUpdate = async () => {
       await pollOtaStatus()
       uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('firmware.otaSuccess'), duration: 2400 })
       setTimeout(startCountdown, 1000)
+    } else {
+      // Firmware returns HTTP 200 with { success: false, error } for several
+      // legitimate conditions (already-in-progress, invalid URL, ...). Surface
+      // it instead of silently doing nothing.
+      uiStore.pushToast({ type: 'error', title: t('common.error'), message: response.data.error || 'OTA update failed' })
     }
   } catch (error) {
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: error.response?.data?.error || error.message || 'OTA update failed' })
@@ -378,6 +383,13 @@ const pollOtaStatus = () => {
 let countdownTimer = null
 
 const startCountdown = () => {
+  // Clear any previous countdown interval so repeated triggers (e.g. restart
+  // clicked twice, or both try/catch branches firing on a network drop) cannot
+  // stack two intervals racing to reload the page.
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
   showCountdown.value = true
   countdown.value = 30
   countdownTimer = setInterval(() => {
