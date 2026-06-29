@@ -1955,7 +1955,7 @@ static void _share_log_task(void *arg)
         // the classic application/x-www-form-urlencoded POST to "/".
         static const char boundary[] = "----HBRFETHngBoundary7331";
 
-        auto appendField = [&](std::string &body, const char *name, const std::string &value) {
+        auto appendField = [&](std::string &body, const char *name, const char *value) {
             body += "--"; body += boundary; body += "\r\n";
             body += "Content-Disposition: form-data; name=\""; body += name; body += "\"\r\n\r\n";
             body += value;
@@ -1964,7 +1964,7 @@ static void _share_log_task(void *arg)
 
         std::string body;
         body.reserve(report.length() + 512);
-        appendField(body, "content", report);
+        appendField(body, "content", report.c_str());
         appendField(body, "expiration", "24hour");
         appendField(body, "burn_after", "0");
         appendField(body, "syntax_highlight", "none");
