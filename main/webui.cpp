@@ -1810,10 +1810,10 @@ static void _share_log_task(void *arg)
     report += "--- System Info ---\n";
     {
         char buf[64];
-        snprintf(buf, sizeof(buf), "CPU: %d%%\n", _sysInfo->getCpuUsage()); report += buf;
-        snprintf(buf, sizeof(buf), "Memory: %d%%\n", _sysInfo->getMemoryUsage()); report += buf;
-        snprintf(buf, sizeof(buf), "Supply Voltage: %dmV\n", _sysInfo->getSupplyVoltage()); report += buf;
-        snprintf(buf, sizeof(buf), "Temperature: %dC\n", _sysInfo->getTemperature()); report += buf;
+        snprintf(buf, sizeof(buf), "CPU: %.0f%%\n", _sysInfo->getCpuUsage()); report += buf;
+        snprintf(buf, sizeof(buf), "Memory: %.0f%%\n", _sysInfo->getMemoryUsage()); report += buf;
+        snprintf(buf, sizeof(buf), "Supply Voltage: %.0fmV\n", _sysInfo->getSupplyVoltage()); report += buf;
+        snprintf(buf, sizeof(buf), "Temperature: %.0fC\n", _sysInfo->getTemperature()); report += buf;
         report += "Board Revision: "; report += _sysInfo->getBoardRevisionString(); report += "\n";
         report += "Reset Reason: "; report += _sysInfo->getResetReason(); report += "\n";
         report += "Ethernet: ";
@@ -1835,6 +1835,7 @@ static void _share_log_task(void *arg)
         switch (_radioModuleDetector->getRadioModuleType()) {
             case RADIO_MODULE_HM_MOD_RPI_PCB: typeStr = "HM-MOD-RPI-PCB"; break;
             case RADIO_MODULE_RPI_RF_MOD:     typeStr = "RPI-RF-MOD";     break;
+            default: break;
         }
         report += "Type: "; report += typeStr; report += "\n";
         report += "Serial: "; report += _radioModuleDetector->getSerial(); report += "\n";
@@ -1865,9 +1866,9 @@ static void _share_log_task(void *arg)
         report += "DNS2: "; report += ip2str(_settings->getDns2(), dns2); report += "\n";
         report += "CCU IP: "; report += _settings->getCCUIP(); report += "\n";
         report += "CCU Connected: ";
-        report += (_rawUartUdpListener->getConnectedRemoteAddress() != IPADDR_ANY) ? "Yes" : "No";
+        ip4_addr_t ccuAddr = _rawUartUdpListener->getConnectedRemoteAddress();
+        report += (ccuAddr.addr != IPADDR_ANY) ? "Yes" : "No";
         report += "\n";
-        ip4_addr_t ccuAddr{.addr = _rawUartUdpListener->getConnectedRemoteAddress()};
         if (ccuAddr.addr != IPADDR_ANY) {
             report += "CCU Address: "; report += ip2str(ccuAddr); report += "\n";
         }
@@ -2011,8 +2012,8 @@ static void _share_log_task(void *arg)
             int status = esp_http_client_get_status_code(client);
             if (status == 303 || status == 302 || status == 301)
             {
-                char location[256];
-                if (esp_http_client_get_header(client, "Location", location, sizeof(location)) == ESP_OK)
+                char *location = NULL;
+                if (esp_http_client_get_header(client, "Location", &location) == ESP_OK && location)
                 {
                     snprintf(result, sizeof(result),
                              "{\"success\":true,\"url\":\"%s\"}", location);
