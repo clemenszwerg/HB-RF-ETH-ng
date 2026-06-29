@@ -238,13 +238,13 @@ onUnmounted(() => {
   position: relative;
   z-index: 1000;
   margin-bottom: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 .update-banner {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
   z-index: 1001;
   padding: 14px 18px;
   border-radius: 24px;
@@ -580,11 +580,8 @@ onUnmounted(() => {
   }
 
   .update-banner {
-    position: relative;
-    top: auto;
     flex-direction: column;
     align-items: flex-start;
-    margin-bottom: var(--spacing-md);
   }
 
   .update-banner-actions {
