@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.10] - 2026-06-29
+
+### Fixed
+- **Log sharing via multipart upload**: replaced URL-encoded form POST with proper multipart/form-data upload to MicroBin. Fixes the "Paste service returned HTTP 200" error — the paste service now correctly returns a 303 redirect with the share URL.
+- **TLS certificate verification**: switched ESP-IDF CA bundle from CMN subset to full Mozilla root CA, covering the ECDSA root (ISRG Root X2) required by Let's Encrypt / GitHub CDN. Fixes persistent `PSA_ERROR_GENERIC_ERROR (0xffffff73)` / TLS handshake failures during update checks and OTA downloads.
+
 ## [2.2.0-Beta.9] - 2026-06-29
 
 ### Added
