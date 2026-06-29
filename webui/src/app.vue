@@ -21,19 +21,43 @@
 
     <AppToastContainer />
     <SponsorModal v-model="showSponsorModal" />
+
+    <BModal
+      v-model="showUpdateSuccess"
+      :title="t('updateSuccess.title')"
+      :ok-title="t('common.ok')"
+      cancel-title-class="d-none"
+      @ok="showUpdateSuccess = false"
+      @cancel="showUpdateSuccess = false"
+      no-close-on-backdrop
+      no-close-on-esc
+      hide-header-close
+    >
+      <div class="update-success-body">
+        <div class="update-success-icon"><AppIcon name="check" /></div>
+        <p class="update-success-text">
+          {{ t('updateSuccess.message', { version: otaUpdateVersion }) }}
+        </p>
+      </div>
+    </BModal>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useLoginStore, useSysInfoStore } from './stores.js'
 import Header from './header.vue'
 import SponsorModal from './components/SponsorModal.vue'
 import AppToastContainer from './components/AppToastContainer.vue'
 
+const { t } = useI18n()
 const loginStore = useLoginStore()
 const sysInfoStore = useSysInfoStore()
 const showSponsorModal = ref(false)
+const showUpdateSuccess = ref(false)
+const otaUpdateVersion = ref('')
+let updateSuccessTimer = null
 
 // Idle timeout is handled globally in main.js via the login store's
 // activity tracking (10-minute timeout with cross-tab sync via localStorage).
@@ -42,6 +66,24 @@ onMounted(() => {
   sysInfoStore.update().catch((error) => {
     console.warn('Failed to load system info on app mount:', error)
   })
+
+  // Check if we just came back from an OTA update
+  const pendingVersion = localStorage.getItem('otaUpdateVersion')
+  if (pendingVersion) {
+    otaUpdateVersion.value = pendingVersion
+    showUpdateSuccess.value = true
+    localStorage.removeItem('otaUpdateVersion')
+    // Auto-close after 10 seconds
+    updateSuccessTimer = setTimeout(() => {
+      showUpdateSuccess.value = false
+    }, 10000)
+  }
+})
+
+onUnmounted(() => {
+  if (updateSuccessTimer) {
+    clearTimeout(updateSuccessTimer)
+  }
 })
 </script>
 
@@ -136,5 +178,36 @@ onMounted(() => {
   border-color: var(--color-danger);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.update-success-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+  text-align: center;
+}
+
+.update-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-success-soft, #d4edda);
+  color: var(--color-success, #28a745);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.update-success-icon .app-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.update-success-text {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text);
 }
 </style>

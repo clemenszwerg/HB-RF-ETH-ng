@@ -11,7 +11,13 @@ export default {
     error: 'Erreur',
     success: 'Succès',
     yes: 'Oui',
-    no: 'Non'
+    no: 'Non',
+    ok: 'OK'
+  },
+
+  updateSuccess: {
+    title: 'Update Successful',
+    message: 'The firmware was successfully updated to version {version}.'
   },
 
   // Header Navigation

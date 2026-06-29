@@ -419,6 +419,9 @@ const startOtaUpdate = async () => {
   otaUpdating.value = true
   otaProgress.value = 0
 
+  // Remember target version so app.vue can show a success modal after reboot
+  localStorage.setItem('otaUpdateVersion', version)
+
   uiStore.pushToast({ type: 'info', title: t('firmware.title'), message: t('firmware.otaProgress'), duration: 2200 })
 
   try {
@@ -432,9 +435,11 @@ const startOtaUpdate = async () => {
       // Firmware returns HTTP 200 with { success: false, error } for several
       // legitimate conditions (already-in-progress, invalid URL, ...). Surface
       // it instead of silently doing nothing.
+      localStorage.removeItem('otaUpdateVersion')
       uiStore.pushToast({ type: 'error', title: t('common.error'), message: response.data.error || 'OTA update failed' })
     }
   } catch (error) {
+    localStorage.removeItem('otaUpdateVersion')
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: error.response?.data?.error || error.message || 'OTA update failed' })
   } finally {
     otaUpdating.value = false
@@ -503,11 +508,11 @@ const startCountdown = () => {
   countdown.value = 30
   countdownTimer = setInterval(() => {
     countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(countdownTimer)
-      countdownTimer = null
-      window.location.reload()
-    }
+      if (countdown.value <= 0) {
+        clearInterval(countdownTimer)
+        countdownTimer = null
+        window.location.href = '/'
+      }
   }, 1000)
 }
 
