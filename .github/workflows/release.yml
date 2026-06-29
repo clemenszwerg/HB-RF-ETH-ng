@@ -1,6 +1,9 @@
 name: Release Firmware
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
@@ -40,10 +43,21 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          VERSION="${{ inputs.tag }}"
+          if [ -n "${{ inputs.tag }}" ]; then
+            VERSION="${{ inputs.tag }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
           VERSION="${VERSION#v}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "VERSION_TAG=v$VERSION" >> $GITHUB_OUTPUT
+
+          # Detect if triggered by tag push vs workflow_dispatch
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "TRIGGERED_BY_TAG=true" >> $GITHUB_OUTPUT
+          else
+            echo "TRIGGERED_BY_TAG=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Setup Python for version update
         uses: actions/setup-python@v6
@@ -51,6 +65,7 @@ jobs:
           python-version: '3.13'
 
       - name: Update all version numbers and changelog
+        if: steps.get_version.outputs.TRIGGERED_BY_TAG == 'false'
         run: |
           NEW_VERSION="${{ steps.get_version.outputs.VERSION }}"
           echo "Updating changelog for $NEW_VERSION..."
@@ -64,6 +79,7 @@ jobs:
           git status --short
 
       - name: Commit version changes and create tag
+        if: steps.get_version.outputs.TRIGGERED_BY_TAG == 'false'
         run: |
           NEW_VERSION="${{ steps.get_version.outputs.VERSION }}"
           VERSION_TAG="${{ steps.get_version.outputs.VERSION_TAG }}"
