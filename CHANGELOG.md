@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.9] - 2026-06-29
+
+### Added
+- **OTA success modal**: after a firmware update, the WebUI automatically redirects to the home page and shows a "Update to version X successful" dialog. Auto-closes after 10 seconds or on user confirmation.
+
+### Fixed
+- **Paste service sharing**: MicroBin returns a 303 redirect, but ESP-IDF auto-followed it (returning 200). Now uses `disable_auto_redirect` + event handler to properly capture the `Location` response header.
+- **Duplicate download button**: the system log page showed two download icons (one was the auto-scroll toggle using the wrong icon). Auto-scroll now uses a chevron icon.
+
 ## [2.2.0-Beta.8] - 2026-06-29
 
 ### Added
