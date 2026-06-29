@@ -1742,6 +1742,352 @@ httpd_uri_t get_log_download_handler = {
     .handler = get_log_download_handler_func,
     .user_ctx = NULL};
 
+// ---- Share log to paste.blueml.eu ----
+
+static void _url_encode(const char *src, size_t src_len, std::string &out)
+{
+    out.clear();
+    out.reserve(src_len * 3);
+    for (size_t i = 0; i < src_len; i++)
+    {
+        char c = src[i];
+        if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
+            ('0' <= c && c <= '9') ||
+            c == '-' || c == '_' || c == '.' || c == '~')
+        {
+            out += c;
+        }
+        else if (c == ' ')
+        {
+            out += '+';
+        }
+        else
+        {
+            char hex[4];
+            snprintf(hex, sizeof(hex), "%%%02X", (unsigned char)c);
+            out += hex;
+        }
+    }
+}
+
+struct ShareLogJob
+{
+    httpd_req_t *req;
+};
+
+static void _share_log_task(void *arg)
+{
+    ShareLogJob *job = (ShareLogJob *)arg;
+    char result[512];
+    result[0] = 0;
+
+    std::string logContent = LogManager::instance().getLogContent();
+    std::string report;
+    report.reserve(4096 + logContent.length());
+
+    // ---- Header ----
+    report += "============================================================\n";
+    report += "HB-RF-ETH-ng System Report\n";
+    report += "============================================================\n\n";
+    report += "Version: ";
+    report += _sysInfo->getCurrentVersion();
+    report += "\nSerial:  ";
+    report += _sysInfo->getSerialNumber();
+    report += "\nUptime:  ";
+    {
+        uint32_t s = _sysInfo->getUptimeSeconds();
+        char ut[48];
+        snprintf(ut, sizeof(ut), "%lud %luh %lum %lus",
+                 (unsigned long)(s / 86400),
+                 (unsigned long)((s % 86400) / 3600),
+                 (unsigned long)((s % 3600) / 60),
+                 (unsigned long)(s % 60));
+        report += ut;
+    }
+    report += "\n\n";
+
+    // ---- System Info ----
+    report += "--- System Info ---\n";
+    {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "CPU: %d%%\n", _sysInfo->getCpuUsage()); report += buf;
+        snprintf(buf, sizeof(buf), "Memory: %d%%\n", _sysInfo->getMemoryUsage()); report += buf;
+        snprintf(buf, sizeof(buf), "Supply Voltage: %dmV\n", _sysInfo->getSupplyVoltage()); report += buf;
+        snprintf(buf, sizeof(buf), "Temperature: %dC\n", _sysInfo->getTemperature()); report += buf;
+        report += "Board Revision: "; report += _sysInfo->getBoardRevisionString(); report += "\n";
+        report += "Reset Reason: "; report += _sysInfo->getResetReason(); report += "\n";
+        report += "Ethernet: ";
+        report += _ethernet->isConnected() ? "Connected" : "Disconnected";
+        if (_ethernet->isConnected()) {
+            snprintf(buf, sizeof(buf), ", %d Mbps, %s",
+                     _ethernet->getLinkSpeedMbps(),
+                     _ethernet->getDuplexMode());
+            report += buf;
+        }
+        report += "\n";
+    }
+    report += "\n";
+
+    // ---- Radio Module ----
+    report += "--- Radio Module ---\n";
+    {
+        const char *typeStr = "-";
+        switch (_radioModuleDetector->getRadioModuleType()) {
+            case RADIO_MODULE_HM_MOD_RPI_PCB: typeStr = "HM-MOD-RPI-PCB"; break;
+            case RADIO_MODULE_RPI_RF_MOD:     typeStr = "RPI-RF-MOD";     break;
+        }
+        report += "Type: "; report += typeStr; report += "\n";
+        report += "Serial: "; report += _radioModuleDetector->getSerial(); report += "\n";
+        const uint8_t *fw = _radioModuleDetector->getFirmwareVersion();
+        char fwBuf[16];
+        snprintf(fwBuf, sizeof(fwBuf), "%d.%d.%d", fw[0], fw[1], fw[2]);
+        report += "Firmware: "; report += fwBuf; report += "\n";
+        char macBuf[16];
+        formatRadioMAC(_radioModuleDetector->getBidCosRadioMAC(), macBuf, sizeof(macBuf));
+        report += "BidCos MAC: "; report += macBuf; report += "\n";
+        formatRadioMAC(_radioModuleDetector->getHmIPRadioMAC(), macBuf, sizeof(macBuf));
+        report += "HmIP MAC: "; report += macBuf; report += "\n";
+        report += "SGTIN: "; report += _radioModuleDetector->getSGTIN(); report += "\n";
+    }
+    report += "\n";
+
+    // ---- Network ----
+    report += "--- Network ---\n";
+    {
+        report += "Hostname: "; report += _settings->getHostname(); report += "\n";
+        report += "Use DHCP: "; report += _settings->getUseDHCP() ? "Yes" : "No"; report += "\n";
+        ip4_addr_t ip, nm, gw, dns1, dns2;
+        _ethernet->getNetworkSettings(&ip, &nm, &gw, &dns1, &dns2);
+        report += "Local IP: "; report += ip2str(_settings->getLocalIP(), ip); report += "\n";
+        report += "Netmask: "; report += ip2str(_settings->getNetmask(), nm); report += "\n";
+        report += "Gateway: "; report += ip2str(_settings->getGateway(), gw); report += "\n";
+        report += "DNS1: "; report += ip2str(_settings->getDns1(), dns1); report += "\n";
+        report += "DNS2: "; report += ip2str(_settings->getDns2(), dns2); report += "\n";
+        report += "CCU IP: "; report += _settings->getCCUIP(); report += "\n";
+        report += "CCU Connected: ";
+        report += (_rawUartUdpListener->getConnectedRemoteAddress() != IPADDR_ANY) ? "Yes" : "No";
+        report += "\n";
+        ip4_addr_t ccuAddr{.addr = _rawUartUdpListener->getConnectedRemoteAddress()};
+        if (ccuAddr.addr != IPADDR_ANY) {
+            report += "CCU Address: "; report += ip2str(ccuAddr); report += "\n";
+        }
+        report += "IPv6: "; report += _settings->getEnableIPv6() ? "Enabled" : "Disabled"; report += "\n";
+        if (_settings->getEnableIPv6()) {
+            report += "IPv6 Mode: "; report += _settings->getIPv6Mode(); report += "\n";
+            report += "IPv6 Address: "; report += _settings->getIPv6Address(); report += "\n";
+            char pfx[8];
+            snprintf(pfx, sizeof(pfx), "%d", _settings->getIPv6PrefixLength());
+            report += "IPv6 Prefix: /"; report += pfx; report += "\n";
+            report += "IPv6 Gateway: "; report += _settings->getIPv6Gateway(); report += "\n";
+        }
+        report += "NTP Server: "; report += _settings->getNtpServer(); report += "\n";
+        char tsBuf[16];
+        snprintf(tsBuf, sizeof(tsBuf), "%d", _settings->getTimesource());
+        report += "Timesource: "; report += tsBuf; report += "\n";
+    }
+    report += "\n";
+
+    // ---- Monitoring Config (passwords redacted) ----
+    report += "--- Monitoring ---\n";
+    {
+        monitoring_config_t monCfg;
+        if (monitoring_get_config(&monCfg) == ESP_OK) {
+            report += "MQTT Enabled: "; report += monCfg.mqtt.enabled ? "Yes" : "No"; report += "\n";
+            if (monCfg.mqtt.enabled) {
+                report += "MQTT Server: "; report += monCfg.mqtt.server; report += "\n";
+                char portBuf[8];
+                snprintf(portBuf, sizeof(portBuf), "%u", monCfg.mqtt.port);
+                report += "MQTT Port: "; report += portBuf; report += "\n";
+                report += "MQTT User: "; report += monCfg.mqtt.user[0] ? monCfg.mqtt.user : "(none)"; report += "\n";
+                report += "MQTT Password: ";
+                report += monCfg.mqtt.password[0] ? "****" : "(none)";
+                report += "\n";
+                report += "MQTT Topic Prefix: "; report += monCfg.mqtt.topic_prefix; report += "\n";
+                report += "HA Discovery: "; report += monCfg.mqtt.ha_discovery_enabled ? "Yes" : "No"; report += "\n";
+                if (monCfg.mqtt.ha_discovery_enabled) {
+                    report += "HA Discovery Prefix: "; report += monCfg.mqtt.ha_discovery_prefix; report += "\n";
+                }
+                report += "MQTT TLS: "; report += monCfg.mqtt.tls_enable ? "Yes" : "No"; report += "\n";
+                if (monCfg.mqtt.tls_enable) {
+                    report += "TLS Skip Verify: "; report += monCfg.mqtt.tls_skip_verify ? "Yes (INSECURE)" : "No"; report += "\n";
+                    report += "TLS CA Certs: "; report += monCfg.mqtt.tls_ca_certs[0] ? "<set>" : "<empty>"; report += "\n";
+                    report += "TLS Client Cert: "; report += monCfg.mqtt.tls_certfile[0] ? "<set>" : "<empty>"; report += "\n";
+                    report += "TLS Client Key: "; report += monCfg.mqtt.tls_keyfile[0] ? "<set>" : "<empty>"; report += "\n";
+                }
+                report += "Command Token: ";
+                report += monCfg.mqtt.command_token[0] ? "****" : "(none)";
+                report += "\n";
+            }
+            report += "CheckMK Enabled: "; report += monCfg.checkmk.enabled ? "Yes" : "No"; report += "\n";
+            if (monCfg.checkmk.enabled) {
+                char ckPort[8];
+                snprintf(ckPort, sizeof(ckPort), "%u", monCfg.checkmk.port);
+                report += "CheckMK Port: "; report += ckPort; report += "\n";
+                report += "CheckMK Allowed Hosts: "; report += monCfg.checkmk.allowed_hosts; report += "\n";
+            }
+        } else {
+            report += "(monitoring config unavailable)\n";
+        }
+    }
+    report += "\n";
+
+    // ---- Update ----
+    report += "--- Update ---\n";
+    {
+        report += "Beta Channel: "; report += _settings->getBetaChannel() ? "Yes" : "No"; report += "\n";
+        report += "Latest Version: "; report += _updateCheck->getLatestVersion(); report += "\n";
+    }
+    report += "\n";
+
+    // ---- LED Programs ----
+    report += "--- LED Configuration ---\n";
+    {
+        char ledBuf[32];
+        report += "Brightness: ";
+        snprintf(ledBuf, sizeof(ledBuf), "%d", _settings->getLEDBrightness());
+        report += ledBuf; report += "\n";
+        const char *progNames[] = {"Idle","CCU Discon.","CCU Con.","Update Avail.","Error","Booting","Update Prog."};
+        int progVals[] = {
+            _settings->getLedProgram(LED_PROG_IDLE),
+            _settings->getLedProgram(LED_PROG_CCU_DISCONNECTED),
+            _settings->getLedProgram(LED_PROG_CCU_CONNECTED),
+            _settings->getLedProgram(LED_PROG_UPDATE_AVAILABLE),
+            _settings->getLedProgram(LED_PROG_ERROR),
+            _settings->getLedProgram(LED_PROG_BOOTING),
+            _settings->getLedProgram(LED_PROG_UPDATE_IN_PROGRESS)};
+        for (int i = 0; i < 7; i++) {
+            snprintf(ledBuf, sizeof(ledBuf), "  %-16s: %d\n", progNames[i], progVals[i]);
+            report += ledBuf;
+        }
+    }
+    report += "\n";
+
+    // ---- System Log ----
+    report += "--- System Log ---\n";
+    report += logContent;
+    report += "\n";
+
+    if (report.length() < 10)
+    {
+        snprintf(result, sizeof(result),
+                 "{\"success\":false,\"error\":\"Report is empty\"}");
+        goto respond;
+    }
+
+    {
+        std::string encoded;
+        _url_encode(report.c_str(), report.length(), encoded);
+
+        std::string body;
+        body.reserve(encoded.length() + 32);
+        body = "content=";
+        body += encoded;
+        body += "&syntax=text";
+
+        esp_http_client_config_t config = {};
+        config.url = "https://paste.blueml.eu/";
+        config.method = HTTP_METHOD_POST;
+        config.crt_bundle_attach = esp_crt_bundle_attach;
+        config.keep_alive_enable = false;
+        config.max_redirection_count = 0;
+        config.timeout_ms = 20000;
+
+        esp_http_client_handle_t client = esp_http_client_init(&config);
+        if (!client)
+        {
+            snprintf(result, sizeof(result),
+                     "{\"success\":false,\"error\":\"HTTP client init failed\"}");
+            goto respond;
+        }
+
+        esp_http_client_set_header(client, "User-Agent", "HB-RF-ETH-ng");
+        esp_http_client_set_header(client, "Content-Type", "application/x-www-form-urlencoded");
+        esp_http_client_set_post_field(client, body.c_str(), body.length());
+
+        esp_err_t err = esp_http_client_perform(client);
+
+        if (err == ESP_OK)
+        {
+            int status = esp_http_client_get_status_code(client);
+            if (status == 303 || status == 302 || status == 301)
+            {
+                char location[256];
+                if (esp_http_client_get_header(client, "Location", location, sizeof(location)) == ESP_OK)
+                {
+                    snprintf(result, sizeof(result),
+                             "{\"success\":true,\"url\":\"%s\"}", location);
+                }
+                else
+                {
+                    snprintf(result, sizeof(result),
+                             "{\"success\":false,\"error\":\"No Location header in redirect\"}");
+                }
+            }
+            else
+            {
+                snprintf(result, sizeof(result),
+                         "{\"success\":false,\"error\":\"Paste service returned HTTP %d\"}", status);
+            }
+        }
+        else
+        {
+            snprintf(result, sizeof(result),
+                     "{\"success\":false,\"error\":\"Request failed: %s\"}", esp_err_to_name(err));
+        }
+
+        esp_http_client_cleanup(client);
+    }
+
+respond:
+    add_security_headers(job->req);
+    httpd_resp_set_type(job->req, "application/json");
+    httpd_resp_sendstr(job->req, result);
+    httpd_req_async_handler_complete(job->req);
+    free(job);
+    vTaskDelete(NULL);
+}
+
+esp_err_t post_share_log_handler_func(httpd_req_t *req)
+{
+    add_security_headers(req);
+
+    if (validate_auth(req) != ESP_OK)
+    {
+        httpd_resp_set_status(req, "401 Not authorized");
+        httpd_resp_sendstr(req, "401 Not authorized");
+        return ESP_OK;
+    }
+
+    httpd_req_t *async_req;
+    if (httpd_req_async_handler_begin(req, &async_req) != ESP_OK)
+    {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+
+    ShareLogJob *job = (ShareLogJob *)calloc(1, sizeof(ShareLogJob));
+    if (!job)
+    {
+        httpd_req_async_handler_complete(async_req);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
+    job->req = async_req;
+
+    if (xTaskCreate(_share_log_task, "share_log", 12288, job, 3, NULL) != pdPASS)
+    {
+        ESP_LOGE(TAG, "Failed to create share log task");
+        httpd_resp_send_err(async_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+        httpd_req_async_handler_complete(async_req);
+        free(job);
+    }
+    return ESP_OK;
+}
+
+httpd_uri_t post_share_log_handler = {
+    .uri = "/api/log/share",
+    .method = HTTP_POST,
+    .handler = post_share_log_handler_func,
+    .user_ctx = NULL};
+
 // Prometheus metrics disabled - feature code available in prometheus.cpp.disabled
 
 WebUI::WebUI(Settings *settings, LED *statusLED, SysInfo *sysInfo, UpdateCheck *updateCheck, Ethernet *ethernet, RawUartUdpListener *rawUartUdpListener, RadioModuleConnector *radioModuleConnector, RadioModuleDetector *radioModuleDetector)
@@ -1772,7 +2118,7 @@ void WebUI::start()
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.lru_purge_enable = true;
-    config.max_uri_handlers = 25;
+    config.max_uri_handlers = 30;
     config.uri_match_fn = httpd_uri_match_wildcard;
     // Increase stack: POST handlers allocate content buffers + config structs
     // that together exceed the default 4096-byte stack, causing overflow/corruption.
@@ -1803,6 +2149,7 @@ void WebUI::start()
         httpd_register_uri_handler(_httpd_handle, &get_changelog_handler);
         httpd_register_uri_handler(_httpd_handle, &get_log_handler);
         httpd_register_uri_handler(_httpd_handle, &get_log_download_handler);
+        httpd_register_uri_handler(_httpd_handle, &post_share_log_handler);
 
         httpd_register_uri_handler(_httpd_handle, &main_js_gz_handler);
         httpd_register_uri_handler(_httpd_handle, &main_css_gz_handler);

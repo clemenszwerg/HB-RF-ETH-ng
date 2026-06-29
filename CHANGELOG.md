@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.8] - 2026-06-29
+
+### Added
+- **System Log sharing**: new "Share" button in the system log uploads a comprehensive debug report (system info, network config, radio module status, monitoring config, LED programs, and full log) to a MicroBin paste service. Passwords, MQTT command tokens, and TLS keys are automatically redacted as `****` or `<set>`.
+- **Globe favicon**: replaced the generic favicon with a custom globe icon visible in browser tabs.
+
+### Fixed
+- **Log copy on HTTP**: the "Copy" button in the system log now falls back to `document.execCommand('copy')` when the Clipboard API is unavailable in non-HTTPS contexts (local ESP32 access).
+- **Update check buffer**: increased `GH_RESPONSE_CAP` from 12 KB to 24 KB to avoid JSON truncation when a GitHub release has a large changelog body. The buffer was previously reduced to 12 KB in Beta.7 but proved insufficient for some releases.
+
+### Changed
+- Raised `max_uri_handlers` from 25 to 30 to accommodate the new share endpoint.
+
 ## [2.2.0-Beta.7] - 2026-06-28
 
 ### Added

@@ -54,6 +54,14 @@
             <AppIcon name="download" />
             {{ t('systemlog.download') }}
           </button>
+          <button class="btn btn-primary btn-sm" type="button" :disabled="!filteredEntries.length" @click="shareLog">
+            <AppIcon name="share" />
+            {{ t('systemlog.share') }}
+          </button>
+          <button class="btn btn-primary btn-sm" type="button" @click="downloadLog">
+            <AppIcon name="download" />
+            {{ t('systemlog.download') }}
+          </button>
         </div>
       </div>
 
@@ -95,6 +103,33 @@
         </div>
       </div>
     </div>
+
+    <BModal
+      v-model="showShareModal"
+      :title="t('systemlog.shareTitle')"
+      :ok-title="t('systemlog.shareCopy')"
+      :cancel-title="t('common.close')"
+      @ok="copyShareUrl"
+    >
+      <p v-if="shareLoading" class="text-muted">{{ t('systemlog.shareLoading') }}</p>
+      <div v-else-if="shareUrl">
+        <div class="input-group mb-2">
+          <input
+            type="text"
+            class="form-control"
+            :value="shareUrl"
+            readonly
+            ref="shareUrlInput"
+            @focus="$event.target.select()"
+          >
+          <BButton variant="outline-secondary" @click="copyShareUrl">
+            <AppIcon name="copy" />
+          </BButton>
+        </div>
+        <small class="text-muted">{{ t('systemlog.shareHint') }}</small>
+      </div>
+      <div v-else class="text-danger">{{ t('systemlog.shareFailed') }}</div>
+    </BModal>
   </div>
 </template>
 
@@ -120,6 +155,23 @@ let pollTimer = null
 
 const MAX_LOG_LINES = 2500
 const MAX_COPY_LINES = 500
+
+const copyToClipboard = (text) => {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text)
+  }
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  const ok = document.execCommand('copy')
+  document.body.removeChild(textarea)
+  if (!ok) {
+    return Promise.reject(new Error('execCommand copy failed'))
+  }
+}
 
 const getEntryLevel = (line) => {
   if (/\bE\s*\(/.test(line) || /\bERROR\b/i.test(line)) return 'E'
@@ -251,7 +303,7 @@ const copyVisibleLog = async () => {
   const content = filteredEntries.value.slice(-MAX_COPY_LINES).join('\n')
   if (!content) return
   try {
-    await navigator.clipboard.writeText(content)
+    await copyToClipboard(content)
     uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('systemlog.copiedVisible'), duration: 1800 })
   } catch (error) {
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('systemlog.copyVisibleFailed') })
@@ -260,7 +312,7 @@ const copyVisibleLog = async () => {
 
 const copyLine = async (line) => {
   try {
-    await navigator.clipboard.writeText(line)
+    await copyToClipboard(line)
     uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('systemlog.copiedLine'), duration: 1400 })
   } catch (error) {
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('systemlog.copyLineFailed') })
@@ -296,6 +348,42 @@ const togglePaused = () => {
   if (!paused.value) {
     newEntriesCount.value = 0
     fetchLog()
+  }
+}
+
+const showShareModal = ref(false)
+const shareUrl = ref('')
+const shareLoading = ref(false)
+const shareUrlInput = ref(null)
+
+const shareLog = async () => {
+  shareUrl.value = ''
+  shareLoading.value = true
+  showShareModal.value = true
+  try {
+    const response = await axios.post('/api/log/share', {}, { timeout: 20000 })
+    const data = response.data
+    if (data.success && data.url) {
+      shareUrl.value = data.url
+    } else {
+      shareUrl.value = ''
+      uiStore.pushToast({ type: 'error', title: t('common.error'), message: data.error || t('systemlog.shareFailed') })
+    }
+  } catch (error) {
+    shareUrl.value = ''
+    uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('systemlog.shareFailed') })
+  } finally {
+    shareLoading.value = false
+  }
+}
+
+const copyShareUrl = async () => {
+  if (!shareUrl.value) return
+  try {
+    await copyToClipboard(shareUrl.value)
+    uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('systemlog.shareCopied'), duration: 1800 })
+  } catch (error) {
+    uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('systemlog.copyVisibleFailed') })
   }
 }
 

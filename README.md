@@ -33,11 +33,15 @@ Hierbei gilt, dass bei einer debmatic oder piVCCU3 Installation immer nur ein Fu
 ---
 
 ### Kurzüberblick
-- Firmware für HB-RF-ETH mit Unterstützung für `HM-MOD-RPI-PCB` und `RPI-RF-MOD`
-- Moderne WebUI auf Basis von Vue 3, Vite und Bootstrap 5
-- Monitoring via MQTT und CheckMK
-- OTA-Updates per Datei-Upload oder über den integrierten Online-Update-Dienst
-- ESP-IDF 6.0 Toolchain (native `idf.py` Builds)
+- Firmware für HB-RF-ETH mit Unterstützung für `HM-MOD-RPI-PCB`, `RPI-RF-MOD` und `HmIP-RFUSB`
+- Moderne WebUI auf Basis von Vue 3, Vite und Bootstrap 5 (Dark/Light, 10 Sprachen)
+- **Monitoring via MQTT** (mit Home Assistant Auto-Discovery, TLS/mTLS, Kommando-Token) und CheckMK
+- OTA-Updates per Datei-Upload, URL-Download oder direkt aus Home Assistant heraus
+- ESP-IDF 6.0 Toolchain (native `idf.py` Builds), GCC 14.2 (xtensa-esp-elf)
+
+> Die vollständige MQTT-API-Referenz (alle Status-, Event- und Command-Topics,
+> HA-Entitäten, TLS-Konfiguration, Sicherheitsmodell) findet sich im
+> [Wiki – MQTT-Sektion](docs/WIKI.md#home-assistant-mqtt-integration).
 
 ### Entwickler-Build (ESP-IDF 6.0)
 ```bash

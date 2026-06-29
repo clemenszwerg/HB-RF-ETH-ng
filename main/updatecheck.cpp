@@ -42,9 +42,10 @@ static const char *TAG = "UpdateCheck";
 static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
 
 // Cap for the heap buffer used to receive the GitHub releases JSON. A single
-// release payload (per_page=1 for beta, /releases/latest for stable) is 3–8 KB;
-// 12 KB gives comfortable headroom while keeping the heap footprint frugal.
-static const size_t GH_RESPONSE_CAP = 12 * 1024;
+// release payload (per_page=1 for beta, /releases/latest for stable) is 3–8 KB
+// normally, but a release with a long CHANGELOG body can exceed 12 KB. 24 KB
+// handles even the largest single-release payloads comfortably.
+static const size_t GH_RESPONSE_CAP = 24 * 1024;
 
 // esp_https_ota in IDF 6.x no longer exposes ESP_ERR_HTTPS_OTA_INCOMPLETE; use
 // a private application code to report a download that ended prematurely.
