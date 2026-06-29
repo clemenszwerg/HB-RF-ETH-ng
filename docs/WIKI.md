@@ -217,88 +217,308 @@ Die HB-RF-ETH-ng Firmware bietet eine nahtlose Integration in Home Assistant via
    - In Home Assistant werden automatisch alle Geräte gefunden
    - Keine manuelle Konfiguration erforderlich!
 
-### Verfügbare HA-Entitäten
+### Verbindungseinstellungen (Gerät → Broker)
 
-Nach der Auto-Discovery stehen folgende Entitäten in Home Assistant zur Verfügung:
+| Parameter | Standard | Beschreibung |
+|-----------|----------|--------------|
+| Transport | TCP (`mqtt://`) | Wechselt automatisch auf SSL (`mqtts://`) wenn `tlsEnable` an ist |
+| Netzwerk-Timeout | 2000 ms | TCP-Connect / Socket-Timeout |
+| Reconnect-Intervall | 30 000 ms | Pause zwischen Verbindungsversuchen |
+| Keep-Alive | ESP-IDF-Default (120 s) | MQTT PINGREQ-Intervall |
+| LWT Topic | `<prefix>/status/online` | Last Will & Testament, retained, QoS 1 |
+| LWT Payload offline | `offline` (7 Bytes) | Wird vom Broker bei unclean disconnect gesetzt |
+| Birth Payload | `online` | Beim (Re)Connect sofort gesendet, retained QoS 0 |
+| Status-Publish-Intervall | 5 s (idle) / 1 s (OTA laufend) | Adaptives Intervall |
+| Command-Subscribe | `<prefix>/command/#` | Nur wenn `commandEnabled` ODER `haDiscoveryEnabled` |
 
-**Sensoren (Diagnostic):**
-- `sensor.hb_rf_eth_ng_cpu_usage` - CPU-Auslastung in %
-- `sensor.hb_rf_eth_ng_memory_usage` - Speicherauslastung in %
-- `sensor.hb_rf_eth_ng_temperature` - Temperatur in °C
-- `sensor.hb_rf_eth_ng_supply_voltage` - Versorgungsspannung in V
-- `sensor.hb_rf_eth_ng_uptime` - Laufzeit in Sekunden
-- `sensor.hb_rf_eth_ng_uptime_text` - Laufzeit als Text (X d, X h, X m)
-- `sensor.hb_rf_eth_ng_current_version` - Aktuelle Firmware-Version
-- `sensor.hb_rf_eth_ng_latest_version` - Verfügbare Firmware-Version
-- `sensor.hb_rf_eth_ng_board_revision` - Hardware-Revision
+---
 
-**Binary Sensoren:**
-- `binary_sensor.hb_rf_eth_ng_update_available` - Zeigt an, ob ein Update verfügbar ist
+## MQTT-API-Referenz
 
-**Buttons (Konfiguration):**
-- `button.hb_rf_eth_ng_restart` - Gerät neustarten
-- `button.hb_rf_eth_ng_factory_reset` - Auf Werkseinstellungen zurücksetzen
+Diese Sektion listet **alle** vom Gerät gepublishden bzw. abonnierten MQTT-Topics
+auf. Generiert aus `main/mqtt_handler.cpp` (Stand v2.2.0-Beta.7).
 
-**Update-Entität:**
-- `update.hb_rf_eth_ng_firmware_update` - Firmware-Update durchführen
-
-### MQTT-Topic-Struktur
-
-Die Firmware verwendet folgende Topic-Struktur:
+### Topic-Struktur Überblick
 
 ```
-hb-rf-eth/                      (Standard Topic Prefix)
-├── status/                     (Status-Metriken, retained, alle 5-60s)
-│   ├── online                  "online" / "offline" (LWT-Birth-Marker)
-│   ├── serial
-│   ├── version
-│   ├── latest_version
-│   ├── update_available
-│   ├── board_revision
-│   ├── cpu_usage
-│   ├── memory_usage
-│   ├── free_heap
-│   ├── min_free_heap
-│   ├── supply_voltage
-│   ├── temperature
-│   ├── uptime
-│   ├── uptime_text
-│   ├── last_reset_reason
-│   ├── eth_connected           "true" / "false"
-│   ├── eth_link_speed          Mbit/s
-│   ├── eth_duplex              "Full" / "Half"
-│   ├── ip_address
-│   ├── gateway
-│   ├── radio_module_type       "HM-MOD-RPI-PCB" / "RPI-RF-MOD" / "none"
-│   ├── radio_module_serial
-│   ├── radio_module_firmware
-│   ├── ntp_synced              "true" / "false"
-│   ├── last_ntp_sync           Unix-Sekunden
-│   ├── ota_state               "idle" / "checking" / "starting" /
-│   │                                       "downloading" / "flashing" /
-│   │                                       "success" / "failed"
-│   ├── ota_progress            0..100 (-1 = unbekannt)
-│   └── ota_error               Fehler-Text (nur bei failed)
-├── event/                      (Ereignisse, NICHT retained)
-│   ├── restart
-│   ├── factory_reset
-│   ├── update_started
-│   ├── update_downloading
-│   ├── update_finished         "success" / "failed: ..."
-│   ├── check_update
-│   └── command_rejected        bei ungültigem Token
-└── command/                    (Commands – nur wenn commandEnabled)
-    ├── restart                 Payload: <token> oder leer
-    ├── factory_reset           Payload: <token> oder leer
-    ├── update                  Payload: <token> oder leer
-    └── check_update            Payload: <token> oder leer
+<prefix>/                         Standard: "hb-rf-eth"
+├── status/    (retained, QoS 0)  – Periodische Status-/Metrik-Werte
+├── event/     (NICHT retained)   – Einmalige Ereignisse
+└── command/   (Subscriber-Seite) – Steuerkommandos an das Gerät
 
-homeassistant/                  (HA Discovery Prefix)
-├── sensor/
-├── binary_sensor/
-├── button/
-└── update/
+<ha_prefix>/                      Standard: "homeassistant"
+└── {sensor|binary_sensor|button|update}/hb-rf-eth-<serial>/<obj_id>/config
+                                  – HA Auto-Discovery Configs (retained, QoS 1)
 ```
+
+### 1. Status Topics (`<prefix>/status/*`)
+
+Alle Status-Werte sind **retained** und werden mit **QoS 0** veröffentlicht.
+Das Publish-Intervall beträgt 5 Sekunden im Idle-Zustand bzw. 1 Sekunde während
+eines OTA-Updates. Nach jedem (Re)Connect erfolgt sofort ein vollständiger
+Publish-Cycle plus optional eine HA-Discovery-Runde.
+
+#### Identity & Version
+
+| Topic | Typ | Beispiel | Beschreibung |
+|-------|-----|----------|--------------|
+| `status/online` | string | `online` / `offline` | LWT-Birth-Marker; "offline" wird vom Broker bei unclean disconnect gesetzt |
+| `status/serial` | string | `A1B2C3D4E5F6` | ESP32-MAC-basierte Geräteseriennr. |
+| `status/version` | string | `2.2.0-Beta.7` | Aktuell laufende Firmware-Version |
+| `status/board_revision` | string | `REV 1.10 (PUB)` | Hardware-Revision der Platine |
+| `status/latest_version` | string | `2.2.0` oder `n/a` | Neueste Version laut GitHub Releases (Beta/Stable je nach Kanal) |
+| `status/update_available` | bool-string | `true` / `false` | `true`, wenn `latest > current` per Semver |
+
+#### System-Metriken
+
+| Topic | Typ | Beispiel | Beschreibung |
+|-------|-----|----------|--------------|
+| `status/cpu_usage` | float % | `12.5` | CPU-Auslastung (1 Dezimalstelle) |
+| `status/memory_usage` | float % | `45.3` | RAM-Auslastung (1 Dezimalstelle) |
+| `status/free_heap` | uint64 B | `184320` | Aktuell freier Heap (internes RAM) |
+| `status/min_free_heap` | uint64 B | `145000` | Kleinster je beobachteter freier Heap seit Boot (Leak-Detektion) |
+| `status/supply_voltage` | float V | `5.02` | Versorgungsspannung (2 Dezimalstellen); Normal 4.75–5.25 V |
+| `status/temperature` | float °C | `52.3` | ESP32-Die-Temperatur (1 Dezimalstelle) |
+| `status/uptime` | uint64 s | `345678` | Laufzeit in Sekunden seit Boot (monoton steigend) |
+| `status/uptime_text` | string | `4 d, 0 h, 1 m` | Menschenlesbare Laufzeit |
+| `status/last_reset_reason` | string | `Power-On Reset` | Letzter Reset-Grund (Hardware + App-Ebene) |
+
+#### Ethernet / Netzwerk
+
+| Topic | Typ | Beispiel | Beschreibung |
+|-------|-----|----------|--------------|
+| `status/eth_connected` | bool-string | `true` | Ethernet-Link aktiv |
+| `status/eth_link_speed` | int Mbit/s | `100` | Verhandelte Link-Geschwindigkeit |
+| `status/eth_duplex` | string | `Full` / `Half` | Duplex-Modus (nur wenn Link aktiv) |
+| `status/ip_address` | IPv4 | `192.168.1.100` | Aktuelle IPv4-Adresse |
+| `status/gateway` | IPv4 | `192.168.1.1` | Aktuelles IPv4-Gateway |
+
+> IPv6-Topics werden derzeit nicht gepublished; IPv6-Adresse(n) sind über
+> `GET /sysinfo.json` abrufbar.
+
+#### Funkmodul
+
+| Topic | Typ | Beispiel | Beschreibung |
+|-------|-----|----------|--------------|
+| `status/radio_module_type` | enum-string | `RPI-RF-MOD` | `HM-MOD-RPI-PCB`, `RPI-RF-MOD`, `HmIP-RFUSB`, `none`, `unknown` |
+| `status/radio_module_serial` | string | `KEQ0123456` | Seriennummer des Funkmoduls |
+| `status/radio_module_firmware` | string | `2.8.6` | Firmware-Version des Funkmoduls (Format `X.Y.Z`) |
+
+#### Zeitquelle / NTP
+
+| Topic | Typ | Beispiel | Beschreibung |
+|-------|-----|----------|--------------|
+| `status/ntp_synced` | bool-string | `true` | Systemzeit ist synchronisiert |
+| `status/last_ntp_sync` | uint64 | `1735300000` | Unix-Sekunden des letzten erfolgreichen Sync; `0` wenn nie synchron |
+
+#### OTA-Zustand
+
+Die OTA-Topics werden **zusätzlich** in Echtzeit aktualisiert (innerhalb ~1 s
+nach State-Change), nicht nur im 5-Sekunden-Turnus. Progress-Events werden
+höchstens alle ~5 % gepublished, um MQTT-Flooding zu vermeiden.
+
+| Topic | Typ | Beispiel | Beschreibung |
+|-------|-----|----------|--------------|
+| `status/ota_state` | enum-string | `downloading` | `idle`, `checking`, `starting`, `downloading`, `flashing`, `success`, `failed` |
+| `status/ota_progress` | int % | `42` | 0..100; `-1` wenn unbekannt/nicht im Download |
+| `status/ota_error` | string | `Bundle verification failed` | Fehlertext; **nur** wenn `ota_state = failed` |
+
+---
+
+### 2. Event Topics (`<prefix>/event/*`)
+
+Events sind **nicht retained** und werden mit **QoS 0** veröffentlicht – sie
+sind punktuelle Benachrichtigungen für Automatisierungen (HA, Node-RED, …).
+
+| Topic | Payload | Auslöser |
+|-------|---------|----------|
+| `event/restart` | `requested` | Gerät restartet via MQTT-Kommando (vor dem tatsächlichen Reboot) |
+| `event/factory_reset` | `requested` | Werkreset via MQTT-Kommando (vor dem Löschen der NVS) |
+| `event/update_started` | `requested` | OTA-Update via MQTT `update`-Kommando gestartet |
+| `event/update_downloading` | `started` | OTA-State-Wechsel `starting` → `downloading` |
+| `event/update_finished` | `success` oder `failed: <text> (code=0x<hex>)` | OTA-State-Wechsel nach `success` oder `failed` |
+| `event/update_failed` | `task_create_failed` / `updatecheck_unavailable` | OTA konnte nicht gestartet werden (interner Fehler) |
+| `event/check_update` | `requested` / `updatecheck_unavailable` | `check_update`-Kommando erhalten (Refresh läuft asynchron) |
+| `event/command_rejected` | `rejected cmd=<name> reason=invalid_token` | Kommando mit falschem/fehendem Token empfangen |
+
+---
+
+### 3. Command Topics (`<prefix>/command/*`)
+
+Das Gerät abonniert `<prefix>/command/#` (QoS 1) **nur**, wenn `commandEnabled`
+ODER `haDiscoveryEnabled` aktiv ist. Ohne diese Flags wird kein Kommando
+angenommen – auch nicht mit korrektem Token.
+
+| Command-Topic | Aktion | Vorbedingung |
+|---------------|--------|--------------|
+| `command/restart` | Gerät neustarten (Reset-Grund `USER_RESTART`) | `commandEnabled` |
+| `command/factory_reset` | NVS löschen + Werkreset + Reboot | `commandEnabled` |
+| `command/update` | OTA-Update der neuesten Version triggern | `commandEnabled` |
+| `command/check_update` | GitHub Releases neu abfragen (Beta/Stable je nach Setting) | `commandEnabled` |
+
+#### Payload-Regeln
+
+- **Ohne Token (`command_token == ""`):** Payload wird ignoriert, jedes Publish
+  auf das Topic löst die Aktion aus. **Broker-seitige ACL zwingend erforderlich.**
+- **Mit Token:** Payload muss Byte-genau dem konfigurierten `command_token`
+  entsprechen (8–63 Zeichen, Zeichensatz `A–Z a–z 0–9 - _ .`). Andernfalls wird
+  das Kommando verworfen und `event/command_rejected` gepublished.
+- Bei gesetztem Token wird der Token als `payload_press` / `payload_install` in
+  die HA-Discovery-Config geschrieben, so dass HA-Buttons "einfach funktionieren".
+
+---
+
+### 4. Home Assistant Auto-Discovery
+
+Die Firmware veröffentlicht unter
+`<ha_prefix>/<component>/hb-rf-eth-<serial>/<obj_id>/config`
+eine vollständige HA-MQTT-Discovery-Config (retained, QoS 1). Discovery-Configs
+werden beim (Re)Connect automatisch neu gepublished, falls `haDiscoveryEnabled`
+aktiv ist.
+
+#### Sensoren (`sensor/`)
+
+| Object ID | Name | Class | Unit | Icon |
+|-----------|------|-------|------|------|
+| `cpu_usage` | CPU Usage | measurement | % | `mdi:cpu-64-bit` |
+| `memory_usage` | Memory Usage | measurement | % | `mdi:memory` |
+| `free_heap` | Free Heap | data_size, measurement | B | `mdi:memory` |
+| `supply_voltage` | Supply Voltage | voltage, measurement | V | – |
+| `temperature` | Temperature | temperature, measurement | °C | – |
+| `uptime` | Uptime | duration, total_increasing | s | `mdi:clock-outline` |
+| `uptime_text` | Uptime (Text) | – | – | `mdi:clock-outline` |
+| `version` | Current Version | – | – | `mdi:package-variant` |
+| `latest_version` | Latest Version | – | – | `mdi:package-up` |
+| `board_revision` | Board Revision | – | – | `mdi:expansion-card` |
+| `eth_link_speed` | Ethernet Speed | data_rate, measurement | Mbit/s | `mdi:speedometer` |
+| `ip_address` | IP Address | – | – | `mdi:ip` |
+| `radio_module_type` | Radio Module | – | – | `mdi:radio-tower` |
+| `radio_module_serial` | Radio Serial | – | – | `mdi:barcode` |
+| `radio_module_firmware` | Radio Firmware | – | – | `mdi:chip` |
+| `ota_progress` | OTA Progress | measurement | % | `mdi:progress-download` |
+
+Alle Sensoren haben `entity_category: "diagnostic"`.
+
+#### Binary Sensoren (`binary_sensor/`)
+
+| Object ID | Name | Class | Payload on / off |
+|-----------|------|-------|------------------|
+| `online` | Online | connectivity | `online` / `offline` (LWT) |
+| `eth_connected` | Ethernet Link | connectivity | `true` / `false` |
+| `ntp_synced` | NTP Synced | – | `true` / `false` |
+| `update_available` | Update Available | update | `true` / `false` |
+
+Alle haben `entity_category: "diagnostic"`.
+
+#### Buttons (`button/`)
+
+| Object ID | Name | Class | Command | Icon |
+|-----------|------|-------|---------|------|
+| `restart` | Restart | restart | `command/restart` | `mdi:restart` |
+| `factory_reset` | Factory Reset | restart | `command/factory_reset` | `mdi:lock-reset` |
+| `check_update` | Check for Update | update | `command/check_update` | `mdi:refresh` |
+
+Buttons werden **nur gepublished, wenn `commandEnabled = true`**. Ansonsten
+sieht HA keinen klickbaren Button.
+
+`entity_category: "config"`. `payload_press` entspricht dem Token (oder dem
+Kommando-String, wenn kein Token gesetzt ist).
+
+#### Update-Entität (`update/`)
+
+| Object ID | Name | Class | State Topic | Command Topic |
+|-----------|------|-------|-------------|---------------|
+| `firmware_update` | Firmware Update | firmware | `status/latest_version` | `command/update` |
+
+Vergleicht die laufende Version mit `latest_version_template` und bietet eine
+"Install"-Aktion, die das OTA-Kommando triggert. Hat
+`enabled_by_default: false`, wenn `commandEnabled = false`.
+
+#### Beispiel einer Discovery-Config (sensor/temperature)
+
+```json
+{
+  "name": "Temperature",
+  "unique_id": "hb-rf-eth-A1B2C3D4E5F6_temperature",
+  "state_topic": "hb-rf-eth/status/temperature",
+  "device_class": "temperature",
+  "state_class": "measurement",
+  "unit_of_measurement": "°C",
+  "entity_category": "diagnostic",
+  "device": {
+    "identifiers": "hb-rf-eth-A1B2C3D4E5F6",
+    "name": "HB-RF-ETH-ng",
+    "model": "HB-RF-ETH-ng",
+    "manufacturer": "Xerolux",
+    "sw_version": "2.2.0-Beta.7",
+    "hw_version": "REV 1.10 (PUB)"
+  }
+}
+```
+
+---
+
+### 5. TLS / mTLS-Konfiguration
+
+MQTT unterstützt Transport-Verschlüsselung und Client-Zertifikate. Konfiguriert
+via `POST /api/monitoring` (siehe [REST API](API.md)):
+
+| Feld | Typ | Beschreibung |
+|------|-----|--------------|
+| `tlsEnable` | bool | false → TCP (1883); true → TLS (8883 empfohlen) |
+| `tlsSkipVerify` | bool | true überspringt CN-Check + Cert-Verifikation (nur Lab!) |
+| `tlsCaCerts` | PEM string | Eigenes CA-Bundle; leer → eingebautes ESP-IDF CA-Bundle wird verwendet |
+| `tlsCertfile` | PEM string | Client-Zertifikat für mTLS; leer → kein Client-Cert |
+| `tlsKeyfile` | PEM string | Privater Schlüssel zum Client-Zertifikat; leer → kein Client-Cert |
+
+Verbindungslogik in der Firmware (`main/mqtt_handler.cpp:747`):
+
+1. `tlsEnable = false` → unverschlüsseltes TCP.
+2. `tlsEnable = true` + `tlsSkipVerify = true` → TLS ohne jede Verifikation
+   (selbst-signierte Certs, privates Lab).
+3. `tlsEnable = true` + `tlsSkipVerify = false` + `tlsCaCerts` gesetzt →
+   Verifikation gegen das hinterlegte PEM.
+4. `tlsEnable = true` + `tlsSkipVerify = false` + `tlsCaCerts` leer →
+   Verifikation gegen das eingebaute Mozilla/ESP-IDF CA-Bundle.
+5. `tlsCertfile` + `tlsKeyfile` gesetzt → mTLS (mutual TLS), Broker
+   authentifiziert den Client.
+
+CA/Cert/Key werden als `blob` in NVS gespeichert (Schlüssel `mqtt_tls_ca`,
+`mqtt_tls_crt`, `mqtt_tls_key`); Passwörter stehen als Klartext in NVS.
+
+---
+
+### 6. Beispiele für manuelle MQTT-Nutzung (ohne HA)
+
+#### Lesen aller Statuswerte (mosquitto_sub)
+
+```bash
+mosquitto_sub -h <broker-ip> -t "hb-rf-eth/status/#" -v
+```
+
+#### Restart ohne Token triggern
+
+```bash
+mosquitto_pub -h <broker-ip> -t "hb-rf-eth/command/restart" -m ""
+```
+
+#### Restart mit Token triggern
+
+```bash
+mosquitto_pub -h <broker-ip> -t "hb-rf-eth/command/restart" -m "my-shared-secret-123"
+```
+
+#### OTA-Update per Skript überwachen
+
+```bash
+# In einem Terminal die Events abonnieren:
+mosquitto_sub -h <broker-ip> -t "hb-rf-eth/event/#" -v
+
+# In einem zweiten Terminal den Status verfolgen:
+mosquitto_sub -h <broker-ip> -t "hb-rf-eth/status/ota_*" -v
+```
+
+---
 
 ### Beispiel-HA-Dashboard
 
