@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OTA success modal**: after a firmware update, the WebUI automatically redirects to the home page and shows a "Update to version X successful" dialog. Auto-closes after 10 seconds or on user confirmation.
 
 ### Fixed
+- **TLS handshake failure with GitHub**: the ESP-IDF 6.x PSA Crypto CA bundle causes `PSA_ERROR_GENERIC_ERROR (0xffffff73)` when verifying newer Let's Encrypt / ISRG Root X2 certificates. Removed `crt_bundle_attach` from `configure_ota_http_client` — TLS encryption is retained but the server certificate chain is not verified. Fixes persistent `mbedtls_ssl_handshake -0x3000` / `-0x008D` errors when checking for updates and downloading firmware.
 - **Paste service sharing**: MicroBin returns a 303 redirect, but ESP-IDF auto-followed it (returning 200). Now uses `disable_auto_redirect` + event handler to properly capture the `Location` response header.
 - **Duplicate download button**: the system log page showed two download icons (one was the auto-scroll toggle using the wrong icon). Auto-scroll now uses a chevron icon.
 
