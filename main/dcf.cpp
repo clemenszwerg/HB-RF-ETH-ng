@@ -238,6 +238,6 @@ void DCF::start()
 void DCF::stop()
 {
     gpio_isr_handler_remove(DCF_PIN);
-    xQueueReset(_flank_queue);
     vTaskDelete(_queueHandlerTask);
+    vQueueDelete(_flank_queue);
 }
