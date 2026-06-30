@@ -457,6 +457,10 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
     // GitHub requires a User-Agent and accepts a vendor media type for JSON.
     esp_http_client_set_header(client, "User-Agent", "HB-RF-ETH-ng");
     esp_http_client_set_header(client, "Accept", "application/vnd.github+json");
+    // Prevent GitHub from gzip-compressing the response: ESP-IDF's HTTP client
+    // does not automatically decompress Content-Encoding, so cJSON_Parse
+    // receives binary data and fails. Asking for identity ensures plain JSON.
+    esp_http_client_set_header(client, "Accept-Encoding", "identity");
 
     err = esp_http_client_perform(client);
     status = resp.httpStatus;
