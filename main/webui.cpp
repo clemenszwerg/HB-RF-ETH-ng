@@ -1716,6 +1716,103 @@ httpd_uri_t get_log_handler = {
     .handler = get_log_handler_func,
     .user_ctx = NULL};
 
+// GET /api/log/status - whether the in-memory log ring buffer is active.
+// The buffer is NOT allocated at boot (saves ~8 KB heap for the TLS handshake
+// during firmware update checks); the WebUI enables it on demand.
+esp_err_t get_log_status_handler_func(httpd_req_t *req)
+{
+    add_security_headers(req);
+    if (validate_auth(req) != ESP_OK)
+    {
+        httpd_resp_set_status(req, "401 Not authorized");
+        httpd_resp_sendstr(req, "401 Not authorized");
+        return ESP_OK;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    char body[32];
+    snprintf(body, sizeof(body), "{\"enabled\":%s}",
+             LogManager::instance().isEnabled() ? "true" : "false");
+    httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+httpd_uri_t get_log_status_handler = {
+    .uri = "/api/log/status",
+    .method = HTTP_GET,
+    .handler = get_log_status_handler_func,
+    .user_ctx = NULL};
+
+// POST /api/log/enable - allocate the ring buffer and start capturing logs.
+esp_err_t post_log_enable_handler_func(httpd_req_t *req)
+{
+    add_security_headers(req);
+    if (validate_auth(req) != ESP_OK)
+    {
+        httpd_resp_set_status(req, "401 Not authorized");
+        httpd_resp_sendstr(req, "401 Not authorized");
+        return ESP_OK;
+    }
+
+    // Drain any (empty) request body so keep-alive stays consistent.
+    if (req->content_length > 0) {
+        char discard[64];
+        size_t remaining = req->content_length;
+        while (remaining > 0) {
+            int n = httpd_req_recv(req, discard, remaining < sizeof(discard) ? remaining : sizeof(discard));
+            if (n <= 0) break;
+            remaining -= (size_t)n;
+        }
+    }
+
+    LogManager::begin(8192);
+    httpd_resp_set_type(req, "application/json");
+    char body[32];
+    snprintf(body, sizeof(body), "{\"enabled\":%s}",
+             LogManager::instance().isEnabled() ? "true" : "false");
+    httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+httpd_uri_t post_log_enable_handler = {
+    .uri = "/api/log/enable",
+    .method = HTTP_POST,
+    .handler = post_log_enable_handler_func,
+    .user_ctx = NULL};
+
+// POST /api/log/disable - free the ring buffer and stop capturing.
+esp_err_t post_log_disable_handler_func(httpd_req_t *req)
+{
+    add_security_headers(req);
+    if (validate_auth(req) != ESP_OK)
+    {
+        httpd_resp_set_status(req, "401 Not authorized");
+        httpd_resp_sendstr(req, "401 Not authorized");
+        return ESP_OK;
+    }
+
+    if (req->content_length > 0) {
+        char discard[64];
+        size_t remaining = req->content_length;
+        while (remaining > 0) {
+            int n = httpd_req_recv(req, discard, remaining < sizeof(discard) ? remaining : sizeof(discard));
+            if (n <= 0) break;
+            remaining -= (size_t)n;
+        }
+    }
+
+    LogManager::stop();
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, "{\"enabled\":false}", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+httpd_uri_t post_log_disable_handler = {
+    .uri = "/api/log/disable",
+    .method = HTTP_POST,
+    .handler = post_log_disable_handler_func,
+    .user_ctx = NULL};
+
 esp_err_t get_log_download_handler_func(httpd_req_t *req)
 {
     add_security_headers(req);
@@ -2175,6 +2272,9 @@ void WebUI::start()
         httpd_register_uri_handler(_httpd_handle, &post_check_update_handler);
         httpd_register_uri_handler(_httpd_handle, &get_changelog_handler);
         httpd_register_uri_handler(_httpd_handle, &get_log_handler);
+        httpd_register_uri_handler(_httpd_handle, &get_log_status_handler);
+        httpd_register_uri_handler(_httpd_handle, &post_log_enable_handler);
+        httpd_register_uri_handler(_httpd_handle, &post_log_disable_handler);
         httpd_register_uri_handler(_httpd_handle, &get_log_download_handler);
         httpd_register_uri_handler(_httpd_handle, &post_share_log_handler);
 

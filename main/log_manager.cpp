@@ -73,6 +73,10 @@ void LogManager::begin(size_t size) {
     instance()._begin(size);
 }
 
+void LogManager::stop() {
+    instance()._stop();
+}
+
 void LogManager::clear() {
     instance()._clear();
 }
@@ -92,13 +96,45 @@ void LogManager::_begin(size_t size) {
     if (log_buffer) {
         // Zero out for cleanliness, though not strictly required for ring buffer
         memset(log_buffer, 0, log_buffer_size);
-        esp_log_set_vprintf(log_vprintf);
+        // Install our capture hook; remember the previous sink so stop() can
+        // restore it (avoids the per-line double-format overhead of log_vprintf
+        // when logging is disabled).
+        _orig_vprintf = esp_log_set_vprintf(log_vprintf);
         ESP_LOGI(TAG, "Log buffering enabled (%d bytes, RingBuffer)", size);
     } else {
         ESP_LOGE(TAG, "Failed to allocate log buffer");
     }
 
     xSemaphoreGive(_mutex);
+}
+
+void LogManager::_stop() {
+    if (!_mutex) return;
+    xSemaphoreTake(_mutex, portMAX_DELAY);
+
+    // Restore the original log sink first so no new log line enters the
+    // capture path while we tear the buffer down.
+    if (_orig_vprintf) {
+        esp_log_set_vprintf(_orig_vprintf);
+        _orig_vprintf = nullptr;
+    }
+    if (log_buffer) {
+        free(log_buffer);
+        log_buffer = nullptr;
+        log_buffer_size = 0;
+    }
+    total_written = 0;
+
+    xSemaphoreGive(_mutex);
+    // Logged through the restored default sink (UART).
+    printf("LogManager: log buffering disabled (buffer freed)\n");
+}
+
+bool LogManager::isEnabled() const {
+    // Pointer reads are atomic on the ESP32 (32-bit aligned); a torn read at
+    // worst returns a just-freed pointer, which is harmless because write() /
+    // getLogContent() re-check under the mutex.
+    return log_buffer != nullptr;
 }
 
 void LogManager::_clear() {

@@ -10,7 +10,7 @@
         <p class="hero-subtitle">{{ t('systemlog.description') }}</p>
       </div>
       <div class="hero-meta">
-        <span class="meta-chip"><AppIcon name="activity" /> {{ paused ? t('systemlog.paused') : t('systemlog.live') }}</span>
+        <span class="meta-chip"><AppIcon name="activity" /> {{ !logEnabled ? t('systemlog.disabled') : (paused ? t('systemlog.paused') : t('systemlog.live')) }}</span>
         <span class="meta-chip"><AppIcon name="search" /> {{ filteredEntries.length }} {{ t('systemlog.lines') }}</span>
         <span v-if="newEntriesCount > 0" class="meta-chip">{{ newEntriesCount }} {{ t('systemlog.newEntries') }}</span>
       </div>
@@ -27,8 +27,8 @@
         </div>
         <div class="log-actions">
           <label class="toggle-chip">
-            <input type="checkbox" v-model="logEnabled">
-            <span>{{ t('systemlog.enabled') }}</span>
+            <input type="checkbox" :disabled="logToggleBusy" v-model="logEnabled">
+            <span>{{ logEnabled ? t('systemlog.enabled') : t('systemlog.disabled') }}</span>
           </label>
           <button class="tool-btn" type="button" :disabled="!logEnabled" @click="refreshLog">
             <AppIcon name="refresh" />
@@ -140,7 +140,8 @@ const uiStore = useUiStore()
 
 const logEntries = ref([])
 const logContainer = ref(null)
-const logEnabled = ref(true)
+const logEnabled = ref(false)
+const logToggleBusy = ref(false)
 const autoScroll = ref(true)
 const paused = ref(false)
 const offset = ref(0)
@@ -148,6 +149,10 @@ const searchQuery = ref('')
 const levelFilter = ref('all')
 const newEntriesCount = ref(0)
 let pollTimer = null
+// Suppresses the logEnabled watcher while we sync the toggle from the backend
+// status on mount (so the initial state does not trigger a redundant enable
+// POST).
+let syncingFromBackend = false
 
 const MAX_LOG_LINES = 2500
 const MAX_COPY_LINES = 500
@@ -268,11 +273,31 @@ const stopPolling = () => {
   }
 }
 
-watch(logEnabled, (enabled) => {
+watch(logEnabled, async (enabled) => {
+  if (syncingFromBackend) return
   if (enabled) {
+    logToggleBusy.value = true
+    try {
+      await axios.post('/api/log/enable', {}, { timeout: 5000, silent: true })
+    } catch (e) {
+      // Backend could not allocate the buffer - revert the toggle.
+      logEnabled.value = false
+      uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('systemlog.enableFailed') })
+      logToggleBusy.value = false
+      return
+    }
+    logToggleBusy.value = false
+    offset.value = 0
+    newEntriesCount.value = 0
+    logEntries.value = []
     startPolling()
   } else {
     stopPolling()
+    try {
+      await axios.post('/api/log/disable', {}, { timeout: 5000, silent: true })
+    } catch (e) {
+      // Non-fatal: polling already stopped; backend keeps its current state.
+    }
   }
 })
 
@@ -436,7 +461,19 @@ const clearLog = () => {
   newEntriesCount.value = 0
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Ask the device whether the in-memory log buffer is active. It is disabled
+  // by default at boot (saves ~8 KB heap for the TLS handshake during firmware
+  // update checks); the user enables it here on demand.
+  try {
+    const response = await axios.get('/api/log/status', { silent: true })
+    syncingFromBackend = true
+    logEnabled.value = !!response.data.enabled
+    syncingFromBackend = false
+  } catch (e) {
+    syncingFromBackend = false
+    logEnabled.value = false
+  }
   if (logEnabled.value) {
     startPolling()
   }
