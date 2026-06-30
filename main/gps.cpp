@@ -26,6 +26,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "string.h"
+#include <new>
 
 void gpsSerialQueueHandlerTask(void *parameter)
 {
@@ -51,12 +52,20 @@ GPS::GPS(Settings *settings, SystemClock *clk) : _settings(settings), _clk(clk)
     uart_set_pin(UART_NUM_2, GPIO_NUM_0, DCF_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
     using namespace std::placeholders;
-    _lineReader = new LineReader(std::bind(&GPS::_handleLine, this, _1, _2));
+    _lineReader = new (std::nothrow) LineReader(std::bind(&GPS::_handleLine, this, _1, _2));
+    if (_lineReader == NULL)
+    {
+        ESP_LOGE("GPS", "Failed to allocate line parser");
+    }
 }
 
 void GPS::start()
 {
     if (_tHandle) return;
+    if (_lineReader == NULL) {
+        ESP_LOGE("GPS", "Cannot start without line parser");
+        return;
+    }
     esp_err_t err = uart_driver_install(UART_NUM_2, UART_HW_FIFO_LEN(UART_NUM_2) * 2,
                                         0, 20, &_uart_queue, 0);
     if (err != ESP_OK) {
@@ -87,13 +96,7 @@ void GPS::_gpsSerialQueueHandler()
     uart_event_t event;
     /* Match the RX buffer size passed to uart_driver_install() (UART_HW_FIFO_LEN * 2). */
     const size_t bufSize = UART_HW_FIFO_LEN(UART_NUM_2) * 2;
-    uint8_t *buffer = (uint8_t *)malloc(bufSize);
-    if (!buffer) {
-        ESP_LOGE("GPS", "Failed to allocate UART buffer");
-        _tHandle = NULL;
-        vTaskDelete(NULL);
-        return;
-    }
+    uint8_t buffer[UART_HW_FIFO_LEN(UART_NUM_2) * 2];
 
     uart_flush_input(UART_NUM_2);
 

@@ -27,6 +27,7 @@
 #include "freertos/FreeRTOS.h"
 #include "driver/i2c_master.h"
 #include "esp_log.h"
+#include <new>
 
 // Forward declare GPIO pins from pins.h to avoid circular includes
 #define HM_SDA_PIN GPIO_NUM_18
@@ -76,8 +77,8 @@ static void i2c_master_init()
 
 Rtc *Rtc::detect()
 {
-    RtcDS3231 *ds3231 = new RtcDS3231();
-    if (ds3231->begin())
+    RtcDS3231 *ds3231 = new (std::nothrow) RtcDS3231();
+    if (ds3231 != NULL && ds3231->begin())
     {
         ESP_LOGI(TAG, "DS3231 RTC found and initialized.");
         return ds3231;
@@ -87,8 +88,8 @@ Rtc *Rtc::detect()
         delete ds3231;
     }
 
-    RtcRX8130 *rx8130 = new RtcRX8130();
-    if (rx8130->begin())
+    RtcRX8130 *rx8130 = new (std::nothrow) RtcRX8130();
+    if (rx8130 != NULL && rx8130->begin())
     {
         ESP_LOGI(TAG, "RX8130 RTC found and initialized.");
         return rx8130;

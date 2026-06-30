@@ -27,6 +27,7 @@
 #include <inttypes.h>
 #include <sys/param.h>
 #include <atomic>
+#include <new>
 #include "webui.h"
 #include "esp_log.h"
 #include "cJSON.h"
@@ -1206,7 +1207,13 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         LED* statusLED;
     };
 
-    TaskArgs* args = new TaskArgs();
+    TaskArgs* args = new (std::nothrow) TaskArgs();
+    if (args == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate OTA task arguments");
+        _ota_status = OTA_IDLE;
+        _updateCheck->finishOtaOperation();
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+    }
     args->url = strdup(url_buf);
     if (args->url == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory for URL");

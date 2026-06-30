@@ -29,6 +29,7 @@
 #include "driver/gpio.h"
 #include "pins.h"
 #include "esp_log.h"
+#include <new>
 
 void serialQueueHandlerTask(void *parameter)
 {
@@ -62,12 +63,20 @@ RadioModuleConnector::RadioModuleConnector(LED *redLED, LED *greenLed, LED *blue
     uart_set_pin(UART_NUM_1, HM_TX_PIN, HM_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
     using namespace std::placeholders;
-    _streamParser = new StreamParser(false, std::bind(&RadioModuleConnector::_handleFrame, this, _1, _2));
+    _streamParser = new (std::nothrow) StreamParser(false, std::bind(&RadioModuleConnector::_handleFrame, this, _1, _2));
+    if (_streamParser == NULL)
+    {
+        ESP_LOGE("RadioModuleConnector", "Failed to allocate frame parser");
+    }
 }
 
 void RadioModuleConnector::start()
 {
     if (_tHandle) return;
+    if (_streamParser == NULL) {
+        ESP_LOGE("RadioModuleConnector", "Cannot start without frame parser");
+        return;
+    }
     setLED(false, false, false);
 
     esp_err_t err = uart_driver_install(UART_NUM_1, UART_HW_FIFO_LEN(UART_NUM_1) * 2,
@@ -133,13 +142,7 @@ void RadioModuleConnector::_serialQueueHandler()
      * event.size can be as large as the full driver RX buffer, so a smaller
      * allocation would be overflowed by uart_read_bytes() on long bursts. */
     const size_t bufSize = UART_HW_FIFO_LEN(UART_NUM_1) * 2;
-    uint8_t *buffer = (uint8_t *)malloc(bufSize);
-    if (!buffer) {
-        ESP_LOGE("RadioModuleConnector", "Failed to allocate UART buffer");
-        _tHandle = NULL;
-        vTaskDelete(NULL);
-        return;
-    }
+    uint8_t buffer[UART_HW_FIFO_LEN(UART_NUM_1) * 2];
 
     uart_flush_input(UART_NUM_1);
 
