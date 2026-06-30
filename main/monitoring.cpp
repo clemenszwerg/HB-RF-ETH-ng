@@ -37,10 +37,10 @@ SemaphoreHandle_t g_net_fetch_mutex = NULL;
 
 static monitoring_config_t current_config = {};
 static SemaphoreHandle_t config_mutex = NULL;
-static volatile bool checkmk_running = false;
+static std::atomic<bool> checkmk_running{false};
 static std::atomic<bool> update_in_progress{false};
-static volatile TaskHandle_t checkmk_task_handle = NULL;
-static volatile int checkmk_listen_sock = -1;
+static std::atomic<TaskHandle_t> checkmk_task_handle{NULL};
+static std::atomic<int> checkmk_listen_sock{-1};
 
 // NVS keys
 #define NVS_NAMESPACE "monitoring"
@@ -120,35 +120,39 @@ static void checkmk_agent_task(void *pvParameters)
 
     ESP_LOGI(TAG, "CheckMK Agent starting on port %d", config->port);
 
-    checkmk_listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (checkmk_listen_sock < 0) {
+    int listen_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    checkmk_listen_sock.store(listen_sock);
+    if (listen_sock < 0) {
         ESP_LOGE(TAG, "Unable to create socket");
-        checkmk_task_handle = NULL;
+        checkmk_running.store(false);
+        checkmk_task_handle.store(NULL);
         vTaskDelete(NULL);
         return;
     }
 
     int opt = 1;
-    setsockopt(checkmk_listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(config->port);
 
-    if (bind(checkmk_listen_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+    if (bind(listen_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         ESP_LOGE(TAG, "Socket bind failed");
-        close(checkmk_listen_sock);
-        checkmk_listen_sock = -1;
-        checkmk_task_handle = NULL;
+        close(listen_sock);
+        checkmk_running.store(false);
+        checkmk_listen_sock.store(-1);
+        checkmk_task_handle.store(NULL);
         vTaskDelete(NULL);
         return;
     }
 
-    if (listen(checkmk_listen_sock, 5) < 0) {
+    if (listen(listen_sock, 5) < 0) {
         ESP_LOGE(TAG, "Socket listen failed");
-        close(checkmk_listen_sock);
-        checkmk_listen_sock = -1;
-        checkmk_task_handle = NULL;
+        close(listen_sock);
+        checkmk_running.store(false);
+        checkmk_listen_sock.store(-1);
+        checkmk_task_handle.store(NULL);
         vTaskDelete(NULL);
         return;
     }
@@ -157,18 +161,18 @@ static void checkmk_agent_task(void *pvParameters)
     // client connects and even if shutdown() does not unblock accept() on
     // this lwIP version.
     struct timeval accept_tv = { .tv_sec = 1, .tv_usec = 0 };
-    setsockopt(checkmk_listen_sock, SOL_SOCKET, SO_RCVTIMEO, &accept_tv, sizeof(accept_tv));
+    setsockopt(listen_sock, SOL_SOCKET, SO_RCVTIMEO, &accept_tv, sizeof(accept_tv));
 
     ESP_LOGI(TAG, "CheckMK Agent listening on port %d", config->port);
 
-    while (checkmk_running) {
+    while (checkmk_running.load()) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
 
-        int client_sock = accept(checkmk_listen_sock, (struct sockaddr *)&client_addr, &client_addr_len);
+        int client_sock = accept(listen_sock, (struct sockaddr *)&client_addr, &client_addr_len);
         if (client_sock < 0) {
             // EAGAIN/EWOULDBLOCK = 1s timeout expired, just re-check the loop condition
-            if (checkmk_running && errno != EAGAIN && errno != EWOULDBLOCK) {
+            if (checkmk_running.load() && errno != EAGAIN && errno != EWOULDBLOCK) {
                 ESP_LOGE(TAG, "Accept failed: errno %d", errno);
             }
             continue;
@@ -192,9 +196,11 @@ static void checkmk_agent_task(void *pvParameters)
             while (token != NULL) {
                 // Trim leading/trailing spaces
                 while (*token == ' ') token++;
-                char *end = token + strlen(token) - 1;
-                while (end > token && *end == ' ') { *end = '\0'; end--; }
-                if (strcmp(token, client_ip) == 0) {
+                size_t token_len = strlen(token);
+                while (token_len > 0 && token[token_len - 1] == ' ') {
+                    token[--token_len] = '\0';
+                }
+                if (token_len > 0 && strcmp(token, client_ip) == 0) {
                     allowed = true;
                     break;
                 }
@@ -251,26 +257,40 @@ static void checkmk_agent_task(void *pvParameters)
 
         #undef APPEND_CHECKMK
 
-        // Send data
-        send(client_sock, output, len, 0);
+        // send() may legally write only part of the buffer. Finish the bounded
+        // 2 KB response or fail explicitly instead of silently truncating it.
+        size_t sent = 0;
+        while (sent < len) {
+            ssize_t written = send(client_sock, output + sent, len - sent, 0);
+            if (written > 0) {
+                sent += (size_t)written;
+            } else if (written < 0 && errno == EINTR) {
+                continue;
+            } else {
+                ESP_LOGW(TAG, "CheckMK response send failed after %u/%u bytes (errno %d)",
+                         (unsigned)sent, (unsigned)len, errno);
+                break;
+            }
+        }
 
         close(client_sock);
         ESP_LOGI(TAG, "CheckMK client disconnected");
     }
 
-    if (checkmk_listen_sock >= 0) {
-        close(checkmk_listen_sock);
-        checkmk_listen_sock = -1;
+    if (checkmk_listen_sock.load() >= 0) {
+        close(listen_sock);
+        checkmk_listen_sock.store(-1);
     }
     ESP_LOGI(TAG, "CheckMK Agent stopped");
-    checkmk_task_handle = NULL;
+    checkmk_running.store(false);
+    checkmk_task_handle.store(NULL);
     vTaskDelete(NULL);
 }
 
 // CheckMK Functions
 esp_err_t checkmk_start(const checkmk_config_t *config)
 {
-    if (checkmk_running) {
+    if (checkmk_running.load()) {
         ESP_LOGW(TAG, "CheckMK agent already running");
         return ESP_OK;
     }
@@ -279,7 +299,7 @@ esp_err_t checkmk_start(const checkmk_config_t *config)
         return ESP_OK;
     }
 
-    checkmk_running = true;
+    checkmk_running.store(true);
 
     // Create CheckMK agent task - pass pointer to current_config
     // 8192 bytes: large output buffer (2048) + sockaddr/IP string operations
@@ -287,11 +307,11 @@ esp_err_t checkmk_start(const checkmk_config_t *config)
     TaskHandle_t cmk_handle = NULL;
     BaseType_t ret = xTaskCreate(checkmk_agent_task, "checkmk_agent", 8192,
                                   (void *)&current_config.checkmk, 5, &cmk_handle);
-    checkmk_task_handle = cmk_handle;
+    checkmk_task_handle.store(cmk_handle);
 
     if (ret != pdPASS) {
         ESP_LOGE(TAG, "Failed to create CheckMK agent task");
-        checkmk_running = false;
+        checkmk_running.store(false);
         return ESP_FAIL;
     }
 
@@ -300,34 +320,34 @@ esp_err_t checkmk_start(const checkmk_config_t *config)
 
 esp_err_t checkmk_stop(void)
 {
-    if (!checkmk_running) {
+    if (!checkmk_running.load()) {
         return ESP_OK;
     }
 
     ESP_LOGI(TAG, "Stopping CheckMK agent");
-    checkmk_running = false;
+    checkmk_running.store(false);
 
     // shutdown() + close() to unblock accept(). shutdown() is more reliable
     // than close() alone for interrupting a blocking accept() call on lwIP.
     // The SO_RCVTIMEO set in the task ensures it wakes up within 1s regardless.
-    if (checkmk_listen_sock >= 0) {
-        shutdown(checkmk_listen_sock, SHUT_RDWR);
-        close(checkmk_listen_sock);
-        checkmk_listen_sock = -1;
+    int listen_sock = checkmk_listen_sock.exchange(-1);
+    if (listen_sock >= 0) {
+        shutdown(listen_sock, SHUT_RDWR);
+        close(listen_sock);
     }
 
     // Wait up to 2.5s for the task to exit (accept timeout is 1s, so it
     // will detect checkmk_running==false within one timeout cycle).
-    for (int i = 0; i < 25 && checkmk_task_handle != NULL; i++) {
+    for (int i = 0; i < 25 && checkmk_task_handle.load() != NULL; i++) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     // Use a local snapshot of the handle to avoid a race where the task
     // sets checkmk_task_handle=NULL between our NULL check and vTaskDelete().
-    TaskHandle_t cmk_handle = checkmk_task_handle;
+    TaskHandle_t cmk_handle = checkmk_task_handle.load();
     if (cmk_handle != NULL) {
         ESP_LOGW(TAG, "CheckMK task did not exit cleanly, force deleting");
-        checkmk_task_handle = NULL;
+        checkmk_task_handle.store(NULL);
         vTaskDelete(cmk_handle);
     }
 
@@ -823,7 +843,7 @@ esp_err_t monitoring_run_diagnostic(const char *target, bool *ok, char *message,
             return ESP_OK;
         }
 
-        *ok = checkmk_running && checkmk_listen_sock >= 0;
+        *ok = checkmk_running.load() && checkmk_listen_sock.load() >= 0;
         snprintf(message, message_len, *ok
             ? "CheckMK agent listening on TCP port %u"
             : "CheckMK is enabled but listener is not ready",
