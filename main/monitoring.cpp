@@ -34,6 +34,7 @@
 
 static const char *TAG = "MONITORING";
 SemaphoreHandle_t g_net_fetch_mutex = NULL;
+static StaticSemaphore_t net_fetch_mutex_buffer;
 
 static monitoring_config_t current_config = {};
 static SemaphoreHandle_t config_mutex = NULL;
@@ -594,17 +595,19 @@ esp_err_t monitoring_init(const monitoring_config_t *config, SysInfo* sysInfo, U
 {
     ESP_LOGI(TAG, "Initializing monitoring subsystem");
 
+    // This lock protects the ESP32's limited heap from concurrent TLS
+    // handshakes. Reserve it statically so low heap can never disable the
+    // serialization exactly when it is needed most.
+    g_net_fetch_mutex = xSemaphoreCreateMutexStatic(&net_fetch_mutex_buffer);
+    if (g_net_fetch_mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create net-fetch mutex");
+        return ESP_ERR_NO_MEM;
+    }
+
     config_mutex = xSemaphoreCreateMutex();
     if (config_mutex == NULL) {
         ESP_LOGE(TAG, "Failed to create config mutex");
         return ESP_ERR_NO_MEM;
-    }
-
-    g_net_fetch_mutex = xSemaphoreCreateMutex();
-    if (g_net_fetch_mutex == NULL) {
-        ESP_LOGE(TAG, "Failed to create net-fetch mutex");
-        // Non-critical: continue without serialisation; the changelog-proxy
-        // retry will handle the transient double-TLS OOM.
     }
 
     g_sysInfo = sysInfo;
@@ -644,6 +647,9 @@ esp_err_t monitoring_init(const monitoring_config_t *config, SysInfo* sysInfo, U
 // Update configuration
 esp_err_t monitoring_update_config(const monitoring_config_t *config)
 {
+    if (config == NULL) return ESP_ERR_INVALID_ARG;
+    if (config_mutex == NULL) return ESP_ERR_INVALID_STATE;
+
     // Take a snapshot of the current config under mutex to determine what changed.
     // Release the mutex before any blocking stop/start calls so GET requests
     // are never blocked for more than a memcpy duration.
@@ -689,6 +695,9 @@ static void apply_config_task(void *pvParameters)
 // Schedule configuration update asynchronously - returns immediately, update runs in background
 esp_err_t monitoring_schedule_update_config(const monitoring_config_t *config)
 {
+    if (config == NULL) return ESP_ERR_INVALID_ARG;
+    if (config_mutex == NULL) return ESP_ERR_INVALID_STATE;
+
     // Atomic compare-and-swap gate: only one update task at a time.
     // compare_exchange_strong guarantees no race between the check and the set,
     // even on dual-core ESP32 where volatile alone is insufficient.
@@ -727,6 +736,9 @@ esp_err_t monitoring_get_config(monitoring_config_t *config)
 {
     if (config == NULL) {
         return ESP_ERR_INVALID_ARG;
+    }
+    if (config_mutex == NULL) {
+        return ESP_ERR_INVALID_STATE;
     }
 
     xSemaphoreTake(config_mutex, portMAX_DELAY);

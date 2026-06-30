@@ -255,16 +255,23 @@ void app_main()
     static UpdateCheck updateCheck(&settings, &sysInfo, &statusLED);
     updateCheck.start();
 
-    static WebUI webUI(&settings, &statusLED, &sysInfo, &updateCheck, &ethernet, &rawUartUdpLister, &radioModuleConnector, &radioModuleDetector);
-    webUI.start();
-
     // Register data providers for MQTT status topics (Ethernet link/IP,
     // radio module info, system clock / NTP sync state). Must happen before
     // monitoring_init() so the very first status publish cycle sees them.
     monitoring_set_providers(&ethernet, &radioModuleDetector, &clk);
 
     // Initialize monitoring (CheckMK, MQTT)
-    monitoring_init(NULL, &sysInfo, &updateCheck);
+    esp_err_t monitoringResult = monitoring_init(NULL, &sysInfo, &updateCheck);
+    if (monitoringResult != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Monitoring initialization failed: %s", esp_err_to_name(monitoringResult));
+    }
+
+    // Open HTTP endpoints only after the shared HTTPS mutex exists. This
+    // closes the boot-time window in which proxy/OTA requests could overlap
+    // the first background update check and exhaust TLS heap.
+    static WebUI webUI(&settings, &statusLED, &sysInfo, &updateCheck, &ethernet, &rawUartUdpLister, &radioModuleConnector, &radioModuleDetector);
+    webUI.start();
 
     powerLED.setState(LED_STATE_ON);
     statusLED.setState(LED_STATE_OFF);
