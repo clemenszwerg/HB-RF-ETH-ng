@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.14] - 2026-06-30
+
+### Changes
+- fix-clipboard-copy-mobile
+- fix-update-check-timeout-mismatch
+- fix: use textarea.value.length and preventScroll per review feedback
+- fix: make clipboard copy fallback reliable on mobile browsers
+- fix: raise check_update client timeout to cover device-side worst case
+- fix-orphaned-wiki-repo-gitlink
+- fix: remove orphaned wiki_repo gitlink
+
 ## [2.2.0-Beta.13] - 2026-06-30
 
 ### Changes
