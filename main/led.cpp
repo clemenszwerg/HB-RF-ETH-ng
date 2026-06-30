@@ -92,6 +92,8 @@ void LED::start(Settings *settings)
 
 void LED::setBrightness(int brightness)
 {
+    if (brightness < 0) brightness = 0;
+    if (brightness > 100) brightness = 100;
     _highDuty = brightness * (1 << 11) / 100;
 }
 
@@ -109,7 +111,6 @@ LED::LED(gpio_num_t pin) : _state(LED_STATE_OFF), _channel_conf({})
     _channel_conf.gpio_num = pin;
     _channel_conf.speed_mode = LEDC_LOW_SPEED_MODE;
     _channel_conf.channel = LEDC_CHANNEL_0;
-    _channel_conf.intr_type = LEDC_INTR_DISABLE;
     _channel_conf.timer_sel = LEDC_TIMER_0;
     _channel_conf.duty = 0;
     _channel_conf.hpoint = 0;
@@ -132,6 +133,10 @@ LED::LED(gpio_num_t pin) : _state(LED_STATE_OFF), _channel_conf({})
 
 void LED::setState(led_state_t state)
 {
+    if (state < LED_STATE_OFF || state > LED_STATE_STROBE)
+    {
+        state = LED_STATE_OFF;
+    }
     _state = state;
     updatePinState();
 }
@@ -210,13 +215,16 @@ void LED::updatePinState()
         // Strobe-Effekt: sehr schnelles blinken
         _setPinState((_blinkState % 4) < 2);
         break;
+    default:
+        _setPinState(false);
+        break;
     }
 }
 
 // LED Programme Management
 void LED::setProgram(led_program_t program, led_state_t state)
 {
-    if (program >= 0 && program < 7) {
+    if (program >= 0 && program < 7 && state >= LED_STATE_OFF && state <= LED_STATE_STROBE) {
         _programs[program] = state;
     }
 }

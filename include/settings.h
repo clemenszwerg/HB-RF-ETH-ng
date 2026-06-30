@@ -40,7 +40,7 @@ private:
   char _adminPassword[33] = {0};
   bool _passwordChanged;
 
-  char _hostname[33] = {0};
+  char _hostname[64] = {0};
   bool _useDHCP;
   ip4_addr_t _localIP;
   ip4_addr_t _netmask;

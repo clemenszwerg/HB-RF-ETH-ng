@@ -105,6 +105,13 @@ void Settings::load()
     esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
     snprintf(_hostname, sizeof(_hostname) - 1, "HB-RF-ETH-%02X%02X%02X", baseMac[3], baseMac[4], baseMac[5]);
   }
+  else if (!validateHostname(_hostname))
+  {
+    ESP_LOGW(TAG, "Invalid hostname in NVS, restoring default");
+    uint8_t baseMac[6];
+    esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
+    snprintf(_hostname, sizeof(_hostname), "HB-RF-ETH-%02X%02X%02X", baseMac[3], baseMac[4], baseMac[5]);
+  }
 
   GET_BOOL(handle, "useDHCP", _useDHCP, true);
   GET_IP_ADDR(handle, "localIP", _localIP, IPADDR_ANY);
@@ -114,14 +121,32 @@ void Settings::load()
   GET_IP_ADDR(handle, "dns2", _dns2, IPADDR_ANY);
 
   GET_INT(handle, "timesource", _timesource, TIMESOURCE_NTP);
+  if (_timesource < TIMESOURCE_NTP || _timesource > TIMESOURCE_GPS)
+  {
+    ESP_LOGW(TAG, "Invalid time source in NVS, restoring NTP");
+    _timesource = TIMESOURCE_NTP;
+  }
   
   GET_INT(handle, "dcfOffset", _dcfOffset, 40000);
+  if (!validateDcfOffset(_dcfOffset))
+  {
+    _dcfOffset = 40000;
+  }
 
   GET_INT(handle, "gpsBaudrate", _gpsBaudrate, 9600);
+  if (!validateGpsBaudrate(_gpsBaudrate))
+  {
+    _gpsBaudrate = 9600;
+  }
 
   size_t ntpServerLength = sizeof(_ntpServer);
   if (nvs_get_str(handle, "ntpServer", _ntpServer, &ntpServerLength) != ESP_OK)
   {
+    strncpy(_ntpServer, "pool.ntp.org", sizeof(_ntpServer) - 1);
+  }
+  else if (!validateNtpServer(_ntpServer))
+  {
+    ESP_LOGW(TAG, "Invalid NTP server in NVS, restoring default");
     strncpy(_ntpServer, "pool.ntp.org", sizeof(_ntpServer) - 1);
   }
 
@@ -148,9 +173,18 @@ void Settings::load()
   for (int i = 0; i < 7; i++) {
       snprintf(key, sizeof(key), "ledProg%d", i);
       GET_INT(handle, key, _ledPrograms[i], defaults[i]);
+      if (_ledPrograms[i] < 0 || _ledPrograms[i] > 10)
+      {
+        ESP_LOGW(TAG, "Invalid LED program %d in NVS, restoring default", i);
+        _ledPrograms[i] = defaults[i];
+      }
   }
 
   GET_INT(handle, "ledBrightness", _ledBrightness, 100);
+  if (!validateLEDBrightness(_ledBrightness))
+  {
+    _ledBrightness = 100;
+  }
 
   // Load IPv6 settings
   GET_BOOL(handle, "enableIPv6", _enableIPv6, false);
@@ -396,6 +430,11 @@ timesource_t Settings::getTimesource()
 
 void Settings::setTimesource(timesource_t timesource)
 {
+  if (timesource < TIMESOURCE_NTP || timesource > TIMESOURCE_GPS)
+  {
+    ESP_LOGE(TAG, "Invalid time source, keeping current value");
+    return;
+  }
   _timesource = timesource;
 }
 

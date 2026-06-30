@@ -171,6 +171,42 @@ void test_static_ipv4_rejects_invalid_hostname(void)
     TEST_ASSERT_FALSE(result);
 }
 
+void test_hostname_supports_documented_maximum_length(void)
+{
+    const char *hostname = "abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz-123456789";
+    ip4_addr_t anyIP = {.addr = IPADDR_ANY};
+
+    TEST_ASSERT_EQUAL_UINT32(63, strlen(hostname));
+    TEST_ASSERT_TRUE(settings->setNetworkSettings(hostname, true, anyIP, anyIP, anyIP, anyIP, anyIP));
+    settings->save();
+
+    delete settings;
+    settings = new Settings();
+    TEST_ASSERT_EQUAL_STRING(hostname, settings->getHostname());
+}
+
+void test_invalid_persisted_runtime_values_restore_safe_defaults(void)
+{
+    uint32_t handle;
+    TEST_ASSERT_EQUAL(ESP_OK, nvs_open("HB-RF-ETH", NVS_READWRITE, &handle));
+    TEST_ASSERT_EQUAL(ESP_OK, nvs_set_i32(handle, "timesource", 99));
+    TEST_ASSERT_EQUAL(ESP_OK, nvs_set_i32(handle, "dcfOffset", 90000));
+    TEST_ASSERT_EQUAL(ESP_OK, nvs_set_i32(handle, "gpsBaudrate", 12345));
+    TEST_ASSERT_EQUAL(ESP_OK, nvs_set_i32(handle, "ledProg0", 99));
+    TEST_ASSERT_EQUAL(ESP_OK, nvs_set_i32(handle, "ledBrightness", 250));
+    TEST_ASSERT_EQUAL(ESP_OK, nvs_commit(handle));
+    nvs_close(handle);
+
+    delete settings;
+    settings = new Settings();
+
+    TEST_ASSERT_EQUAL(TIMESOURCE_NTP, settings->getTimesource());
+    TEST_ASSERT_EQUAL(40000, settings->getDcfOffset());
+    TEST_ASSERT_EQUAL(9600, settings->getGpsBaudrate());
+    TEST_ASSERT_EQUAL(1, settings->getLedProgram(0));
+    TEST_ASSERT_EQUAL(100, settings->getLEDBrightness());
+}
+
 void test_static_ipv4_persists_multiple_reboots(void)
 {
     ip4_addr_t localIP, netmask, gateway, dns1, dns2;
@@ -410,6 +446,8 @@ void app_main(void)
     RUN_TEST(test_switch_from_static_to_dhcp);
     RUN_TEST(test_switch_from_dhcp_to_static);
     RUN_TEST(test_static_ipv4_rejects_invalid_hostname);
+    RUN_TEST(test_hostname_supports_documented_maximum_length);
+    RUN_TEST(test_invalid_persisted_runtime_values_restore_safe_defaults);
     RUN_TEST(test_static_ipv4_persists_multiple_reboots);
 
     // Password change tests
