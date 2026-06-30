@@ -2126,7 +2126,9 @@ static void _share_log_task(void *arg)
         esp_http_client_config_t config = {};
         config.url = "https://paste.blueml.eu/upload";
         config.method = HTTP_METHOD_POST;
-        config.crt_bundle_attach = nullptr;
+        // The global ESP-TLS insecure fallback is disabled. Attach the CA
+        // bundle explicitly so log sharing remains functional and authenticated.
+        config.crt_bundle_attach = esp_crt_bundle_attach;
         config.keep_alive_enable = false;
         config.disable_auto_redirect = true;
         config.timeout_ms = 20000;
