@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.15] - 2026-06-30
+
+### Changes
+- ota-update-search-verify
+- fix: drop redundant skip_cert_common_name_check on OTA path
+- fix: disable TLS cert verification on OTA/update path (PSA OOM -141)
+- ota-update-search-verify
+- docs: add OTA & update-search hardware test protocol
+
 ## [2.2.0-Beta.14] - 2026-06-30
 
 ### Changes
