@@ -853,7 +853,7 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
-    if (_ota_status == OTA_DOWNLOADING)
+    if (!_updateCheck->tryBeginOtaOperation())
     {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "OTA update already in progress");
         return ESP_OK;
@@ -868,6 +868,7 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
         ESP_LOGE(TAG, "Failed to allocate OTA buffer");
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
         _ota_status = OTA_FAILED;
+        _updateCheck->finishOtaOperation();
         return ESP_FAIL;
     }
 
@@ -982,7 +983,10 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
     ResetInfo::storeResetReason(RESET_REASON_FIRMWARE_UPDATE);
 
     // Automatic restart after successful OTA update
-    xTaskCreate(delayed_restart_task, "restart_task", 2048, NULL, 5, NULL);
+    if (xTaskCreate(delayed_restart_task, "restart_task", 2048, NULL, 5, NULL) != pdPASS) {
+        ESP_LOGE(TAG, "Could not create delayed restart task after successful OTA");
+        _updateCheck->finishOtaOperation();
+    }
 
     free(ota_buff);
     return ESP_OK;
@@ -1000,6 +1004,7 @@ err:
 
     // Store reset reason for failed firmware update
     ResetInfo::storeResetReason(RESET_REASON_UPDATE_FAILED);
+    _updateCheck->finishOtaOperation();
     return ESP_FAIL;
 }
 
@@ -1152,11 +1157,11 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
     // Copy URL before freeing JSON to avoid use-after-free
     char url_buf[256] = {0};
     if (url_json != NULL && strlen(url_json) > 0) {
-        // Basic URL validation - must start with http:// or https://
-        if (strncmp(url_json, "http://", 7) != 0 && strncmp(url_json, "https://", 8) != 0) {
+        // Firmware downloads must be authenticated by TLS.
+        if (strncmp(url_json, "https://", 8) != 0) {
             cJSON_Delete(root);
             httpd_resp_set_type(req, "application/json");
-            httpd_resp_sendstr(req, "{\"success\":false,\"error\":\"Invalid URL format\"}");
+            httpd_resp_sendstr(req, "{\"success\":false,\"error\":\"Firmware URL must use HTTPS\"}");
             return ESP_OK;
         }
         strncpy(url_buf, url_json, sizeof(url_buf) - 1);
@@ -1173,7 +1178,7 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
 
     // Reject concurrent OTA starts - two tasks writing the same update
     // partition would corrupt the image.
-    if (_ota_status == OTA_DOWNLOADING)
+    if (!_updateCheck->tryBeginOtaOperation())
     {
         httpd_resp_set_type(req, "application/json");
         httpd_resp_sendstr(req, "{\"success\":false,\"error\":\"OTA update already in progress\"}");
@@ -1187,10 +1192,6 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
     _ota_status = OTA_DOWNLOADING;
     _ota_progress = 0;
 
-    // Send success response immediately
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_sendstr(req, "{\"success\":true,\"message\":\"OTA update started\"}");
-
     // Create a task to perform the update (it's blocking)
     struct TaskArgs {
         char* url;
@@ -1203,8 +1204,8 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         ESP_LOGE(TAG, "Failed to allocate memory for URL");
         delete args;
         _ota_status = OTA_IDLE;
-        // Response already sent above, just log the error
-        return ESP_OK;
+        _updateCheck->finishOtaOperation();
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
     }
     args->statusLED = _statusLED;
 
@@ -1216,6 +1217,22 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         _ota_status = OTA_DOWNLOADING;
         _ota_progress = 0;
         _ota_error[0] = '\0';
+
+        bool net_locked = false;
+        if (g_net_fetch_mutex) {
+            if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(30000)) != pdTRUE) {
+                ESP_LOGE(TAG, "OTA URL update could not start: HTTPS subsystem busy");
+                snprintf(_ota_error, sizeof(_ota_error), "HTTPS subsystem busy");
+                _ota_status = OTA_FAILED;
+                a->statusLED->setState(LED_STATE_ON);
+                free(a->url);
+                delete a;
+                _updateCheck->finishOtaOperation();
+                vTaskDelete(NULL);
+                return;
+            }
+            net_locked = true;
+        }
 
         esp_http_client_config_t config = {};
         configure_ota_http_client(config, a->url);
@@ -1236,8 +1253,10 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
             snprintf(_ota_error, sizeof(_ota_error), "OTA begin failed: %s", esp_err_to_name(ret));
             _ota_status = OTA_FAILED;
             a->statusLED->setState(LED_STATE_ON);
+            if (net_locked) xSemaphoreGive(g_net_fetch_mutex);
             free(a->url);
             delete a;
+            _updateCheck->finishOtaOperation();
             vTaskDelete(NULL);
             return;
         }
@@ -1258,11 +1277,16 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
             vTaskDelay(pdMS_TO_TICKS(10));
         }
 
-        if (ret == ESP_OK) {
+        bool complete = esp_https_ota_is_complete_data_received(ota_handle);
+        if (ret == ESP_OK && complete) {
             _ota_progress = 100;
             ret = esp_https_ota_finish(ota_handle);
         } else {
             esp_https_ota_abort(ota_handle);
+            if (ret == ESP_OK) {
+                ret = ESP_ERR_INVALID_SIZE;
+                snprintf(_ota_error, sizeof(_ota_error), "OTA download incomplete");
+            }
         }
 
         if (ret == ESP_OK) {
@@ -1270,18 +1294,24 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
             _ota_status = OTA_SUCCESS;
             ResetInfo::storeResetReason(RESET_REASON_FIRMWARE_UPDATE);
             a->statusLED->setState(LED_STATE_OFF);
+            if (net_locked) xSemaphoreGive(g_net_fetch_mutex);
             free(a->url);
             delete a;
+            _updateCheck->finishOtaOperation();
             vTaskDelay(pdMS_TO_TICKS(1000));
             full_system_restart();
         } else {
             ESP_LOGE(TAG, "OTA Update failed: %s", esp_err_to_name(ret));
-            snprintf(_ota_error, sizeof(_ota_error), "OTA failed: %s", esp_err_to_name(ret));
+            if (_ota_error[0] == '\0') {
+                snprintf(_ota_error, sizeof(_ota_error), "OTA failed: %s", esp_err_to_name(ret));
+            }
             _ota_status = OTA_FAILED;
             ResetInfo::storeResetReason(RESET_REASON_UPDATE_FAILED);
             a->statusLED->setState(LED_STATE_ON);
+            if (net_locked) xSemaphoreGive(g_net_fetch_mutex);
             free(a->url);
             delete a;
+            _updateCheck->finishOtaOperation();
         }
         vTaskDelete(NULL);
     }, "ota_url_update", 16384, args, 5, NULL);
@@ -1291,9 +1321,14 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         free(args->url);
         delete args;
         _ota_status = OTA_IDLE;
-        // Response already sent above, just log the error
-        return ESP_OK;
+        _updateCheck->finishOtaOperation();
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Could not start OTA task");
     }
+
+    // Report success only after all allocations succeeded and the worker task
+    // is running. The previous ordering returned success even on OOM.
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"success\":true,\"message\":\"OTA update started\"}");
 
     return ESP_OK;
 }
@@ -1755,9 +1790,9 @@ esp_err_t post_log_enable_handler_func(httpd_req_t *req)
     }
 
     // Drain any (empty) request body so keep-alive stays consistent.
-    if (req->content_length > 0) {
+    if (req->content_len > 0) {
         char discard[64];
-        size_t remaining = req->content_length;
+        size_t remaining = req->content_len;
         while (remaining > 0) {
             int n = httpd_req_recv(req, discard, remaining < sizeof(discard) ? remaining : sizeof(discard));
             if (n <= 0) break;
@@ -1791,9 +1826,9 @@ esp_err_t post_log_disable_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
-    if (req->content_length > 0) {
+    if (req->content_len > 0) {
         char discard[64];
-        size_t remaining = req->content_length;
+        size_t remaining = req->content_len;
         while (remaining > 0) {
             int n = httpd_req_recv(req, discard, remaining < sizeof(discard) ? remaining : sizeof(discard));
             if (n <= 0) break;

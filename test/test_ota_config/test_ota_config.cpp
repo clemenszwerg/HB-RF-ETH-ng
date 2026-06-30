@@ -22,23 +22,19 @@ void test_ota_config_defaults(void) {
     // Verify Fix 1: Keep-alive disabled for GitHub redirects
     TEST_ASSERT_FALSE(config.keep_alive_enable);
 
-    // Verify Fix 2: TX buffer increased to 4096
-    TEST_ASSERT_EQUAL(4096, config.buffer_size_tx);
+    // TX buffer must be large enough for GitHub's request/redirect headers.
+    TEST_ASSERT_EQUAL(2048, config.buffer_size_tx);
 
     // Verify Fix 3: Max redirection count set
     TEST_ASSERT_EQUAL(5, config.max_redirection_count);
 
-    // Cert verification is intentionally disabled on the OTA/fetch path to work
-    // around PSA insufficient-memory (-141) handshake failures on the ESP32, so
-    // no CA bundle must be attached. The CN check stays at its default (false)
-    // so it is not silently left off if a CA bundle is re-attached later.
-    TEST_ASSERT_NULL(config.crt_bundle_attach);
+    // OTA images must only be downloaded over authenticated TLS.
+    TEST_ASSERT_NOT_NULL(config.crt_bundle_attach);
     TEST_ASSERT_FALSE(config.skip_cert_common_name_check);
 }
 
 // GitHub Releases API URL: stable channel hits /releases/latest, beta
-// channel hits /releases?per_page=3 — fetches enough releases to handle
-// API ordering quirks while staying within the 32 KB response cap.
+// channel hits /releases?per_page=1 to keep response/parse memory bounded.
 void test_build_releases_api_url_stable(void) {
     char buf[128];
     buildReleasesApiUrl(false, buf, sizeof(buf));
@@ -51,7 +47,7 @@ void test_build_releases_api_url_beta(void) {
     char buf[128];
     buildReleasesApiUrl(true, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING(
-        "https://api.github.com/repos/Xerolux/HB-RF-ETH-ng/releases?per_page=3",
+        "https://api.github.com/repos/Xerolux/HB-RF-ETH-ng/releases?per_page=1",
         buf);
 }
 

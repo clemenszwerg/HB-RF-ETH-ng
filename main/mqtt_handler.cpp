@@ -169,11 +169,12 @@ static void handle_mqtt_command(const char* command, const char* payload, int pa
         ESP_LOGI(TAG, "Check-update command received via MQTT");
         UpdateCheck* updateCheck = monitoring_get_updatecheck();
         if (updateCheck) {
-            xTaskCreate([](void *p) {
+            BaseType_t created = xTaskCreate([](void *p) {
                 static_cast<UpdateCheck *>(p)->refresh();
                 vTaskDelete(NULL);
             }, "mqtt_chkupd", 8192, updateCheck, 4, NULL);
-            mqtt_handler_publish_event("event/check_update", "requested");
+            mqtt_handler_publish_event("event/check_update",
+                                       created == pdPASS ? "requested" : "task_create_failed");
         } else {
             mqtt_handler_publish_event("event/check_update", "updatecheck_unavailable");
         }

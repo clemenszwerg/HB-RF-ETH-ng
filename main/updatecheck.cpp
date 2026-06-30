@@ -111,11 +111,12 @@ void normalizeTag(const char* tag, char* out, size_t outLen)
 // ---- HTTP response accumulator --------------------------------------------
 
 struct GhResponse {
-    char *buf;        // heap-allocated lazily (up to GH_RESPONSE_CAP bytes)
+    char *buf;        // heap-allocated lazily (GH_RESPONSE_CAP + terminator)
     size_t len;
     size_t cap;
     int httpStatus;
     bool allocFailed; // true if the lazy buffer allocation could not be served
+    bool truncated;   // true when the response exceeded cap
 };
 
 static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
@@ -137,7 +138,7 @@ static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
             // WROOM-32 (no PSRAM) and aborted the handshake with
             // PSA_ERROR_INSUFFICIENT_MEMORY (-0x008D / -141).
             if (!r->buf && !r->allocFailed) {
-                r->buf = (char *)malloc(r->cap);
+                r->buf = (char *)malloc(r->cap + 1);
                 if (!r->buf) {
                     r->allocFailed = true;
                     ESP_LOGE(TAG, "Failed to allocate %u bytes for GitHub response",
@@ -152,10 +153,16 @@ static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
                 size_t copy = evt->data_len;
                 if (r->len + copy > r->cap) {
                     copy = (r->len < r->cap) ? (r->cap - r->len) : 0;
+                    r->truncated = true;
                 }
                 if (copy > 0) {
                     memcpy(r->buf + r->len, evt->data, copy);
                     r->len += copy;
+                }
+                if (r->truncated) {
+                    // Never accept a release parsed from an incomplete JSON
+                    // document. Abort early and report a deterministic error.
+                    return ESP_ERR_INVALID_SIZE;
                 }
             }
         }
@@ -173,8 +180,9 @@ static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
 // Handles both response shapes:
 //   - /releases/latest  -> a single release object
 //   - /releases?per_page=N -> an array of release objects
-// and picks the highest semantic version found (the API does not guarantee
-// strict chronological ordering). Extracts tag_name (->version), published_at,
+// The list endpoint is deliberately requested with per_page=1, so parsing the
+// first non-draft release is sufficient and avoids large temporary objects on
+// the task stack. Extracts tag_name (->version), published_at,
 // prerelease, draft (skipped), the firmware_*.bin browser_download_url and the
 // release-notes body. releaseUrl is constructed from the repo + tag because the
 // "html_url" field is interleaved with author/uploader objects and cannot be
@@ -183,12 +191,14 @@ static bool _parseGitHubReleasesString(const char *buf, ReleaseInfo *out)
 {
     if (!buf || !out) return false;
 
-    ReleaseInfo best = {};
+    // Parse directly into the caller-owned result. ReleaseInfo contains a 4 KB
+    // notes buffer; keeping both "current" and "best" copies here consumed
+    // nearly 10 KB of stack on top of refresh()'s result object and overflowed
+    // the 12 KB UpdateCheck task at its first run, 30 seconds after boot.
+    memset(out, 0, sizeof(*out));
     const char *p = buf;
 
     while ((p = strstr(p, "\"tag_name\":")) != NULL) {
-        ReleaseInfo cur = {};
-
         // --- version (strip a single leading v/V) ---
         const char *v = p + strlen("\"tag_name\":");
         while (*v == ' ' || *v == ':') v++;
@@ -199,9 +209,9 @@ static bool _parseGitHubReleasesString(const char *buf, ReleaseInfo *out)
             const char *vp = v;
             if ((vp[0] == 'v' || vp[0] == 'V') && vp[1] >= '0' && vp[1] <= '9') vp++;
             size_t tl = (size_t)(tagEnd - vp);
-            if (tl >= sizeof(cur.version)) tl = sizeof(cur.version) - 1;
-            memcpy(cur.version, vp, tl);
-            cur.version[tl] = 0;
+            if (tl >= sizeof(out->version)) tl = sizeof(out->version) - 1;
+            memcpy(out->version, vp, tl);
+            out->version[tl] = 0;
         }
 
         // Remaining fields of this release object live up to the next tag_name
@@ -218,13 +228,18 @@ static bool _parseGitHubReleasesString(const char *buf, ReleaseInfo *out)
             while (*dr == ' ' || *dr == ':') dr++;
             isDraft = (strncmp(dr, "true", 4) == 0);
         }
+        if (isDraft) {
+            memset(out, 0, sizeof(*out));
+            p = objEnd;
+            continue;
+        }
 
         // --- prerelease ---
         const char *pr = strstr(scan, "\"prerelease\":");
         if (pr && pr < objEnd) {
             pr += strlen("\"prerelease\":");
             while (*pr == ' ' || *pr == ':') pr++;
-            cur.isPrerelease = (strncmp(pr, "true", 4) == 0);
+            out->isPrerelease = (strncmp(pr, "true", 4) == 0);
         }
 
         // --- published_at ---
@@ -236,9 +251,9 @@ static bool _parseGitHubReleasesString(const char *buf, ReleaseInfo *out)
             const char *pe = strchr(pa, '"');
             if (pe) {
                 size_t pl = (size_t)(pe - pa);
-                if (pl >= sizeof(cur.publishedAt)) pl = sizeof(cur.publishedAt) - 1;
-                memcpy(cur.publishedAt, pa, pl);
-                cur.publishedAt[pl] = 0;
+                if (pl >= sizeof(out->publishedAt)) pl = sizeof(out->publishedAt) - 1;
+                memcpy(out->publishedAt, pa, pl);
+                out->publishedAt[pl] = 0;
             }
         }
 
@@ -260,9 +275,9 @@ static bool _parseGitHubReleasesString(const char *buf, ReleaseInfo *out)
             if (!isDraft &&
                 fnLen > 9 && strncmp(fn, "firmware_", 9) == 0 &&
                 fnLen > 4 && strncmp(be - 4, ".bin", 4) == 0 &&
-                bl < sizeof(cur.downloadUrl)) {
-                memcpy(cur.downloadUrl, bv, bl);
-                cur.downloadUrl[bl] = 0;
+                bl < sizeof(out->downloadUrl)) {
+                memcpy(out->downloadUrl, bv, bl);
+                out->downloadUrl[bl] = 0;
             }
             bdu = strstr(be, "\"browser_download_url\":");
         }
@@ -279,41 +294,35 @@ static bool _parseGitHubReleasesString(const char *buf, ReleaseInfo *out)
                 if (*be == '"') break;
                 be++;
             }
-            size_t cap = sizeof(cur.body) - 1;
+            size_t cap = sizeof(out->body) - 1;
             size_t bi = 0;
             const char *src = bt;
             while (src < be && bi < cap) {
                 if (*src == '\\' && src + 1 < be) {
                     char c = src[1];
-                    if (c == 'n') cur.body[bi++] = '\n';
-                    else if (c == 't') cur.body[bi++] = '\t';
-                    else if (c != 'r') cur.body[bi++] = c;  // drop \r
+                    if (c == 'n') out->body[bi++] = '\n';
+                    else if (c == 't') out->body[bi++] = '\t';
+                    else if (c != 'r') out->body[bi++] = c;  // drop \r
                     src += 2;
                 } else {
-                    cur.body[bi++] = *src++;
+                    out->body[bi++] = *src++;
                 }
             }
-            cur.body[bi] = 0;
+            out->body[bi] = 0;
         }
 
-        if (cur.version[0] && !isDraft) {
+        if (out->version[0]) {
             // releaseUrl: reconstruct from repo + tag (reliable and avoids the
             // html_url ordering issue with nested author/uploader objects).
-            snprintf(cur.releaseUrl, sizeof(cur.releaseUrl),
+            snprintf(out->releaseUrl, sizeof(out->releaseUrl),
                      "https://github.com/%s/releases/tag/v%s",
-                     GITHUB_REPO, cur.version);
-            cur.valid = true;
-            if (!best.valid || compareVersions(cur.version, best.version) > 0) {
-                best = cur;
-            }
+                     GITHUB_REPO, out->version);
+            out->valid = true;
+            return true;
         }
 
+        memset(out, 0, sizeof(*out));
         p = objEnd;
-    }
-
-    if (best.valid) {
-        *out = best;
-        return true;
     }
     return false;
 }
@@ -325,19 +334,30 @@ UpdateCheck::UpdateCheck(Settings* settings, SysInfo* sysInfo, LED *statusLED)
 {
     _stateMutex = xSemaphoreCreateMutex();
     _fetchLock = xSemaphoreCreateMutex();
+    if (!_stateMutex || !_fetchLock) {
+        ESP_LOGE(TAG, "Failed to allocate UpdateCheck synchronization objects");
+    }
 }
 
 void UpdateCheck::start()
 {
+    if (_tHandle) return;
     // ReleaseInfo body is 4 KB – the struct exceeds 5 KB on the stack when
     // copied by getReleaseInfo() / refresh(). 12 KB gives the task comfortable
     // headroom and avoids stack-overflow → watchdog-reset loops.
-    xTaskCreate(_update_check_task_func, "UpdateCheck", 12288, this, 3, &_tHandle);
+    if (xTaskCreate(_update_check_task_func, "UpdateCheck", 12288,
+                    this, 3, &_tHandle) != pdPASS) {
+        _tHandle = NULL;
+        ESP_LOGE(TAG, "Failed to create UpdateCheck task");
+    }
 }
 
 void UpdateCheck::stop()
 {
-    vTaskDelete(_tHandle);
+    if (_tHandle) {
+        vTaskDelete(_tHandle);
+        _tHandle = NULL;
+    }
 }
 
 const char *UpdateCheck::getLatestVersion()
@@ -484,6 +504,17 @@ OtaSnapshot UpdateCheck::getOtaState()
     return snap;
 }
 
+bool UpdateCheck::tryBeginOtaOperation()
+{
+    bool expected = false;
+    return _otaInProgress.compare_exchange_strong(expected, true);
+}
+
+void UpdateCheck::finishOtaOperation()
+{
+    _otaInProgress.store(false);
+}
+
 bool UpdateCheck::_doFetch(ReleaseInfo *out)
 {
     bool beta = _settings ? _settings->getBetaChannel() : false;
@@ -499,8 +530,12 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
     // the heap on the ESP32. 15 s timeout: GitHub should never take that long
     // for a single release.
     bool net_locked = false;
-    if (g_net_fetch_mutex &&
-        xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(15000)) == pdTRUE) {
+    if (g_net_fetch_mutex) {
+        if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(15000)) != pdTRUE) {
+            snprintf(out->error, sizeof(out->error), "network busy");
+            ESP_LOGW(TAG, "GitHub fetch skipped: another HTTPS operation is still active");
+            return false;
+        }
         net_locked = true;
     }
 
@@ -556,9 +591,12 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
     if (resp.allocFailed) {
         snprintf(out->error, sizeof(out->error), "out of memory");
         ESP_LOGE(TAG, "GitHub response buffer allocation failed");
+    } else if (resp.truncated) {
+        snprintf(out->error, sizeof(out->error), "GitHub response too large");
+        ESP_LOGE(TAG, "GitHub response exceeded %u-byte limit", (unsigned)resp.cap);
     } else if (err == ESP_OK && status == 200 && bodyLen > 0 && resp.buf) {
         // Null-terminate before parsing.
-        resp.buf[bodyLen < resp.cap ? bodyLen : resp.cap - 1] = 0;
+        resp.buf[bodyLen] = 0;
 
         // Diagnostic preview of the first bytes (handy for spotting gzip,
         // HTML captchas or rate-limit responses).
@@ -581,12 +619,6 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
             hex[pos] = 0;
             ESP_LOGI(TAG, "Response preview (%u/%u bytes): [%s]",
                      (unsigned)dumpLen, (unsigned)bodyLen, hex);
-        }
-
-        // Detect truncation (bodyLen == cap means we filled the buffer).
-        if (bodyLen >= resp.cap) {
-            ESP_LOGW(TAG, "GitHub response may be truncated (%u bytes, cap %u)",
-                     (unsigned)bodyLen, (unsigned)resp.cap);
         }
 
         size_t heapBeforeParse = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
@@ -706,19 +738,36 @@ void UpdateCheck::_taskFunc()
 
 void UpdateCheck::performOnlineUpdate()
 {
-    ReleaseInfo info = getReleaseInfo();
-    if (!info.valid || info.downloadUrl[0] == 0) {
+    if (!tryBeginOtaOperation()) {
+        ESP_LOGW(TAG, "OTA update rejected: another OTA operation is active");
+        return;
+    }
+
+    // Only the URL/version are needed here. Avoid copying the 4 KB release
+    // notes field onto the relatively small OTA worker stack.
+    char downloadUrl[sizeof(_release.downloadUrl)] = {0};
+    char version[sizeof(_release.version)] = "n/a";
+    bool releaseValid = false;
+    if (_stateMutex && xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
+        releaseValid = _release.valid;
+        snprintf(downloadUrl, sizeof(downloadUrl), "%s", _release.downloadUrl);
+        snprintf(version, sizeof(version), "%s", _release.version);
+        xSemaphoreGive(_stateMutex);
+    }
+
+    if (!releaseValid || downloadUrl[0] == 0) {
         ESP_LOGE(TAG, "No firmware asset URL available (latest: %s)",
-                 info.valid ? info.version : "n/a");
+                 releaseValid ? version : "n/a");
         if (_stateMutex && xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
             _setOtaStateLocked(OTA_STATE_FAILED);
             _setOtaErrorLocked(ESP_ERR_NOT_FOUND, "no firmware asset URL");
             xSemaphoreGive(_stateMutex);
         }
+        finishOtaOperation();
         return;
     }
 
-    ESP_LOGI(TAG, "Starting OTA update from %s", info.downloadUrl);
+    ESP_LOGI(TAG, "Starting OTA update from %s", downloadUrl);
     _statusLED->setState(LED_STATE_BLINK_FAST);
 
     // Mark "starting" so MQTT / WebUI can show the new state immediately.
@@ -729,9 +778,32 @@ void UpdateCheck::performOnlineUpdate()
     }
 
     esp_http_client_config_t config = {};
-    configure_ota_http_client(config, info.downloadUrl);
+    configure_ota_http_client(config, downloadUrl);
     config.timeout_ms = 60000;
     config.buffer_size = 4096;
+
+    bool net_locked = false;
+    if (g_net_fetch_mutex) {
+        if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(30000)) != pdTRUE) {
+            ESP_LOGE(TAG, "OTA update could not start: HTTPS subsystem busy");
+            if (_stateMutex && xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
+                _setOtaStateLocked(OTA_STATE_FAILED);
+                _setOtaErrorLocked(ESP_ERR_TIMEOUT, "HTTPS subsystem busy");
+                xSemaphoreGive(_stateMutex);
+            }
+            finishOtaOperation();
+            return;
+        }
+        net_locked = true;
+    }
+
+    auto releaseOperation = [&]() {
+        if (net_locked) {
+            xSemaphoreGive(g_net_fetch_mutex);
+            net_locked = false;
+        }
+        finishOtaOperation();
+    };
 
     esp_https_ota_config_t ota_config = {};
     ota_config.http_config = &config;
@@ -750,6 +822,7 @@ void UpdateCheck::performOnlineUpdate()
         }
         ResetInfo::storeResetReason(RESET_REASON_UPDATE_FAILED);
         _statusLED->setState(LED_STATE_ON);
+        releaseOperation();
         return;
     }
 
@@ -800,6 +873,7 @@ void UpdateCheck::performOnlineUpdate()
         esp_https_ota_abort(ota_handle);
         ResetInfo::storeResetReason(RESET_REASON_UPDATE_FAILED);
         _statusLED->setState(LED_STATE_ON);
+        releaseOperation();
         return;
     }
 
@@ -818,6 +892,7 @@ void UpdateCheck::performOnlineUpdate()
             xSemaphoreGive(_stateMutex);
         }
         ResetInfo::storeResetReason(RESET_REASON_FIRMWARE_UPDATE);
+        releaseOperation();
         full_system_restart();
     } else {
         ESP_LOGE(TAG, "esp_https_ota_finish failed: %s", esp_err_to_name(ret));
@@ -828,5 +903,6 @@ void UpdateCheck::performOnlineUpdate()
         }
         ResetInfo::storeResetReason(RESET_REASON_UPDATE_FAILED);
         _statusLED->setState(LED_STATE_ON);
+        releaseOperation();
     }
 }

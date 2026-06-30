@@ -29,6 +29,7 @@
 #include "sysinfo.h"
 #include "led.h"
 #include "settings.h"
+#include <atomic>
 
 // Snapshot of the latest release known to the firmware.
 // All fields are safe to copy by value.
@@ -100,6 +101,10 @@ private:
     int _otaProgress = -1;
     int _otaErrorCode = 0;
     char _otaErrorText[64] = {0};
+    // Shared by WebUI upload/URL OTA and MQTT OTA. An atomic gate is used
+    // because the WebUI request task reserves the operation and the worker
+    // task releases it after completion.
+    std::atomic<bool> _otaInProgress{false};
 
     bool _doFetch(ReleaseInfo* out);
     void _setOtaStateLocked(ota_state_t state);
@@ -133,6 +138,11 @@ public:
     // publishes this as status/ota_state + status/ota_progress so that
     // Home Assistant can show update progress and react on completion.
     OtaSnapshot getOtaState();
+
+    // Serialize every writer of an OTA partition, including WebUI workers.
+    // A successful reservation must be paired with finishOtaOperation().
+    bool tryBeginOtaOperation();
+    void finishOtaOperation();
 
     // Triggers OTA from the cached downloadUrl (the GitHub asset URL).
     // Updates the OTA state machine while running. Blocks until OTA either

@@ -19,6 +19,8 @@ CONFIG_HTTPD_MAX_URI_HANDLERS=15
 # server-certificate verification enabled on the UpdateCheck / OTA path.
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL=y
+# Never permit HTTPS clients to silently fall back to unauthenticated TLS.
+# CONFIG_ESP_TLS_INSECURE is not set
 
 # mbedTLS dynamic buffers: the WROOM-32 has no PSRAM, so heap during a TLS
 # handshake is scarce. With static buffers mbedTLS reserves a full 16 KB RX
