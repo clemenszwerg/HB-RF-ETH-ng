@@ -61,8 +61,13 @@ static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
     // JSON size for its internal parse tree. With WiFi now disabled we have
     // ~94 KB free heap; the 64 KB response buffer leaves 30 KB for cJSON,
     // which is not enough for a 27+ KB per_page=2 response.
-    // per_page=1 reduces the response to ~14 KB, leaving enough heap for cJSON.
-    static const size_t GH_RESPONSE_CAP = 64 * 1024;
+    // per_page=1 reduces the response to ~14 KB.
+    // Use 24 KB for the response buffer: 64 KB fails on a fragmented ESP32 heap
+    // even with 87+ KB total free, because no single contiguous 64 KB block
+    // remains after WiFi + Ethernet + LWIP + HTTP server initializations.
+    // 24 KB is plenty for the ~14 KB GitHub response and fits in any
+    // fragmentation scenario.
+    static const size_t GH_RESPONSE_CAP = 24 * 1024;
 
 // esp_https_ota in IDF 6.x no longer exposes ESP_ERR_HTTPS_OTA_INCOMPLETE; use
 // a private application code to report a download that ended prematurely.
