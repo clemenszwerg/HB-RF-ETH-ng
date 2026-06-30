@@ -42,9 +42,14 @@ static const char *TAG = "UpdateCheck";
 static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
 
 // Cap for the heap buffer used to receive the GitHub releases JSON.
-// Per_page=3 returns up to 3 releases at ~6-8 KB each plus overhead.
-// 32 KB handles 3 releases comfortably and leaves margin for long bodies.
-static const size_t GH_RESPONSE_CAP = 32 * 1024;
+// Per_page=3 returns up to 3 releases; each release body is the full
+// release-notes markdown, which can run several KB on its own, so 32 KB
+// was getting truncated mid-JSON on releases with a long changelog body
+// (cJSON_Parse then fails on the cut-off response). 48 KB gives enough
+// headroom for 3 releases with long bodies; the buffer is heap-allocated
+// only for the duration of the mutex-serialized fetch, so it never
+// overlaps with another TLS handshake's memory use.
+static const size_t GH_RESPONSE_CAP = 48 * 1024;
 
 // esp_https_ota in IDF 6.x no longer exposes ESP_ERR_HTTPS_OTA_INCOMPLETE; use
 // a private application code to report a download that ended prematurely.
@@ -550,7 +555,15 @@ void UpdateCheck::_taskFunc()
       ESP_LOGI(TAG, "Release info not available yet (fetch in progress).");
     }
 
-    vTaskDelay(pdMS_TO_TICKS(24 * 60 * 60000)); // 24h
+    // 24h, split into 1h chunks: pdMS_TO_TICKS((TickType_t)ms * configTICK_RATE_HZ)
+    // overflows 32-bit TickType_t arithmetic for a 24h millisecond value
+    // (86,400,000 ms * 100 Hz > UINT32_MAX), which silently wrapped this
+    // delay down to ~500 s - hammering the GitHub API every ~8 minutes
+    // instead of once a day. 1h chunks stay well within range.
+    for (int hour = 0; hour < 24; hour++)
+    {
+      vTaskDelay(pdMS_TO_TICKS(60 * 60000));
+    }
   }
 
   vTaskDelete(NULL);
