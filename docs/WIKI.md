@@ -8,8 +8,8 @@ Die Firmware wurde kürzlich mit wichtigen neuen Funktionen und Verbesserungen a
 
 ### Neue Features
 - **Session-Persistierung**: Login bleibt nach Neustarts erhalten
-- **OTA Success Feedback**: Visuelles Bestätigungs-Dialog nach erfolgreichen Updates
-- **System Log Sharing**: Debug-Reports mit automatischer Sensitivdaten-Redaktion
+- **OTA Success Feedback**: Visueller Bestätigungs-Dialog nach erfolgreichen Updates
+- **System Log Sharing**: Debug-Reports mit automatischer Maskierung sensibler Daten
 - **Verbesserte TLS-Sicherheit**: Vollständiges Mozilla CA-Bundle für GitHub/Let's Encrypt
 
 ### Behobene Probleme
@@ -184,7 +184,7 @@ Firmware Updates sind fertig kompiliert in den [Releases](https://github.com/Xer
 4. Firmware wird heruntergeladen, installiert und die Platine neu gestartet
 5. **Nach erfolgreichem Update** (ab v2.2.0-Beta.9): 
    - Dialog "Update zu Version X erfolgreich" wird angezeigt
-   - Auto-Schließung nach 10 Sekunden oder auf Benutzer-Bestätigung
+   - Automatisches Schließen nach 10 Sekunden oder bei Benutzerbestätigung
 
 **Sicherheitshinweise:**
 - Die Standard-Authentifizierung schützt Firmware-Updates ausreichend
@@ -206,7 +206,7 @@ Die WebUI bietet eine "Share"-Funktion um einen umfassenden Debug-Report zu erst
 - Vollständiges Systemlog
 
 **Sicherheit beim Sharing:**
-- **Automatische Redaktion** von sensitiven Daten:
+- **Automatische Maskierung** sensibler Daten:
   - Passwörter werden als `****` maskiert
   - MQTT Command Tokens als `****` maskiert
   - TLS-Keys/Zertifikate als `<set>` gekennzeichnet

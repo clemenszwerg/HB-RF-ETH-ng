@@ -653,22 +653,34 @@ curl -X POST http://192.168.1.100/ota_update \
 
 ## System Log Management
 
-### GET /log.json
+### GET /api/log
 
-Retrieve the system log buffer.
+Retrieve the system log buffer as plain text.
 
 **Authentication:** Required
 
+**Query Parameters:**
+- `offset` (optional): Byte offset to retrieve logs from (for pagination)
+
+**Response Headers:**
+- `X-Log-Total`: Total bytes written to the log buffer
+
 **Response (200 OK):**
-```json
-{
-  "log": "boot: Formatted one FS partition\nI (23) esp_image: segment 0: paddr=0x001000 vaddr=0x40080000 size=0x02f4ac ( 194732) map\n..."
-}
+```
+text/plain - Raw log content
+
+boot: Formatted one FS partition
+I (23) esp_image: segment 0: paddr=0x001000 vaddr=0x40080000 size=0x02f4ac ( 194732) map
+...
 ```
 
 **Example:**
 ```bash
-curl -X GET http://192.168.1.100/log.json \
+curl -X GET http://192.168.1.100/api/log \
+  -H "Authorization: Token YOUR_TOKEN_HERE"
+
+# With offset parameter
+curl -X GET "http://192.168.1.100/api/log?offset=1024" \
   -H "Authorization: Token YOUR_TOKEN_HERE"
 ```
 
