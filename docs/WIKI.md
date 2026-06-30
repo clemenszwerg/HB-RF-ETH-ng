@@ -2,6 +2,24 @@
 
 Willkommen im Wiki der modernisierten HB-RF-ETH-ng Firmware. Hier finden Sie alle detaillierten Informationen zu Funktionen, Konfiguration und Betrieb.
 
+## Aktuelle Verbesserungen (v2.2.0-Beta 7-10)
+
+Die Firmware wurde kürzlich mit wichtigen neuen Funktionen und Verbesserungen aktualisiert:
+
+### Neue Features
+- **Session-Persistierung**: Login bleibt nach Neustarts erhalten
+- **OTA Success Feedback**: Visueller Bestätigungs-Dialog nach erfolgreichen Updates
+- **System Log Sharing**: Debug-Reports mit automatischer Maskierung sensibler Daten
+- **Verbesserte TLS-Sicherheit**: Vollständiges Mozilla CA-Bundle für GitHub/Let's Encrypt
+
+### Behobene Probleme
+- Watchdog-Resets bei großen Release-Notes (Stack-Overflow)
+- Sofortiges Logout bei Seitenladung (bei Boot-Zeit-Synchronisation)
+- MQTT-Verbindungsstabilität und Reconnect-Logik
+- Multipart-Upload für Debug-Reports
+
+---
+
 ## Was kann die Firmware
 
 ### Funkmodul & Netzwerk
@@ -69,28 +87,53 @@ Willkommen im Wiki der modernisierten HB-RF-ETH-ng Firmware. Hier finden Sie all
 
 ### Monitoring und Überwachung
 * **MQTT-Support mit Home Assistant Integration**
-  * Vollständige MQTT-Client-Integration
+  * Vollständige MQTT-Client-Integration mit Thread-Safety
   * **Home Assistant Auto-Discovery** für automatische Einrichtung (Standard: deaktiviert)
   * Konfigurierbarer Server, Port und Authentifizierung
-  * Status-Publishing für Systemmetriken
+  * **Command Token Security** - Optionaler Token für sichere Befehlsausführung
+  * Status-Publishing für Systemmetriken (adaptives Intervall: 5s idle / 1s bei OTA)
   * **HA-Sensoren** für alle Systemmetriken (CPU, RAM, Temperatur, Spannung, Uptime)
-  * **HA-Buttons** für Restart, Factory Reset und Firmware-Updates
+  * **HA-Buttons** für Restart, Factory Reset, Firmware-Updates und Update-Checks
   * **HA-Update-Integration** - OTA-Updates direkt aus Home Assistant
+  * **Echtzeit OTA-Status** - Progress und Error-Meldungen in Echtzeit
+  * **TLS/mTLS Support** - Verschlüsselte Verbindungen und Client-Zertifikate
 * **Check_MK Agent**
   * Native Unterstützung für Check_MK/CheckMK Monitoring
   * Erweiterte Systemmetriken und Statusinformationen
-  * IP-basierte Zugriffskontrolle
+  * IP-basierte Zugriffskontrolle (IPv4/IPv6)
 * **Hardware-Überwachung** - Echtzeit-Temperatur, Spannung, CPU- und Speicheranzeige
+* **Event-basierte Benachrichtigungen** - Nicht-retained Events für Automatisierungen
 
 ### Technische Basis
-* **ESP-IDF 6.0** mit nativer `idf.py` Toolchain
-* **GCC 14.2.0** Toolchain (xtensa-esp-elf)
-* **Vue.js 3.5.30** mit Composition API, Vue Router 5, Pinia 3, Vue i18n 11
-* **Bootstrap Vue Next 0.44.0** UI-Komponentenbibliothek
-* **Vite 8.x** Build-System (schnelle Builds, optimierte Bundles)
+* **ESP-IDF 6.0.1** mit nativer `idf.py` Toolchain
+* **Xtensa GCC 14.2.0+20251107** Toolchain (xtensa-esp-elf)
+* **CMake** Build-System für Firmware (nicht PlatformIO)
+* **Vue.js 3** mit Composition API, Vue Router, Pinia, Vue i18n
+* **Bootstrap 5** + **Bootstrap Vue Next** UI-Komponentenbibliothek
+* **Vite** Build-System (schnelle Builds, optimierte Bundles)
+
+### Build & Abhängigkeiten
+* Managed Components: `mdns ^1.11.2`, `mqtt ^1.0.0`
+* External: `esp-eth-drivers` für LAN87xx PHY
+* Modern C++17/20 für Firmware-Code
+* Komplett native ESP-IDF Toolchain (keine PlatformIO-Abhängigkeit)
 
 ## Mobile Ansicht
 Die Benutzeroberfläche wurde speziell für mobile Endgeräte optimiert und bietet eine intuitive Bedienung auf Smartphones und Tablets.
+
+## Sicherheit & Sessions
+
+### Token Persistierung (ab v2.2.0-Beta.7)
+* **Sessions überleben Neustarts**: Der Authentifizierungs-Token wird in NVS gespeichert
+* Login bleibt nach Firmware-Updates und Geräte-Reboots erhalten
+* **Automatisches Logout** nach 10 Minuten Inaktivität (Cross-Tab-synchronisiert)
+* Token wird bei Passwortänderung neu generiert und beim Werkreset gelöscht
+
+### Sicherheits-Header
+* Content Security Policy (CSP) aktiviert
+* X-Frame-Options für Clickjacking-Schutz
+* gzip-Kompression für schnellere Übertragung
+* Rate Limiting bei Login-Versuchen (5 Versuche/Minute pro IP)
 
 ## Bekannte Einschränkungen
 * Nach einem Firmware-Wechsel oder Netzwerkproblem kann es je nach CCU-Setup kurz dauern, bis die Verbindung wieder sichtbar ist. Mit aktuellen Versionen wurden Reconnect und mDNS-Ankündigung bereits verbessert.
@@ -133,17 +176,47 @@ Firmware Updates sind fertig kompiliert in den [Releases](https://github.com/Xer
 2. In der WebUI zur Seite "Firmware Update" navigieren
 3. Die .bin Datei hochladen
 4. Update wird automatisch eingespielt und die Platine neu gestartet
+5. **Nach erfolgreichem Update**: Automatische Weiterleitung zur Startseite mit Bestätigungs-Dialog
 
 **Per Webinterface (URL Download):**
 1. In der WebUI zur Seite "Firmware Update" navigieren
 2. Direkte URL zur .bin Datei eingeben (z.B. von GitHub)
 3. Online-Update starten; die WebUI nutzt dafür den konfigurierten Update-Dienst
 4. Firmware wird heruntergeladen, installiert und die Platine neu gestartet
+5. **Nach erfolgreichem Update** (ab v2.2.0-Beta.9): 
+   - Dialog "Update zu Version X erfolgreich" wird angezeigt
+   - Automatisches Schließen nach 10 Sekunden oder bei Benutzerbestätigung
 
 **Sicherheitshinweise:**
 - Die Standard-Authentifizierung schützt Firmware-Updates ausreichend
 - Die Firmware validiert alle Updates vor der Installation
 - Bei fehlerhaften Updates wird die OTA-Operation korrekt abgebrochen
+- TLS/Zertifikat-Verifikation (ab v2.2.0-Beta.10): Vollständiges Mozilla CA-Bundle für Kompatibilität mit Let's Encrypt / GitHub CDN
+
+## Systemlog & Debug-Informationen (ab v2.2.0-Beta.8)
+
+### System Log Sharing
+Die WebUI bietet eine "Share"-Funktion um einen umfassenden Debug-Report zu erstellen:
+
+**Inhalte des Debug-Reports:**
+- Systeminfo (Version, Board-Revision, Seriennummer)
+- Netzwerk-Konfiguration (IP, DNS, Ethernet-Status)
+- Funkmodul-Status (Typ, Seriennummer, Firmware)
+- Monitoring-Konfiguration (MQTT/CheckMK Settings)
+- LED-Programme und Status
+- Vollständiges Systemlog
+
+**Sicherheit beim Sharing:**
+- **Automatische Maskierung** sensibler Daten:
+  - Passwörter werden als `****` maskiert
+  - MQTT Command Tokens als `****` maskiert
+  - TLS-Keys/Zertifikate als `<set>` gekennzeichnet
+  - IP-Adressen und Hostnames bleiben für Debugging erhalten
+
+**Upload-Dienst:**
+- Reports werden zu MicroBin Paste-Dienst hochgeladen
+- Teilbarer Link wird generiert und in die Zwischenablage kopiert
+- Ideal für Support-Anfragen und Fehlerberichte
 
 ## Notfall-Wiederherstellung (Rescue Script)
 Sollte die WebUI nicht mehr erreichbar sein, aber die Platine noch im Netzwerk antworten (Ping), kann die Firmware über das mitgelieferte Python-Script `test_ota_function.py` neu installiert werden.
