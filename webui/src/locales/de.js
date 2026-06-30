@@ -470,6 +470,7 @@ export default {
     shareCopied: 'Share-Link in Zwischenablage kopiert',
     shareFailed: 'Log konnte nicht geteilt werden. Bitte erneut versuchen.',
     shareCopy: 'Link kopieren',
+    shareCopyManual: 'Automatisches Kopieren nicht möglich – der Link ist markiert, bitte manuell kopieren.',
     title: 'System-Log',
     description: 'Live-Ansicht der Systemprotokollierung mit Download-Funktion.',
     liveLog: 'Live-Protokoll',

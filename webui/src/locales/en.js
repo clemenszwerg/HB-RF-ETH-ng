@@ -470,6 +470,7 @@ export default {
     shareCopied: 'Share link copied to clipboard',
     shareFailed: 'Failed to share log. Please try again.',
     shareCopy: 'Copy Link',
+    shareCopyManual: 'Could not copy automatically — the link is selected, please copy it manually.',
     title: 'System Log',
     description: 'Live view of system log output with download capability.',
     liveLog: 'Live Log',

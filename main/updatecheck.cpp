@@ -131,6 +131,10 @@ static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
                     r->allocFailed = true;
                     ESP_LOGE(TAG, "Failed to allocate %u bytes for GitHub response",
                              (unsigned)r->cap);
+                    // Abort the transfer immediately: there is no point
+                    // decrypting and downloading the rest of a response we
+                    // cannot store. _doFetch reports the error via allocFailed.
+                    return ESP_ERR_NO_MEM;
                 }
             }
             if (r->buf) {
