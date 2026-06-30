@@ -60,10 +60,21 @@ void StreamParser::append(unsigned char chr)
             break;
 
         case RECEIVE_LENGTH_LOW_BYTE:
-            _frameLength |= (_isEscaped ? chr | 0x80 : chr);
-            _frameLength += 2; // handle crc as frame data
+            {
+            const uint32_t declaredLength = _frameLength | (_isEscaped ? chr | 0x80 : chr);
+            // Three header bytes plus the declared frame and its two CRC bytes
+            // must fit. Validate before adding the CRC to avoid uint16_t wrap.
+            if (declaredLength > sizeof(_buffer) - 5)
+            {
+                _state = WAIT_FOR_DATA;
+                _bufferPos = 0;
+                _isEscaped = false;
+                return;
+            }
+            _frameLength = (uint16_t)(declaredLength + 2);
             _framePos = 0;
             _state = RECEIVE_FRAME_DATA;
+            }
             break;
 
         case RECEIVE_FRAME_DATA:

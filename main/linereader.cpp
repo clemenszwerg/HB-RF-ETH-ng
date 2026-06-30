@@ -24,7 +24,7 @@
 #include "linereader.h"
 #include <stdint.h>
 
-LineReader::LineReader(std::function<void(unsigned char *buffer, uint16_t len)> processor) : _buffer{0}, _processor(processor), _buffer_pos(0)
+LineReader::LineReader(std::function<void(unsigned char *buffer, uint16_t len)> processor) : _buffer{0}, _processor(processor), _buffer_pos(0), _overflowed(false)
 {
 }
 
@@ -36,6 +36,12 @@ void LineReader::Append(unsigned char chr)
         return;
 
     case '\n':
+        if (_overflowed)
+        {
+            _buffer_pos = 0;
+            _overflowed = false;
+            break;
+        }
         if (_buffer_pos < sizeof(_buffer) - 1)
         {
             _buffer[_buffer_pos++] = 0;
@@ -54,7 +60,10 @@ void LineReader::Append(unsigned char chr)
         {
             _buffer[_buffer_pos++] = chr;
         }
-        // else: silently drop character, buffer full
+        else
+        {
+            _overflowed = true;
+        }
         break;
     }
 }
@@ -71,4 +80,5 @@ void LineReader::Append(unsigned char *buffer, uint16_t len)
 void LineReader::Flush()
 {
     _buffer_pos = 0;
+    _overflowed = false;
 }

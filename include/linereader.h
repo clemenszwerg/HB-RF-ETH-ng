@@ -32,6 +32,7 @@ private:
     unsigned char _buffer[1024];
     std::function<void(unsigned char *buffer, uint16_t len)> _processor;
     uint16_t _buffer_pos;
+    bool _overflowed;
 
 public:
     LineReader(std::function<void(unsigned char *buffer, uint16_t len)> processor);
