@@ -137,17 +137,27 @@ uint32_t get_voltage(adc_unit_t adc_unit, adc_channel_t adc_channel, adc_atten_t
     // Read ADC with multiple samples for stability
     int adc_raw = 0;
     const int num_samples = 10;
+    int successful_samples = 0;
     for (int i = 0; i < num_samples; i++) {
         int sample;
         ret = adc_oneshot_read(adc_handle, adc_channel, &sample);
         if (ret == ESP_OK) {
             adc_raw += sample;
+            successful_samples++;
         } else {
             ESP_LOGW(TAG, "ADC read failed: %s", esp_err_to_name(ret));
         }
         vTaskDelay(pdMS_TO_TICKS(10)); // Small delay between samples
     }
-    adc_raw /= num_samples;
+    if (successful_samples == 0) {
+        ESP_LOGE(TAG, "All ADC samples failed");
+        if (cali_handle != NULL) {
+            adc_cali_delete_scheme_line_fitting(cali_handle);
+        }
+        adc_oneshot_del_unit(adc_handle);
+        return 0;
+    }
+    adc_raw /= successful_samples;
 
     // Convert to voltage
     int voltage_mv = 0;
