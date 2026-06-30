@@ -25,17 +25,19 @@
 #include "semver.h"
 
 #include <string.h>
+#include <atomic>
 
 static const char *TAG = "MQTT";
 
 static esp_mqtt_client_handle_t client = NULL;
-static volatile bool mqtt_running = false;
-static volatile TaskHandle_t mqtt_publish_task_handle = NULL;
+static std::atomic<bool> mqtt_running{false};
+static std::atomic<TaskHandle_t> mqtt_publish_task_handle{NULL};
+static std::atomic<bool> mqtt_publish_request{false};
 static mqtt_config_t current_mqtt_config;
+static char mqtt_lwt_topic[160];
 
 // Latch set by mqtt_handler_trigger_status_publish() so the periodic task
 // emits an immediate cycle out-of-band (after OTA state changes etc.).
-static volatile bool mqtt_publish_request = false;
 
 // Forward declarations
 extern SysInfo* monitoring_get_sysinfo(void);
@@ -255,7 +257,7 @@ void mqtt_publish_task(void *pvParameters)
     int last_ota_progress = -1;
     int publish_cycle = 0;
 
-    while (mqtt_running) {
+    while (mqtt_running.load()) {
         if (publish_cycle == 0) {
             ESP_LOGI(TAG, "mqtt_publish stack high water mark: %u bytes free",
                      (unsigned)uxTaskGetStackHighWaterMark(NULL));
@@ -301,9 +303,8 @@ void mqtt_publish_task(void *pvParameters)
         // requests and so the OTA-state-changed detection runs every second
         // while an update is in flight.
         int delay_ms = (ota.state == OTA_STATE_IDLE) ? 5000 : 1000;
-        for (int i = 0; i < 12 && mqtt_running; i++) {
-            if (mqtt_publish_request) {
-                mqtt_publish_request = false;
+        for (int i = 0; i < 12 && mqtt_running.load(); i++) {
+            if (mqtt_publish_request.exchange(false)) {
                 break;  // run a fresh publish cycle immediately
             }
             int step = delay_ms / 12;
@@ -311,19 +312,19 @@ void mqtt_publish_task(void *pvParameters)
             vTaskDelay(pdMS_TO_TICKS(step));
         }
     }
-    mqtt_publish_task_handle = NULL;
+    mqtt_publish_task_handle.store(NULL);
     vTaskDelete(NULL);
 }
 
 void mqtt_handler_trigger_status_publish(void)
 {
-    if (!mqtt_running) return;
-    mqtt_publish_request = true;
+    if (!mqtt_running.load()) return;
+    mqtt_publish_request.store(true);
 }
 
 void mqtt_handler_publish_event(const char *subtopic, const char *payload)
 {
-    if (!mqtt_running || client == NULL || !subtopic || !payload) {
+    if (!mqtt_running.load() || client == NULL || !subtopic || !payload) {
         return;
     }
     char topic[160];
@@ -360,7 +361,7 @@ void mqtt_handler_publish_event(const char *subtopic, const char *payload)
 
 void mqtt_handler_publish_status(void)
 {
-    if (!mqtt_running || client == NULL) {
+    if (!mqtt_running.load() || client == NULL) {
         return;
     }
 
@@ -481,7 +482,7 @@ void mqtt_handler_publish_status(void)
 // a progress bar and automations can trigger on completion.
 static void publish_ota_state(void)
 {
-    if (!mqtt_running || client == NULL) return;
+    if (!mqtt_running.load() || client == NULL) return;
     UpdateCheck* updateCheck = monitoring_get_updatecheck();
     if (!updateCheck) return;
 
@@ -507,7 +508,7 @@ static void publish_ota_state(void)
 
 void mqtt_handler_publish_ha_discovery(void)
 {
-    if (!mqtt_running || client == NULL || !current_mqtt_config.ha_discovery_enabled) {
+    if (!mqtt_running.load() || client == NULL || !current_mqtt_config.ha_discovery_enabled) {
         return;
     }
 
@@ -721,7 +722,7 @@ esp_err_t mqtt_handler_init(void)
 
 esp_err_t mqtt_handler_start(const mqtt_config_t *config)
 {
-    if (mqtt_running) {
+    if (mqtt_running.load()) {
         ESP_LOGW(TAG, "MQTT already running");
         return ESP_OK;
     }
@@ -774,18 +775,15 @@ esp_err_t mqtt_handler_start(const mqtt_config_t *config)
         mqtt_cfg.credentials.authentication.password = current_mqtt_config.password;
     }
 
-    // Last Will & Testament: broker publishes "offline" on the status/online
-    // topic if the client drops without sending DISCONNECT. Retained so
-    // subscribers see the device as offline even after a HA restart.
-    {
-        char lwt_topic[160];
-        snprintf(lwt_topic, sizeof(lwt_topic), "%s/status/online", current_mqtt_config.topic_prefix);
-        mqtt_cfg.session.last_will.topic = lwt_topic;
-        mqtt_cfg.session.last_will.msg = "offline";
-        mqtt_cfg.session.last_will.msg_len = 7;
-        mqtt_cfg.session.last_will.qos = 1;
-        mqtt_cfg.session.last_will.retain = 1;
-    }
+    // Keep the LWT topic alive for the complete client lifetime. Pointing the
+    // config at a block-local array relied on undocumented eager copying.
+    snprintf(mqtt_lwt_topic, sizeof(mqtt_lwt_topic), "%s/status/online",
+             current_mqtt_config.topic_prefix);
+    mqtt_cfg.session.last_will.topic = mqtt_lwt_topic;
+    mqtt_cfg.session.last_will.msg = "offline";
+    mqtt_cfg.session.last_will.msg_len = 7;
+    mqtt_cfg.session.last_will.qos = 1;
+    mqtt_cfg.session.last_will.retain = 1;
 
     client = esp_mqtt_client_init(&mqtt_cfg);
     if (client == NULL) {
@@ -798,41 +796,51 @@ esp_err_t mqtt_handler_start(const mqtt_config_t *config)
     esp_err_t err = esp_mqtt_client_start(client);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start MQTT client: %s", esp_err_to_name(err));
+        esp_mqtt_client_destroy(client);
+        client = NULL;
         return err;
     }
 
-    mqtt_running = true;
+    mqtt_running.store(true);
 
-    // ReleaseInfo body is 4 KB – the publish task copies it via
-    // getReleaseInfo(), plus IP/GW formatting. 10 KB gives safe headroom.
+    // The publish task formats several JSON/status payloads and performs MQTT
+    // client calls. Keep conservative headroom for TLS-enabled brokers.
     TaskHandle_t pub_handle = NULL;
-    xTaskCreate(mqtt_publish_task, "mqtt_publish", 10240, NULL, 4, &pub_handle);
-    mqtt_publish_task_handle = pub_handle;
+    if (xTaskCreate(mqtt_publish_task, "mqtt_publish", 10240,
+                    NULL, 4, &pub_handle) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create MQTT publish task");
+        mqtt_running.store(false);
+        esp_mqtt_client_stop(client);
+        esp_mqtt_client_destroy(client);
+        client = NULL;
+        return ESP_ERR_NO_MEM;
+    }
+    mqtt_publish_task_handle.store(pub_handle);
 
     return ESP_OK;
 }
 
 esp_err_t mqtt_handler_stop(void)
 {
-    if (!mqtt_running) {
+    if (!mqtt_running.load()) {
         return ESP_OK;
     }
 
     ESP_LOGI(TAG, "Stopping MQTT client");
-    mqtt_running = false;
+    mqtt_running.store(false);
 
     if (client) {
         esp_mqtt_client_stop(client);
     }
 
-    for (int i = 0; i < 30 && mqtt_publish_task_handle != NULL; i++) {
+    for (int i = 0; i < 30 && mqtt_publish_task_handle.load() != NULL; i++) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    TaskHandle_t pub_handle = (TaskHandle_t)mqtt_publish_task_handle;
+    TaskHandle_t pub_handle = mqtt_publish_task_handle.load();
     if (pub_handle != NULL) {
         ESP_LOGW(TAG, "MQTT publish task did not exit cleanly, force deleting");
-        mqtt_publish_task_handle = NULL;
+        mqtt_publish_task_handle.store(NULL);
         vTaskDelete(pub_handle);
     }
 
