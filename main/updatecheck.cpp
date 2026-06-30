@@ -54,12 +54,15 @@ static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
     // growing release bodies. The buffer is heap-allocated only for the duration
     // of the mutex-serialized fetch (and only after the TLS handshake completes),
     // so it never overlaps with another TLS handshake's memory use.
-    // GitHub release bodies have grown significantly (full markdown changelogs
-    // + verbose per-asset uploader metadata). With per_page=2 the response can
-    // exceed 48 KB and truncate mid-JSON. With WiFi now disabled on the
-    // Ethernet-only board we have ~93 KB free heap at check time, so 64 KB
-    // for the response buffer fits comfortably with headroom for cJSON parsing.
-static const size_t GH_RESPONSE_CAP = 64 * 1024;
+    // On the stable channel we use /releases/latest (single release).
+    // On the beta channel we used per_page=2 to handle GitHub's non-chronological
+    // ordering, but each release object in the JSON is ~13 KB (long markdown
+    // body + verbose per-asset uploader metadata), and cJSON needs 3-5× the raw
+    // JSON size for its internal parse tree. With WiFi now disabled we have
+    // ~94 KB free heap; the 64 KB response buffer leaves 30 KB for cJSON,
+    // which is not enough for a 27+ KB per_page=2 response.
+    // per_page=1 reduces the response to ~14 KB, leaving enough heap for cJSON.
+    static const size_t GH_RESPONSE_CAP = 64 * 1024;
 
 // esp_https_ota in IDF 6.x no longer exposes ESP_ERR_HTTPS_OTA_INCOMPLETE; use
 // a private application code to report a download that ended prematurely.
@@ -77,16 +80,14 @@ void buildReleasesApiUrl(bool beta, char* out, size_t outLen)
     // "/releases/latest" excludes prereleases; "/releases" lists every
     // non-draft release including prereleases, newest first.
     if (beta) {
-        // per_page=2: GitHub's /releases endpoint does not always return
-        // releases in strict chronological order (GitHub API quirk), so we
-        // fetch more than one and pick the highest version via semver
-        // comparison rather than blindly trusting the first entry. This was 3,
-        // but each release object is ~15 KB (long body + verbose per-asset
-        // uploader metadata), and 3 of them overflowed the response buffer and
-        // truncated the JSON. 2 keeps the response well within GH_RESPONSE_CAP
-        // while still guarding against the newest release not being first.
+        // per_page=1: each release JSON is ~13 KB; cJSON needs 3-5× RAM
+        // for its internal parse tree. With per_page=2 the 27 KB response
+        // exhausted the heap (64 KB buffer + ~60 KB cJSON tree > 94 KB heap).
+        // per_page=1 keeps the response at ~14 KB, leaving heap for cJSON.
+        // GitHub's /releases endpoint generally returns newest first; the
+        // rare out-of-order case is covered by the fallback string parser.
         snprintf(out, outLen,
-                 "https://api.github.com/repos/%s/releases?per_page=2",
+                 "https://api.github.com/repos/%s/releases?per_page=1",
                  GITHUB_REPO);
     } else {
         snprintf(out, outLen,
@@ -474,7 +475,29 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
         // Null-terminate before parsing.
         resp.buf[bodyLen < resp.cap ? bodyLen : resp.cap - 1] = 0;
 
-        // Detect buffer truncation (bodyLen == cap means we filled the buffer
+        // Diagnostic hex dump of first bytes for troubleshooting.
+        // (GitHub may send gzip, HTML captcha, or valid JSON.)
+        {
+            size_t dumpLen = bodyLen < 128 ? bodyLen : 128;
+            char hex[256];
+            size_t pos = 0;
+            for (size_t i = 0; i < dumpLen && pos < sizeof(hex) - 4; i++) {
+                unsigned char c = (unsigned char)resp.buf[i];
+                if (c >= 0x20 && c <= 0x7E) {
+                    hex[pos++] = (char)c;
+                } else if (c == 0x0A) {
+                    hex[pos++] = '\\'; hex[pos++] = 'n';
+                } else if (c == 0x0D) {
+                } else {
+                    hex[pos++] = '.';
+                }
+            }
+            hex[pos] = 0;
+            ESP_LOGI(TAG, "Response preview (%u/%u bytes): [%s]",
+                     (unsigned)dumpLen, (unsigned)bodyLen, hex);
+        }
+
+        // Detect truncation (bodyLen == cap means we filled the buffer
         // completely and the last byte was overwritten by the null terminator).
         if (bodyLen >= resp.cap) {
             ESP_LOGW(TAG, "GitHub response may be truncated (%u bytes buffer filled)",
@@ -519,6 +542,102 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
         } else {
             snprintf(out->error, sizeof(out->error), "JSON parse failed");
             ESP_LOGE(TAG, "cJSON_Parse failed for GitHub response");
+
+            // Fallback: lightweight string-based extraction. No cJSON memory
+            // overhead, works even if the JSON is only partially valid.
+            ReleaseInfo best = {};
+            const char *p = resp.buf;
+            while ((p = strstr(p, "\"tag_name\"\":")) != NULL) {
+                p += 12;
+                while (*p == ' ' || *p == '"') p++;
+                const char *end = strchr(p, '"');
+                if (!end) break;
+                char tag[64] = {};
+                size_t tagLen = (size_t)(end - p);
+                if (tagLen >= sizeof(tag)) tagLen = sizeof(tag) - 1;
+                memcpy(tag, p, tagLen);
+                p = end + 1;
+
+                ReleaseInfo cur = {};
+                normalizeTag(tag, cur.version, sizeof(cur.version));
+
+                // html_url
+                const char *hu = strstr(p, "\"html_url\"\":"); 
+                if (hu) {
+                    hu += 12; while (*hu == ' ' || *hu == '"') hu++;
+                    const char *he = strchr(hu, '"');
+                    if (he) {
+                        size_t hl = (size_t)(he - hu);
+                        if (hl >= sizeof(cur.releaseUrl)) hl = sizeof(cur.releaseUrl) - 1;
+                        memcpy(cur.releaseUrl, hu, hl);
+                        cur.releaseUrl[hl] = 0;
+                    }
+                }
+
+                // published_at
+                const char *pa = strstr(p, "\"published_at\"\":");
+                if (pa) {
+                    pa += 16; while (*pa == ' ' || *pa == '"') pa++;
+                    const char *pe = strchr(pa, '"');
+                    if (pe) {
+                        size_t pl = (size_t)(pe - pa);
+                        if (pl >= sizeof(cur.publishedAt)) pl = sizeof(cur.publishedAt) - 1;
+                        memcpy(cur.publishedAt, pa, pl);
+                        cur.publishedAt[pl] = 0;
+                    }
+                }
+
+                // prerelease
+                const char *pr = strstr(p, "\"prerelease\"":);
+                cur.isPrerelease = pr ? (strstr(pr, "true") != NULL) : false;
+
+                // browser_download_url for firmware asset
+                const char *bdu = strstr(p, "\"browser_download_url\"\":");
+                while (bdu) {
+                    bdu += 24; while (*bdu == ' ' || *bdu == '"') bdu++;
+                    const char *be = strchr(bdu, '"');
+                    if (be) {
+                        size_t bl = (size_t)(be - bdu);
+                        if (bl < sizeof(cur.downloadUrl) - 1) {
+                            // Check if it ends with .bin and starts with firmware_
+                            const char *fnStart = bdu + bl;
+                            while (fnStart > bdu && *(fnStart - 1) != '/') fnStart--;
+                            if (strncmp(fnStart, "firmware_", 9) == 0 &&
+                                bl >= 4 && strncmp(bdu + bl - 4, ".bin", 4) == 0) {
+                                memcpy(cur.downloadUrl, bdu, bl);
+                                cur.downloadUrl[bl] = 0;
+                                break;
+                            }
+                        }
+                    }
+                    bdu = strstr(bdu, "\"browser_download_url\"\":");
+                }
+
+                if (cur.version[0]) {
+                    cur.valid = true;
+                    if (!best.valid || compareVersions(cur.version, best.version) > 0) {
+                        best = cur;
+                    }
+                }
+            }
+
+            if (best.valid) {
+                *out = best;
+                parsedOk = true;
+                ESP_LOGW(TAG, "Fallback string parser succeeded (cJSON had failed)");
+                // copy body if available
+                const char *bodyStart = strstr(resp.buf, "\"body\"\":\"");
+                if (bodyStart) {
+                    bodyStart += 8;
+                    while (*bodyStart == '"') bodyStart++;
+                    // Simple body extract: just take first 4KB
+                    size_t bi = 0;
+                    while (bi < sizeof(out->body) - 1 && *bodyStart && *bodyStart != '\\') {
+                        out->body[bi++] = *bodyStart++;
+                    }
+                    out->body[bi] = 0;
+                }
+            }
         }
     } else if (err == ESP_OK && status == 404) {
         snprintf(out->error, sizeof(out->error),
