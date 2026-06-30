@@ -2002,11 +2002,21 @@ static void _share_log_task(void *arg)
         };
         config.user_data = &pctx;
 
+        // Serialize with UpdateCheck / changelog proxy so two TLS handshakes
+        // never run at once - concurrent mbedtls SSL context allocation is
+        // what exhausts the ESP32 heap and makes mbedtls_ssl_setup() fail.
+        bool net_locked = false;
+        if (g_net_fetch_mutex &&
+            xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(15000)) == pdTRUE) {
+            net_locked = true;
+        }
+
         esp_http_client_handle_t client = esp_http_client_init(&config);
         if (!client)
         {
             snprintf(result, sizeof(result),
                      "{\"success\":false,\"error\":\"HTTP client init failed\"}");
+            if (net_locked) xSemaphoreGive(g_net_fetch_mutex);
             goto respond;
         }
 
@@ -2039,6 +2049,7 @@ static void _share_log_task(void *arg)
         }
 
         esp_http_client_cleanup(client);
+        if (net_locked) xSemaphoreGive(g_net_fetch_mutex);
     }
 
 respond:

@@ -42,9 +42,14 @@ static const char *TAG = "UpdateCheck";
 static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
 
 // Cap for the heap buffer used to receive the GitHub releases JSON.
-// Per_page=3 returns up to 3 releases at ~6-8 KB each plus overhead.
-// 32 KB handles 3 releases comfortably and leaves margin for long bodies.
-static const size_t GH_RESPONSE_CAP = 32 * 1024;
+// Per_page=3 returns up to 3 releases; each release body is the full
+// release-notes markdown, which can run several KB on its own, so 32 KB
+// was getting truncated mid-JSON on releases with a long changelog body
+// (cJSON_Parse then fails on the cut-off response). 48 KB gives enough
+// headroom for 3 releases with long bodies; the buffer is heap-allocated
+// only for the duration of the mutex-serialized fetch, so it never
+// overlaps with another TLS handshake's memory use.
+static const size_t GH_RESPONSE_CAP = 48 * 1024;
 
 // esp_https_ota in IDF 6.x no longer exposes ESP_ERR_HTTPS_OTA_INCOMPLETE; use
 // a private application code to report a download that ended prematurely.
