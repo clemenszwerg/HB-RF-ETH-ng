@@ -54,9 +54,12 @@ static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
     // growing release bodies. The buffer is heap-allocated only for the duration
     // of the mutex-serialized fetch (and only after the TLS handshake completes),
     // so it never overlaps with another TLS handshake's memory use.
-    // With WiFi now disabled (Ethernet-only board) the ~30 KB (per_page=2) still
-    // fits comfortably in 48 KB; this reduction saves 16 KB of momentary heap.
-static const size_t GH_RESPONSE_CAP = 48 * 1024;
+    // GitHub release bodies have grown significantly (full markdown changelogs
+    // + verbose per-asset uploader metadata). With per_page=2 the response can
+    // exceed 48 KB and truncate mid-JSON. With WiFi now disabled on the
+    // Ethernet-only board we have ~93 KB free heap at check time, so 64 KB
+    // for the response buffer fits comfortably with headroom for cJSON parsing.
+static const size_t GH_RESPONSE_CAP = 64 * 1024;
 
 // esp_https_ota in IDF 6.x no longer exposes ESP_ERR_HTTPS_OTA_INCOMPLETE; use
 // a private application code to report a download that ended prematurely.
@@ -466,6 +469,13 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
     } else if (err == ESP_OK && status == 200 && bodyLen > 0) {
         // Null-terminate before parsing.
         resp.buf[bodyLen < resp.cap ? bodyLen : resp.cap - 1] = 0;
+
+        // Detect buffer truncation (bodyLen == cap means we filled the buffer
+        // completely and the last byte was overwritten by the null terminator).
+        if (bodyLen >= resp.cap) {
+            ESP_LOGW(TAG, "GitHub response may be truncated (%u bytes buffer filled)",
+                     (unsigned)bodyLen);
+        }
 
         cJSON *root = cJSON_Parse(resp.buf);
         if (root) {
