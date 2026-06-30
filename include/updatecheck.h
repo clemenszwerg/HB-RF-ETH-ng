@@ -150,10 +150,11 @@ public:
 
 // Build the GitHub Releases API URL for the given channel.
 //   beta=false -> ".../releases/latest"
-//   beta=true  -> ".../releases?per_page=3"
-// per_page=3: enough to cover API ordering quirks (releases are not always
-// returned in strict chronological order). 3 bodies with metadata fit
-// comfortably within the 32 KB response cap.
+//   beta=true  -> ".../releases?per_page=1"
+// per_page=1 keeps the beta-channel response small (~13 KB); each release
+// object is large (release-notes markdown + verbose per-asset metadata) and
+// the response is parsed by a zero-allocation string parser that operates on a
+// 24 KB buffer (see GH_RESPONSE_CAP in updatecheck.cpp).
 void buildReleasesApiUrl(bool beta, char* out, size_t outLen);
 
 // Normalize a Git tag (strip leading 'v'/'V', copy into out).
