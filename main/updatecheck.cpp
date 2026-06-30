@@ -547,7 +547,7 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
             // overhead, works even if the JSON is only partially valid.
             ReleaseInfo best = {};
             const char *p = resp.buf;
-            while ((p = strstr(p, "\"tag_name\"\":")) != NULL) {
+            while ((p = strstr(p, "\"tag_name\":")) != NULL) {
                 p += 12;
                 while (*p == ' ' || *p == '"') p++;
                 const char *end = strchr(p, '"');
@@ -561,8 +561,7 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
                 ReleaseInfo cur = {};
                 normalizeTag(tag, cur.version, sizeof(cur.version));
 
-                // html_url
-                const char *hu = strstr(p, "\"html_url\"\":"); 
+                const char *hu = strstr(p, "\"html_url\":"); 
                 if (hu) {
                     hu += 12; while (*hu == ' ' || *hu == '"') hu++;
                     const char *he = strchr(hu, '"');
@@ -574,8 +573,7 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
                     }
                 }
 
-                // published_at
-                const char *pa = strstr(p, "\"published_at\"\":");
+                const char *pa = strstr(p, "\"published_at\":");
                 if (pa) {
                     pa += 16; while (*pa == ' ' || *pa == '"') pa++;
                     const char *pe = strchr(pa, '"');
@@ -587,12 +585,10 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
                     }
                 }
 
-                // prerelease
-                const char *pr = strstr(p, "\"prerelease\"":);
+                const char *pr = strstr(p, "\"prerelease\":");
                 cur.isPrerelease = pr ? (strstr(pr, "true") != NULL) : false;
 
-                // browser_download_url for firmware asset
-                const char *bdu = strstr(p, "\"browser_download_url\"\":");
+                const char *bdu = strstr(p, "\"browser_download_url\":");
                 while (bdu) {
                     bdu += 24; while (*bdu == ' ' || *bdu == '"') bdu++;
                     const char *be = strchr(bdu, '"');
@@ -610,7 +606,7 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
                             }
                         }
                     }
-                    bdu = strstr(bdu, "\"browser_download_url\"\":");
+                    bdu = strstr(bdu, "\"browser_download_url\":");
                 }
 
                 if (cur.version[0]) {
@@ -626,7 +622,7 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
                 parsedOk = true;
                 ESP_LOGW(TAG, "Fallback string parser succeeded (cJSON had failed)");
                 // copy body if available
-                const char *bodyStart = strstr(resp.buf, "\"body\"\":\"");
+                const char *bodyStart = strstr(resp.buf, "\"body\":\"");
                 if (bodyStart) {
                     bodyStart += 8;
                     while (*bodyStart == '"') bodyStart++;
