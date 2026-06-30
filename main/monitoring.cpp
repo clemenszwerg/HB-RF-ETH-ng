@@ -30,6 +30,7 @@
 #include "reset_info.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
+#include "updatecheck.h"
 
 static const char *TAG = "MONITORING";
 SemaphoreHandle_t g_net_fetch_mutex = NULL;
@@ -530,6 +531,21 @@ static void heap_watchdog_task(void *pvParameters)
     {
         vTaskDelay(HEAP_WATCHDOG_INTERVAL_TICKS);
 
+        // Skip checks during an active OTA: TLS handshakes, HTTP buffers and
+        // flash writes routinely push free heap below the threshold, and a
+        // restart here would interrupt and fail the firmware upgrade.
+        if (g_updateCheck)
+        {
+            OtaSnapshot ota = g_updateCheck->getOtaState();
+            if (ota.state == OTA_STATE_STARTING ||
+                ota.state == OTA_STATE_DOWNLOADING ||
+                ota.state == OTA_STATE_FLASHING)
+            {
+                low_heap_streak = 0;
+                continue;
+            }
+        }
+
         size_t free_heap = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
         if (free_heap < HEAP_WATCHDOG_CRITICAL_BYTES)
         {
@@ -597,7 +613,7 @@ esp_err_t monitoring_init(const monitoring_config_t *config, SysInfo* sysInfo, U
 
     // Heap watchdog runs regardless of monitoring config - it's a safety
     // net for the whole firmware, not a monitoring feature.
-    BaseType_t wd_ret = xTaskCreate(heap_watchdog_task, "heap_watchdog", 2560, NULL, 2, NULL);
+    BaseType_t wd_ret = xTaskCreate(heap_watchdog_task, "heap_watchdog", 4096, NULL, 2, NULL);
     if (wd_ret != pdPASS) {
         ESP_LOGW(TAG, "Failed to start heap watchdog task");
     }
