@@ -208,8 +208,10 @@ void app_main()
     static RawUartUdpListener rawUartUdpLister(&radioModuleConnector);
     rawUartUdpLister.start();
 
-    // Initialize log manager early to capture all logs (8KB ring buffer)
-    LogManager::begin(8192);
+    // LogManager initialized on-demand via WebUI (systemlog page).
+    // Default: disabled — saves 8 KB heap that is needed for TLS handshake
+    // during firmware update checks.
+    // LogManager::begin(8192);
 
     // Initialize reset info system
     ResetInfo::init();

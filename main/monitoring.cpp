@@ -519,7 +519,7 @@ static esp_err_t load_config_from_nvs(monitoring_config_t *config)
 // several consecutive samples, restart cleanly rather than risk a hard
 // crash/lockup from a failed allocation deep in the network or TLS stack.
 static constexpr size_t HEAP_WATCHDOG_CRITICAL_BYTES = 20 * 1024;
-static constexpr int HEAP_WATCHDOG_CONSECUTIVE_HITS = 5;     // ~5 * 60s = 5 min sustained
+static constexpr int HEAP_WATCHDOG_CONSECUTIVE_HITS = 8;     // ~8 * 60s = 8 min sustained
 static constexpr TickType_t HEAP_WATCHDOG_INTERVAL_TICKS = pdMS_TO_TICKS(60000);
 
 static void heap_watchdog_task(void *pvParameters)
