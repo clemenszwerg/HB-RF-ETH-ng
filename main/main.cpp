@@ -60,6 +60,42 @@ extern "C"
     void app_main(void);
 }
 
+// Keep a freshly installed OTA image in PENDING_VERIFY long enough to exercise
+// the delayed update check and other background tasks. If the firmware crashes
+// in that window, the bootloader can still roll back on the next boot.
+static void validate_running_firmware_task(void *parameter)
+{
+    (void)parameter;
+    vTaskDelay(pdMS_TO_TICKS(60000));
+
+    esp_err_t err = esp_ota_mark_app_valid_cancel_rollback();
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "OTA self-test window passed; firmware marked valid");
+    } else {
+        ESP_LOGE(TAG, "Could not mark firmware valid after self-test: %s",
+                 esp_err_to_name(err));
+    }
+    vTaskDelete(NULL);
+}
+
+static void schedule_firmware_validation(void)
+{
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    esp_ota_img_states_t state;
+    if (!running || esp_ota_get_state_partition(running, &state) != ESP_OK ||
+        state != ESP_OTA_IMG_PENDING_VERIFY) {
+        return;
+    }
+
+    ESP_LOGI(TAG, "OTA image pending verification; starting 60-second self-test window");
+    if (xTaskCreate(validate_running_firmware_task, "ota_selftest", 2304,
+                    NULL, 2, NULL) != pdPASS) {
+        // Fail safe: leave the image pending so a subsequent reboot rolls back
+        // instead of permanently accepting a firmware under memory pressure.
+        ESP_LOGE(TAG, "Could not create OTA self-test task; image remains pending");
+    }
+}
+
 void app_main()
 {
     uart_config_t uart_config = {
@@ -233,7 +269,7 @@ void app_main()
     powerLED.setState(LED_STATE_ON);
     statusLED.setState(LED_STATE_OFF);
 
-    esp_ota_mark_app_valid_cancel_rollback();
+    schedule_firmware_validation();
 
     // Send mDNS announcement after all services are started
     // This helps CCU 3 and other devices discover us after restart
