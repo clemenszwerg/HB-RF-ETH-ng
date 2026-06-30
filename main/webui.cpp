@@ -2038,9 +2038,13 @@ static void _share_log_task(void *arg)
             int status = esp_http_client_get_status_code(client);
             if ((status == 303 || status == 302 || status == 301) && pctx.hasLocation)
             {
+                // MicroBin returns Location: https://paste.blueml.eu/upload/<id>
+                // but the paste view URL is https://paste.blueml.eu/p/<id>.
                 char* upload_ptr = strstr(pctx.location, "/upload");
                 if (upload_ptr) {
-                    memmove(upload_ptr, upload_ptr + 7, strlen(upload_ptr + 7) + 1);
+                    memmove(upload_ptr + 2, upload_ptr + 7, strlen(upload_ptr + 7) + 1);
+                    upload_ptr[0] = '/';
+                    upload_ptr[1] = 'p';
                 }
                 snprintf(result, sizeof(result),
                          "{\"success\":true,\"url\":\"%s\"}", pctx.location);
