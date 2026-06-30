@@ -565,23 +565,20 @@ let updateCheckInterval = null
 onMounted(async () => {
   try {
     await sysInfoStore.update()
-    // Read the device's cached snapshot first so the page renders without
-    // waiting for a GitHub API call. The device has its own 24h background
-    // task that talks to GitHub; we don't want every page open to consume
-    // a (rate-limited) API call.
+    // Only read the device's cached snapshot - opening the Firmware page must
+    // never trigger a live GitHub fetch. The device runs its own 24h
+    // background check, and the user can force a check on demand with the
+    // "Check now" button. This keeps every page visit from consuming a
+    // (rate-limited) GitHub API call. If the cache is still empty (e.g. fresh
+    // boot before the background task ran), the page shows "n/a" until the
+    // background task populates it, which the cached poll below picks up.
     await updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })
-
-    // If the device has never fetched (or was just rebooted and the 30 s
-    // startup timer hasn't fired yet), trigger one explicit refresh so the
-    // user doesn't stare at "Firmware is up to date" with latestVersion=n/a.
-    if (updateStore.latestVersion === 'n/a' && !updateStore.fetchInProgress) {
-      updateStore.checkForUpdate(sysInfoStore.currentVersion).catch(() => {})
-    }
   } catch (e) {
-    console.warn('Initial update check failed:', e.response?.status || e.message)
+    console.warn('Initial cached update read failed:', e.response?.status || e.message)
   }
   // Periodically re-read the cache while the page is open so the
-  // "last check" indicator and download URL stay fresh.
+  // "last check" indicator and download URL stay fresh (cached read only,
+  // no GitHub call).
   updateCheckInterval = setInterval(() => {
     if (sysInfoStore.currentVersion) {
       updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })
