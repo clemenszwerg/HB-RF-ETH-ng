@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000
+
 export const useThemeStore = defineStore('theme', {
   state: () => ({
     theme: localStorage.getItem('theme') || 'light'
@@ -84,8 +86,7 @@ export const useLoginStore = defineStore('login', {
     checkActivity() {
       if (this.isLoggedIn) {
         const now = Date.now()
-        // 10 minutes = 600,000 ms
-        if (now - this.lastActivity > 600000) {
+        if (now - this.lastActivity > IDLE_TIMEOUT_MS) {
           this.logout()
           return true
         }

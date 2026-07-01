@@ -458,11 +458,14 @@ onUnmounted(() => {
 .mobile-panel {
   width: min(340px, 100%);
   height: 100%;
+  min-height: 0;
   border-radius: 28px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .mobile-panel-top {

@@ -60,7 +60,7 @@ const otaUpdateVersion = ref('')
 let updateSuccessTimer = null
 
 // Idle timeout is handled globally in main.js via the login store's
-// activity tracking (10-minute timeout with cross-tab sync via localStorage).
+// activity tracking (5-minute timeout with cross-tab sync via localStorage).
 
 onMounted(() => {
   sysInfoStore.update().catch((error) => {
