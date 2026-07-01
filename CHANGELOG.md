@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.25] - 2026-07-01
+
+### Changes
+- fix: stabilize OTA and clean firmware diagnostics
+
 ## [2.2.0-Beta.24] - 2026-07-01
 
 ### Changes
