@@ -401,8 +401,6 @@ void mqtt_handler_publish_status(void)
     // ---- System metrics ---------------------------------------------------
     PUBLISH_DOUBLE("status/cpu_usage", sysInfo->getCpuUsage(), 1);
     PUBLISH_DOUBLE("status/memory_usage", sysInfo->getMemoryUsage(), 1);
-    PUBLISH_DOUBLE("status/supply_voltage", sysInfo->getSupplyVoltage(), 2);
-    PUBLISH_DOUBLE("status/temperature", sysInfo->getTemperature(), 1);
     PUBLISH_UINT64("status/uptime", sysInfo->getUptimeSeconds());
 
     // Uptime formatted
@@ -573,12 +571,22 @@ void mqtt_handler_publish_ha_discovery(void)
         cJSON_Delete(root);
     };
 
+    // Remove retained discovery entries created by older firmware versions.
+    // These sensors were never backed by hardware on HB-RF-ETH boards.
+    auto remove_config = [&](const char* component, const char* object_id) {
+        char topic[256];
+        snprintf(topic, sizeof(topic), "%s/%s/hb-rf-eth-%s/%s/config",
+                 current_mqtt_config.ha_discovery_prefix, component,
+                 sysInfo->getSerialNumber(), object_id);
+        esp_mqtt_client_publish(client, topic, "", 0, 1, 1);
+    };
+
     // ---- Sensors: system metrics ----------------------------------------
     publish_config("sensor", "cpu_usage", "CPU Usage", NULL, "measurement", "%", NULL, "diagnostic", "mdi:cpu-64-bit");
     publish_config("sensor", "memory_usage", "Memory Usage", NULL, "measurement", "%", NULL, "diagnostic", "mdi:memory");
     publish_config("sensor", "free_heap", "Free Heap", "data_size", "measurement", "B", NULL, "diagnostic", "mdi:memory");
-    publish_config("sensor", "supply_voltage", "Supply Voltage", "voltage", "measurement", "V", NULL, "diagnostic", NULL);
-    publish_config("sensor", "temperature", "Temperature", "temperature", "measurement", "°C", NULL, "diagnostic", NULL);
+    remove_config("sensor", "supply_voltage");
+    remove_config("sensor", "temperature");
     publish_config("sensor", "uptime", "Uptime", "duration", "total_increasing", "s", NULL, "diagnostic", "mdi:clock-outline");
     publish_config("sensor", "uptime_text", "Uptime (Text)", NULL, NULL, NULL, NULL, "diagnostic", "mdi:clock-outline");
     publish_config("sensor", "version", "Current Version", NULL, NULL, NULL, NULL, "diagnostic", "mdi:package-variant");

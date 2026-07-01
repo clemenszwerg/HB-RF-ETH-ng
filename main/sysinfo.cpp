@@ -30,7 +30,6 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_system.h"
-#include "driver/temperature_sensor.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
@@ -48,7 +47,6 @@ static char _serial[13];
 static const char *_currentVersion;
 static board_type_t _board;
 static uint64_t _bootTime;
-static temperature_sensor_handle_t _temp_sensor = NULL;
 
 static const UBaseType_t MAX_TASKS = 32;
 
@@ -225,18 +223,6 @@ SysInfo::SysInfo()
     // Store boot time for uptime calculation
     _bootTime = esp_timer_get_time() / 1000000; // Convert to seconds
 
-    // Initialize temperature sensor
-    // Note: ESP32 (classic) does not have an internal temperature sensor
-    // Only ESP32-S2, ESP32-S3, ESP32-C3, etc. have internal temperature sensors
-#if defined(SOC_TEMP_SENSOR_SUPPORTED) && SOC_TEMP_SENSOR_SUPPORTED
-    temperature_sensor_config_t temp_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
-    ESP_ERROR_CHECK_WITHOUT_ABORT(temperature_sensor_install(&temp_config, &_temp_sensor));
-    ESP_ERROR_CHECK_WITHOUT_ABORT(temperature_sensor_enable(_temp_sensor));
-    ESP_LOGI(TAG, "Internal temperature sensor initialized");
-#else
-    ESP_LOGI(TAG, "ESP32 classic has no internal temperature sensor - external sensor required");
-    _temp_sensor = NULL;
-#endif
 }
 
 double SysInfo::getCpuUsage()
@@ -267,24 +253,6 @@ const char *SysInfo::getCurrentVersion()
     return _currentVersion;
 }
 
-double SysInfo::getSupplyVoltage()
-{
-    // Measure supply voltage with 2:1 voltage divider
-    // GPIO37 (ADC1_CH1) measures half of the actual supply voltage
-    uint32_t voltage_mv = get_voltage(SUPPLY_VOLTAGE_SENSE_UNIT, SUPPLY_VOLTAGE_SENSE_CHANNEL, ADC_ATTEN_DB_12);
-
-    if (voltage_mv == 0) {
-        ESP_LOGW(TAG, "Failed to read supply voltage, returning 0.0V");
-        return 0.0;
-    }
-
-    // Apply 2:1 voltage divider correction
-    double actual_voltage = (voltage_mv * 2.0) / 1000.0; // Convert to volts
-
-    ESP_LOGD(TAG, "Supply voltage: %.2fV (ADC: %u mV)", actual_voltage, voltage_mv);
-    return actual_voltage;
-}
-
 const char* SysInfo::getBoardRevisionString()
 {
     switch (_board)
@@ -300,32 +268,6 @@ const char* SysInfo::getBoardRevisionString()
     default:
         return "Unknown";
     }
-}
-
-double SysInfo::getTemperature()
-{
-#if defined(SOC_TEMP_SENSOR_SUPPORTED) && SOC_TEMP_SENSOR_SUPPORTED
-    if (_temp_sensor == NULL) {
-        ESP_LOGD(TAG, "Temperature sensor not initialized");
-        return -127.0; // Return special value to indicate "not available"
-    }
-
-    float temp_celsius = 0.0;
-    esp_err_t err = temperature_sensor_get_celsius(_temp_sensor, &temp_celsius);
-
-    if (err != ESP_OK)
-    {
-        ESP_LOGW(TAG, "Failed to read temperature: %s", esp_err_to_name(err));
-        return -127.0;
-    }
-
-    return (double)temp_celsius;
-#else
-    // ESP32 classic has no internal temperature sensor
-    // Return special value -127.0 to indicate "not available"
-    // This value is commonly used in temperature sensors to indicate invalid/unavailable reading
-    return -127.0;
-#endif
 }
 
 uint64_t SysInfo::getUptimeSeconds()

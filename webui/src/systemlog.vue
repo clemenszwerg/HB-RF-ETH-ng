@@ -278,7 +278,10 @@ watch(logEnabled, async (enabled) => {
   if (enabled) {
     logToggleBusy.value = true
     try {
-      await axios.post('/api/log/enable', {}, { timeout: 5000, silent: true })
+      const response = await axios.post('/api/log/enable', {}, { timeout: 5000, silent: true })
+      if (response.data?.enabled !== true) {
+        throw new Error('Device could not allocate the log buffer')
+      }
     } catch (e) {
       // Backend could not allocate the buffer - revert the toggle.
       logEnabled.value = false

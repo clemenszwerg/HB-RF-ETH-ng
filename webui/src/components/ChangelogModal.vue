@@ -122,14 +122,15 @@ watch(() => props.modelValue, (newValue) => {
 
 <style scoped>
 .changelog-modal {
-  border-radius: 16px;
+  border-radius: 24px;
   overflow: hidden;
+  background: #fff;
 }
 
 .changelog-header {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
-  border: none;
-  color: white;
+  background: #fff;
+  border-bottom: 1px solid var(--color-border-light);
+  color: #111827;
   padding: 1.5rem;
 }
 
@@ -147,7 +148,7 @@ watch(() => props.modelValue, (newValue) => {
 
 .changelog-body {
   padding: 2rem;
-  background: var(--color-bg, #f8f9fa);
+  background: #fff;
   max-height: 60vh;
 }
 
@@ -261,7 +262,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .changelog-footer {
-  background: var(--color-surface, white);
+  background: #fff;
   border-top: 1px solid var(--color-border, #e9ecef);
   padding: 1rem 1.5rem;
 }

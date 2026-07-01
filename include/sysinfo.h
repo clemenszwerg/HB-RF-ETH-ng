@@ -44,8 +44,6 @@ public:
     const char *getSerialNumber();
     board_type_t getBoardType();
     const char* getBoardRevisionString();
-    double getSupplyVoltage();
-    double getTemperature();
     uint64_t getUptimeSeconds();
     const char* getResetReason();
 };

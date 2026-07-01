@@ -350,8 +350,6 @@ Publish-Cycle plus optional eine HA-Discovery-Runde.
 | `status/memory_usage` | float % | `45.3` | RAM-Auslastung (1 Dezimalstelle) |
 | `status/free_heap` | uint64 B | `184320` | Aktuell freier Heap (internes RAM) |
 | `status/min_free_heap` | uint64 B | `145000` | Kleinster je beobachteter freier Heap seit Boot (Leak-Detektion) |
-| `status/supply_voltage` | float V | `5.02` | Versorgungsspannung (2 Dezimalstellen); Normal 4.75–5.25 V |
-| `status/temperature` | float °C | `52.3` | ESP32-Die-Temperatur (1 Dezimalstelle) |
 | `status/uptime` | uint64 s | `345678` | Laufzeit in Sekunden seit Boot (monoton steigend) |
 | `status/uptime_text` | string | `4 d, 0 h, 1 m` | Menschenlesbare Laufzeit |
 | `status/last_reset_reason` | string | `Power-On Reset` | Letzter Reset-Grund (Hardware + App-Ebene) |
@@ -456,8 +454,6 @@ aktiv ist.
 | `cpu_usage` | CPU Usage | measurement | % | `mdi:cpu-64-bit` |
 | `memory_usage` | Memory Usage | measurement | % | `mdi:memory` |
 | `free_heap` | Free Heap | data_size, measurement | B | `mdi:memory` |
-| `supply_voltage` | Supply Voltage | voltage, measurement | V | – |
-| `temperature` | Temperature | temperature, measurement | °C | – |
 | `uptime` | Uptime | duration, total_increasing | s | `mdi:clock-outline` |
 | `uptime_text` | Uptime (Text) | – | – | `mdi:clock-outline` |
 | `version` | Current Version | – | – | `mdi:package-variant` |
@@ -507,27 +503,6 @@ Vergleicht die laufende Version mit `latest_version_template` und bietet eine
 "Install"-Aktion, die das OTA-Kommando triggert. Hat
 `enabled_by_default: false`, wenn `commandEnabled = false`.
 
-#### Beispiel einer Discovery-Config (sensor/temperature)
-
-```json
-{
-  "name": "Temperature",
-  "unique_id": "hb-rf-eth-A1B2C3D4E5F6_temperature",
-  "state_topic": "hb-rf-eth/status/temperature",
-  "device_class": "temperature",
-  "state_class": "measurement",
-  "unit_of_measurement": "°C",
-  "entity_category": "diagnostic",
-  "device": {
-    "identifiers": "hb-rf-eth-A1B2C3D4E5F6",
-    "name": "HB-RF-ETH-ng",
-    "model": "HB-RF-ETH-ng",
-    "manufacturer": "Xerolux",
-    "sw_version": "2.2.0-Beta.7",
-    "hw_version": "REV 1.10 (PUB)"
-  }
-}
-```
 
 ---
 
@@ -607,10 +582,6 @@ cards:
         name: CPU
       - entity: sensor.hb_rf_eth_ng_memory_usage
         name: RAM
-      - entity: sensor.hb_rf_eth_ng_temperature
-        name: Temperatur
-      - entity: sensor.hb_rf_eth_ng_supply_voltage
-        name: Spannung
       - entity: sensor.hb_rf_eth_ng_uptime_text
         name: Laufzeit
 

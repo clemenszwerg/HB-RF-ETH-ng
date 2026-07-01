@@ -306,8 +306,11 @@ esp_err_t get_sysinfo_json_handler_func(httpd_req_t *req)
     cJSON_AddStringToObject(sysInfo, "latestVersion", _updateCheck->getLatestVersion());
     cJSON_AddNumberToObject(sysInfo, "memoryUsage", _sysInfo->getMemoryUsage());
     cJSON_AddNumberToObject(sysInfo, "cpuUsage", _sysInfo->getCpuUsage());
-    cJSON_AddNumberToObject(sysInfo, "supplyVoltage", _sysInfo->getSupplyVoltage());
-    cJSON_AddNumberToObject(sysInfo, "temperature", _sysInfo->getTemperature());
+    // The HB-RF-ETH board exposes neither a supply-voltage divider on GPIO37
+    // nor a temperature sensor. Keep the legacy keys for API compatibility,
+    // but never report floating ADC readings or sentinel temperatures.
+    cJSON_AddNullToObject(sysInfo, "supplyVoltage");
+    cJSON_AddNullToObject(sysInfo, "temperature");
     cJSON_AddNumberToObject(sysInfo, "uptimeSeconds", _sysInfo->getUptimeSeconds());
     cJSON_AddStringToObject(sysInfo, "boardRevision", _sysInfo->getBoardRevisionString());
     cJSON_AddStringToObject(sysInfo, "resetReason", _sysInfo->getResetReason());
@@ -1959,8 +1962,8 @@ static void _share_log_task(void *arg)
         char buf[64];
         snprintf(buf, sizeof(buf), "CPU: %.0f%%\n", _sysInfo->getCpuUsage()); report += buf;
         snprintf(buf, sizeof(buf), "Memory: %.0f%%\n", _sysInfo->getMemoryUsage()); report += buf;
-        snprintf(buf, sizeof(buf), "Supply Voltage: %.0fmV\n", _sysInfo->getSupplyVoltage()); report += buf;
-        snprintf(buf, sizeof(buf), "Temperature: %.0fC\n", _sysInfo->getTemperature()); report += buf;
+        report += "Supply Voltage: unavailable (no board sensor)\n";
+        report += "Temperature: unavailable (no board sensor)\n";
         report += "Board Revision: "; report += _sysInfo->getBoardRevisionString(); report += "\n";
         report += "Reset Reason: "; report += _sysInfo->getResetReason(); report += "\n";
         report += "Ethernet: ";

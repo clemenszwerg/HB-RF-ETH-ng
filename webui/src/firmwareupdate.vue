@@ -30,10 +30,6 @@
       <div class="hero-meta version-badge">
         <span class="label">{{ t('sysinfo.version') }}</span>
         <span class="value">{{ sysInfoStore.currentVersion }}</span>
-        <BButton variant="outline-secondary" size="sm" @click="showChangelogModal = true" class="changelog-btn">
-          <AppIcon name="logs" />
-          {{ t('changelog.title') }}
-        </BButton>
       </div>
     </div>
 
@@ -42,39 +38,11 @@
         <AppIcon name="refresh" />
         {{ updateStore.isChecking ? t('firmware.checking') : t('firmware.checkNow') }}
       </button>
-      <button class="chip-btn" type="button" @click="scrollToOta">
-        <AppIcon name="download" />
-        {{ t('firmware.jumpToOta') }}
-      </button>
       <span class="chip-btn static">
         <AppIcon name="clock" />
         {{ updateStore.lastCheck ? t('firmware.lastCheckAt', { time: formatLastCheck(updateStore.lastCheck) }) : t('firmware.noRecentCheck') }}
       </span>
     </div>
-
-    <!-- Update Available Banner -->
-    <Transition name="slide-down">
-      <div v-if="showUpdateBanner" class="alert-banner" :class="updateStore.isPrerelease ? 'warning' : 'info'">
-        <div class="banner-icon"><AppIcon name="download" /></div>
-        <div class="banner-content">
-          <strong>
-            {{ t('firmware.updateAvailable', { latestVersion: sysInfoStore.latestVersion }) }}
-            <span v-if="updateStore.isPrerelease" class="beta-badge">{{ t('firmware.beta') }}</span>
-          </strong>
-          <p>{{ t('firmware.newVersionAvailable', { version: sysInfoStore.latestVersion }) }}</p>
-          <details v-if="updateStore.releaseNotes" class="release-notes-preview">
-            <summary>{{ t('firmware.releaseNotesPreview') }}</summary>
-            <div class="release-notes-body" v-html="releaseNotesExcerpt"></div>
-            <a v-if="updateStore.releaseUrl" :href="updateStore.releaseUrl" target="_blank" rel="noopener noreferrer" class="release-link">
-              {{ t('firmware.viewOnGithub') }} <AppIcon name="externalLink" class="external-link-icon" />
-            </a>
-          </details>
-        </div>
-        <BButton variant="light" size="sm" @click="showChangelogModal = true" class="banner-action">
-          {{ t('firmware.viewUpdate') }}
-        </BButton>
-      </div>
-    </Transition>
 
     <div class="content-grid">
       <!-- File Upload Card -->
@@ -143,7 +111,7 @@
       </div>
 
       <!-- Network Update Card -->
-      <div class="update-card" ref="otaSection">
+      <div class="update-card network-update-card">
         <div class="card-header">
           <div class="header-icon bg-success-light text-success"><AppIcon name="globe" /></div>
           <div class="header-text">
@@ -164,10 +132,11 @@
                 <span class="version-info">v{{ updateStore.latestVersion }}</span>
               </div>
             </div>
-            <details v-if="updateStore.releaseNotes" class="release-notes-preview">
-              <summary>{{ t('firmware.releaseNotesPreview') }}</summary>
-              <div class="release-notes-body" v-html="releaseNotesExcerpt"></div>
-            </details>
+            <button class="changelog-link" type="button" @click="showChangelogModal = true">
+              <AppIcon name="logs" />
+              {{ t('changelog.title') }}
+              <AppIcon name="arrowRight" />
+            </button>
           </div>
           <div v-else-if="updateStore.checkError" class="update-info">
             <div class="no-update">
@@ -266,11 +235,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSysInfoStore, useUpdateStore, useFirmwareUpdateStore, useUiStore } from './stores.js'
 import axios from 'axios'
-import { marked } from 'marked'
 import ChangelogModal from './components/ChangelogModal.vue'
 
 const { t } = useI18n()
@@ -287,38 +255,10 @@ const uploading = ref(false)
 const uploadProgress = ref(0)
 const otaUpdating = ref(false)
 const otaProgress = ref(0)
-const otaSection = ref(null)
 const showCountdown = ref(false)
 const countdown = ref(30)
 const showChangelogModal = ref(false)
 const betaToggleSaving = ref(false)
-
-const showUpdateBanner = computed(() => {
-  const current = sysInfoStore.currentVersion
-  const latest = sysInfoStore.latestVersion
-  if (!current || !latest || latest === 'n/a') return false
-  return updateStore.compareVersions(current, latest) < 0
-})
-
-const escapeHtml = (value) => value
-  .replaceAll('&', '&amp;')
-  .replaceAll('<', '&lt;')
-  .replaceAll('>', '&gt;')
-  .replaceAll('"', '&quot;')
-  .replaceAll("'", '&#39;')
-
-// Render the GitHub release body markdown to safe HTML. The body is
-// author-controlled (release.yml generates RELEASE_NOTES.md) but we still
-// escape before passing to marked so injected markup can't sneak through.
-const releaseNotesExcerpt = computed(() => {
-  const body = updateStore.releaseNotes
-  if (!body) return ''
-  try {
-    return marked.parse(escapeHtml(body))
-  } catch (e) {
-    return `<pre>${escapeHtml(body)}</pre>`
-  }
-})
 
 const onBetaToggle = async (event) => {
   const enabled = event.target.checked
@@ -539,8 +479,6 @@ const factoryResetClick = async () => {
   }
 }
 
-const scrollToOta = () => otaSection.value?.scrollIntoView({ behavior: 'smooth' })
-
 const manualCheckForUpdate = async () => {
   if (!sysInfoStore.currentVersion) {
     await sysInfoStore.update()
@@ -647,45 +585,6 @@ onUnmounted(() => {
   font-weight: 700;
   color: var(--color-primary);
 }
-
-.version-badge .changelog-btn {
-  font-size: 0.875rem;
-  padding: 4px 12px;
-  border: 1px solid var(--color-border);
-  transition: all 0.2s;
-  color: var(--color-text);
-  background: transparent;
-}
-
-.version-badge .changelog-btn:hover {
-  border-color: var(--color-text);
-  background-color: var(--color-text);
-  color: var(--color-surface);
-}
-
-/* Banners */
-.alert-banner {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  color: white;
-  margin-bottom: var(--spacing-lg);
-  box-shadow: var(--shadow-md);
-}
-
-.alert-banner.warning {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.alert-banner.info {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-}
-
-.banner-icon { font-size: 1.5rem; display: flex; }
-.banner-content { flex: 1; }
-.banner-content p { margin: 0; opacity: 0.9; font-size: 0.9375rem; }
 
 /* Content Grid */
 .content-grid {
@@ -924,97 +823,30 @@ onUnmounted(() => {
   line-height: 1.3;
 }
 
-/* Release notes preview (collapsible <details>) */
-.release-notes-preview {
-  margin: var(--spacing-sm) 0 0;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(255, 255, 255, 0.55);
-  border-radius: var(--radius-md);
-  font-size: 0.8125rem;
-  line-height: 1.5;
-}
-
-.release-notes-preview > summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--color-text);
-  list-style: none;
-}
-
-.release-notes-preview > summary::-webkit-details-marker {
-  display: none;
-}
-
-.release-notes-preview > summary::before {
-  content: '▸';
-  display: inline-block;
-  margin-right: 6px;
-  transition: transform 0.15s ease;
-}
-
-.release-notes-preview[open] > summary::before {
-  transform: rotate(90deg);
-}
-
-.release-notes-body {
+.changelog-link {
+  width: 100%;
   margin-top: var(--spacing-sm);
-  max-height: 240px;
-  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
 }
 
-.release-notes-body :deep(h1),
-.release-notes-body :deep(h2),
-.release-notes-body :deep(h3) {
-  font-size: 0.9rem;
-  margin: 0.5rem 0 0.25rem;
+.changelog-link > :last-child {
+  margin-left: auto;
 }
 
-.release-notes-body :deep(ul),
-.release-notes-body :deep(ol) {
-  margin: 0.25rem 0 0.5rem;
-  padding-left: 1.25rem;
-}
-
-.release-notes-body :deep(li) {
-  margin-bottom: 0.25rem;
-}
-
-.release-notes-body :deep(code) {
-  background: var(--color-border-light);
-  padding: 0.1rem 0.3rem;
-  border-radius: 3px;
-  font-size: 0.85em;
-}
-
-.release-link {
-  display: inline-block;
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.release-link:hover {
-  text-decoration: underline;
-}
-
-.external-link-icon {
-  font-size: 0.95rem;
-  vertical-align: -0.15em;
-  margin-left: 0.2rem;
-}
-
-/* Inside the update banner the preview sits on a tinted background */
-.alert-banner .release-notes-preview {
-  background: rgba(255, 255, 255, 0.18);
-  color: white;
-}
-
-.alert-banner .release-notes-preview > summary,
-.alert-banner .release-notes-body {
-  color: white;
+.changelog-link:hover {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
 }
 
 .no-update {
@@ -1270,13 +1102,6 @@ onUnmounted(() => {
   }
 
   .action-tile {
-    padding: var(--spacing-md);
-  }
-
-  .alert-banner {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--spacing-sm);
     padding: var(--spacing-md);
   }
 

@@ -128,7 +128,6 @@ python3 rename_webui_files.py   # gzip-compresses the dist assets idf.py embeds
 | ETH MDC | GPIO 32 |
 | ETH MDIO | GPIO 33 |
 | Board Rev sense | ADC1 / GPIO 36 |
-| Supply voltage sense | ADC1 / GPIO 37 |
 
 **Never change pin assignments without verifying hardware schematics.**
 
