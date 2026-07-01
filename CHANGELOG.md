@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.23] - 2026-07-01
+
+### Changes
+- fix(network): resolve F-21 guarantee HTTPS serialization
+- fix(hardware): resolve F-20 average valid ADC samples
+- fix(ota): resolve F-19 synchronize update status
+- fix(memory): resolve F-18 handle allocation pressure
+- fix(parser): resolve F-17 discard oversized input
+- fix(runtime): resolve F-16 eliminate status data races
+- fix(auth): resolve F-15 reject password truncation
+- fix(settings): resolve F-14 sanitize persisted values
+- fix(checkmk): resolve F-13 harden agent I/O
+- fix(runtime): resolve F-12 harden service startup
+- fix(ota): resolve F-11 preserve rollback window
+- fix(mqtt): resolve F-10 handle lifecycle failures
+- fix(web): resolve F-09 authenticate log sharing
+- fix(web): resolve F-08 serialize HTTPS proxy
+- fix(network): resolve F-07 preserve UDP datagrams
+- fix(ota): resolve F-01..F-06 update stability
+- fix: Firmware-Update-Suche crasht nicht mehr durch Heap-Erschoepfung
+- feat: System-Log standardmaessig deaktiviert, per WebUI aktivierbar
+
 ## [2.2.0-Beta.22] - 2026-06-30
 
 ### Changes
