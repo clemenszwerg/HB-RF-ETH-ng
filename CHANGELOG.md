@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0-Beta.24] - 2026-07-01
+
+### Changes
+- fix(webui): shorten idle logout and restore mobile logout
+
 ## [2.2.0-Beta.23] - 2026-07-01
 
 ### Changes
