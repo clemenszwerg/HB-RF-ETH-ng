@@ -1814,7 +1814,7 @@ httpd_uri_t get_changelog_handler = {
 esp_err_t get_firmware_archive_handler_func(httpd_req_t *req)
 {
     return start_async_proxy(req,
-                             "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main/archive.json",
+                             "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/archive.json",
                              "application/json",
                              "Failed to fetch firmware archive from GitHub");
 }

@@ -37,17 +37,19 @@ void test_ota_config_defaults(void) {
 void test_build_update_manifest_url_stable(void) {
     char buf[128];
     buildUpdateManifestUrl(false, buf, sizeof(buf));
-    TEST_ASSERT_EQUAL_STRING(
-        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main/latest.json",
-        buf);
+    TEST_ASSERT_TRUE(strncmp(
+        buf,
+        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/latest.json?t=",
+        strlen("https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/latest.json?t=")) == 0);
 }
 
 void test_build_update_manifest_url_beta(void) {
     char buf[128];
     buildUpdateManifestUrl(true, buf, sizeof(buf));
-    TEST_ASSERT_EQUAL_STRING(
-        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main/beta.json",
-        buf);
+    TEST_ASSERT_TRUE(strncmp(
+        buf,
+        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/beta.json?t=",
+        strlen("https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/beta.json?t=")) == 0);
 }
 
 // Output buffer too small must yield a safe truncated null-terminated string.

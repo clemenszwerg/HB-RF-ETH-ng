@@ -41,10 +41,11 @@ static const char *TAG = "UpdateCheck";
 // Static manifests keep the device away from the GitHub Releases API. The
 // Releases API response grows with release notes and asset metadata and is also
 // subject to unauthenticated API rate limits. These raw files are tiny and
-// deterministic; GitHub Releases remain only the binary hosting target. Use
-// refs/heads/main because the shorter /main/ raw URL can lag on GitHub's CDN.
+// deterministic; GitHub Releases remain only the binary hosting target. Add a
+// query value per request so GitHub's raw CDN cannot serve a stale manifest
+// after the release workflow has just updated beta.json/latest.json.
 static const char *UPDATE_MANIFEST_BASE =
-    "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main";
+    "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main";
 
 // Cap for the heap buffer used to receive latest.json / beta.json. A normal
 // manifest is below 1 KB; 4 KB leaves room for future fields without reviving
@@ -64,8 +65,9 @@ void _update_check_task_func(void *parameter)
 
 void buildUpdateManifestUrl(bool beta, char* out, size_t outLen)
 {
-    snprintf(out, outLen, "%s/%s.json", UPDATE_MANIFEST_BASE,
-             beta ? "beta" : "latest");
+    snprintf(out, outLen, "%s/%s.json?t=%llu", UPDATE_MANIFEST_BASE,
+             beta ? "beta" : "latest",
+             (unsigned long long)(esp_timer_get_time() / 1000000ULL));
 }
 
 void normalizeTag(const char* tag, char* out, size_t outLen)

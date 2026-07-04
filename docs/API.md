@@ -448,11 +448,11 @@ demand via `POST /api/check_update`. No network request is triggered by GET,
 so it is safe to poll.
 
 The release data is sourced from static update manifests in this repository:
-`https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main/latest.json`
-for the stable channel and `.../beta.json` for the beta channel. GitHub
-Releases still host the firmware binary, but the device no longer parses the
-GitHub Releases API. The explicit `refs/heads/main` raw path avoids the stale
-CDN edge sometimes seen with the shorter `/main/` path.
+`https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/latest.json?t=<seconds>`
+for the stable channel and `.../beta.json?t=<seconds>` for the beta channel.
+GitHub Releases still host the firmware binary, but the device no longer parses
+the GitHub Releases API. The query value prevents stale raw CDN entries shortly
+after the release workflow updates the manifests.
 
 The release workflow updates the manifests automatically. Stable releases write
 both `latest.json` and `beta.json`; pre-releases write only `beta.json`. The
