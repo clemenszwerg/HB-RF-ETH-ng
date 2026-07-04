@@ -264,6 +264,13 @@ jobs:
           is_prerelease = os.environ["IS_PRERELEASE"] == "true"
 
           release_url = f"https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/{version_tag}"
+          notes = ""
+          try:
+              with open("release/RELEASE_NOTES.md", "r", encoding="utf-8") as f:
+                  notes = f.read().strip()
+          except FileNotFoundError:
+              pass
+
           manifest = {
               "version": version,
               "channel": channel,
@@ -279,6 +286,35 @@ jobs:
               with open(os.path.join("manifest-out", manifest_file), "w", encoding="utf-8") as f:
                   json.dump(manifest, f, indent=2)
                   f.write("\n")
+
+          archive_entry = {
+              **manifest,
+              "tagName": version_tag,
+              "name": f"HB-RF-ETH-ng {version_tag}",
+              "prerelease": is_prerelease,
+              "assetName": firmware_file,
+              "notes": notes,
+          }
+
+          archive_path = "archive.json"
+          archive = []
+          if os.path.exists(archive_path):
+              try:
+                  with open(archive_path, "r", encoding="utf-8") as f:
+                      archive_data = json.load(f)
+                  archive = archive_data.get("releases", archive_data if isinstance(archive_data, list) else [])
+              except (json.JSONDecodeError, OSError):
+                  archive = []
+
+          deduped = [item for item in archive if item.get("version") != version and item.get("tagName") != version_tag]
+          archive_out = {
+              "schema": 1,
+              "updatedAt": os.environ["PUBLISHED_AT"],
+              "releases": [archive_entry, *deduped][:50],
+          }
+          with open(os.path.join("manifest-out", "archive.json"), "w", encoding="utf-8") as f:
+              json.dump(archive_out, f, indent=2)
+              f.write("\n")
           PY
 
           echo "Generated manifests:"

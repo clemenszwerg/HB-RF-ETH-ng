@@ -359,6 +359,7 @@ const archiveError = ref('')
 const firmwareArchive = ref([])
 const archiveInstallingVersion = ref('')
 
+const ARCHIVE_MANIFEST_URL = 'https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main/archive.json'
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/Xerolux/HB-RF-ETH-ng/releases?per_page=50'
 
 const archiveFilters = computed(() => [
@@ -424,46 +425,96 @@ const pickFirmwareAsset = (assets = []) => {
   return binAssets.find((asset) => /hb-rf-eth-ng/i.test(asset.name)) || binAssets[0] || null
 }
 
+const normalizeArchiveEntry = (entry, index = 0) => {
+  const version = normalizeVersion(entry.version || entry.tagName || entry.tag_name || entry.name)
+  if (!version) return null
+
+  const tagName = entry.tagName || entry.tag_name || `v${version}`
+  const prerelease = entry.prerelease ?? entry.isPrerelease ?? /(?:beta|alpha|rc)/i.test(version)
+  const downloadUrl = entry.downloadUrl || entry.download_url || ''
+  const currentVersion = normalizeVersion(sysInfoStore.currentVersion)
+
+  return {
+    id: entry.id || tagName || `${version}-${index}`,
+    version,
+    name: entry.name || `HB-RF-ETH-ng ${tagName}`,
+    prerelease: !!prerelease,
+    publishedAt: entry.publishedAt || entry.published_at || '',
+    releaseUrl: entry.releaseUrl || entry.html_url || `https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/${tagName}`,
+    downloadUrl,
+    assetName: entry.assetName || entry.asset_name || (downloadUrl ? downloadUrl.split('/').pop() : ''),
+    assetSize: entry.assetSize || entry.asset_size || entry.size || 0,
+    notes: entry.notes || entry.body || '',
+    isCurrent: currentVersion && normalizeVersion(version) === currentVersion
+  }
+}
+
+const loadArchiveManifest = async () => {
+  const response = await fetch(ARCHIVE_MANIFEST_URL, {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store'
+  })
+
+  if (!response.ok) {
+    throw new Error(`${t('firmware.archiveLoadError')} (${response.status})`)
+  }
+
+  const data = await response.json()
+  const entries = Array.isArray(data) ? data : data.releases
+  if (!Array.isArray(entries)) {
+    throw new Error(t('firmware.archiveLoadError'))
+  }
+
+  return entries
+    .map(normalizeArchiveEntry)
+    .filter((release) => release?.version && release.downloadUrl)
+}
+
+const loadGithubReleaseArchive = async () => {
+  const response = await fetch(GITHUB_RELEASES_API, {
+    headers: { Accept: 'application/vnd.github+json' },
+    cache: 'no-store'
+  })
+
+  if (!response.ok) {
+    throw new Error(`${t('firmware.archiveLoadError')} (${response.status})`)
+  }
+
+  const releases = await response.json()
+
+  return releases
+    .filter((release) => !release.draft)
+    .map((release) => {
+      const asset = pickFirmwareAsset(release.assets || [])
+      return normalizeArchiveEntry({
+        id: release.id,
+        version: release.tag_name || release.name,
+        name: release.name,
+        prerelease: release.prerelease,
+        publishedAt: release.published_at,
+        releaseUrl: release.html_url,
+        downloadUrl: asset?.browser_download_url || '',
+        assetName: asset?.name || '',
+        assetSize: asset?.size || 0,
+        notes: release.body || ''
+      })
+    })
+    .filter((release) => release?.version && release.downloadUrl)
+}
+
 const loadFirmwareArchive = async () => {
   archiveLoading.value = true
   archiveError.value = ''
 
   try {
-    const response = await fetch(GITHUB_RELEASES_API, {
-      headers: { Accept: 'application/vnd.github+json' },
-      cache: 'no-store'
-    })
-
-    if (!response.ok) {
-      throw new Error(`${t('firmware.archiveLoadError')} (${response.status})`)
-    }
-
-    const releases = await response.json()
-    const currentVersion = normalizeVersion(sysInfoStore.currentVersion)
-
-    firmwareArchive.value = releases
-      .filter((release) => !release.draft)
-      .map((release) => {
-        const asset = pickFirmwareAsset(release.assets || [])
-        const version = normalizeVersion(release.tag_name || release.name)
-        return {
-          id: release.id,
-          version,
-          name: release.name || release.tag_name || version,
-          prerelease: !!release.prerelease,
-          publishedAt: release.published_at,
-          releaseUrl: release.html_url,
-          downloadUrl: asset?.browser_download_url || '',
-          assetName: asset?.name || '',
-          assetSize: asset?.size || 0,
-          notes: release.body || '',
-          isCurrent: currentVersion && normalizeVersion(version) === currentVersion
-        }
-      })
-      .filter((release) => release.version)
+    firmwareArchive.value = await loadArchiveManifest()
   } catch (error) {
-    archiveError.value = error.message || t('firmware.archiveLoadError')
-    uiStore.pushToast({ type: 'error', title: t('common.error'), message: archiveError.value })
+    try {
+      firmwareArchive.value = await loadGithubReleaseArchive()
+    } catch (fallbackError) {
+      archiveError.value = fallbackError.message || error.message || t('firmware.archiveLoadError')
+      uiStore.pushToast({ type: 'error', title: t('common.error'), message: archiveError.value })
+    }
   } finally {
     archiveLoading.value = false
   }
