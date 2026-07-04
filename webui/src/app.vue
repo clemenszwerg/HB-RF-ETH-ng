@@ -1,7 +1,7 @@
 <template>
-  <div id="app">
+  <div id="app" :class="{ 'newdesign-shell': experimentalStore.testDesignEnabled }">
     <div class="app-container">
-      <Header />
+      <component :is="experimentalStore.testDesignEnabled ? NewDesignHeader : Header" />
       <main class="main-content">
         <RouterView v-slot="{ Component }">
           <Transition name="page" mode="out-in">
@@ -46,14 +46,16 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useLoginStore, useSysInfoStore } from './stores.js'
+import { useExperimentalStore, useLoginStore, useSysInfoStore } from './stores.js'
 import Header from './header.vue'
+import NewDesignHeader from './components/NewDesignHeader.vue'
 import SponsorModal from './components/SponsorModal.vue'
 import AppToastContainer from './components/AppToastContainer.vue'
 
 const { t } = useI18n()
 const loginStore = useLoginStore()
 const sysInfoStore = useSysInfoStore()
+const experimentalStore = useExperimentalStore()
 const showSponsorModal = ref(false)
 const showUpdateSuccess = ref(false)
 const otaUpdateVersion = ref('')
@@ -109,6 +111,12 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
+.newdesign-shell .app-container {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
 @media (min-width: 768px) {
   .app-container {
     padding: var(--spacing-lg);
@@ -136,6 +144,18 @@ onUnmounted(() => {
   overflow-x: hidden;
 }
 
+.newdesign-shell .main-content {
+  min-height: 100vh;
+  margin-bottom: 0;
+  padding: 112px 24px 24px 384px;
+}
+
+@media (max-width: 991px) {
+  .newdesign-shell .main-content {
+    padding: 96px 8px 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .main-content {
     margin-bottom: var(--spacing-md);
@@ -146,6 +166,17 @@ onUnmounted(() => {
   padding: var(--spacing-lg) 0 var(--spacing-xl);
   /* border-top: 1px solid var(--color-border); */ /* Cleaner look without border */
   margin-top: auto;
+}
+
+.newdesign-shell .app-footer {
+  padding: 8px 24px 18px 384px;
+  margin-top: 0;
+}
+
+@media (max-width: 991px) {
+  .newdesign-shell .app-footer {
+    padding: 8px 8px 18px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -183,6 +214,12 @@ onUnmounted(() => {
   border-color: var(--color-danger);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.newdesign-shell .sponsor-btn {
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
 }
 
 .update-success-body {
