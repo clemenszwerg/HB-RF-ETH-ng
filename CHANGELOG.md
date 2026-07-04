@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-07-04
+
+### Changes
+- fix: use explicit raw manifest ref
+- fix: keep beta manifest on latest stable release
+- chore: update latest.json for v2.2.1
+
 ## [2.2.1] - 2026-07-04
 
 ### Changes
