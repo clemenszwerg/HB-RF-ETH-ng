@@ -34,30 +34,21 @@
 #include "ota_config.h"
 #include "monitoring.h"
 #include "esp_heap_caps.h"
+#include "cJSON.h"
 
 static const char *TAG = "UpdateCheck";
 
-// GitHub repository for HB-RF-ETH-ng. Single source of truth for version,
-// release notes and firmware binary.
-static const char *GITHUB_REPO = "Xerolux/HB-RF-ETH-ng";
+// Static manifests keep the device away from the GitHub Releases API. The
+// Releases API response grows with release notes and asset metadata and is also
+// subject to unauthenticated API rate limits. These raw files are tiny and
+// deterministic; GitHub Releases remain only the binary hosting target.
+static const char *UPDATE_MANIFEST_BASE =
+    "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main";
 
-// Cap for the heap buffer used to receive the GitHub releases JSON.
-//
-// The buffer is allocated lazily: only after the TLS handshake completes and
-// only when response body data actually starts arriving (see _gh_event_handler),
-// and it is freed again the moment parsing finishes. It therefore never
-// overlaps with another TLS handshake's memory use.
-//
-// The stable channel uses /releases/latest (a single release object, ~8-12 KB);
-// the beta channel uses /releases?per_page=1 (~13 KB). 24 KB comfortably holds
-// either response with headroom for growing release notes.
-//
-// Parsing uses a zero-allocation string parser (_parseGitHubReleasesString)
-// instead of cJSON: cJSON needs 3-5x the JSON size in heap for its internal
-// parse tree, which - combined with this buffer and the still-live TLS context
-// - exhausted the WROOM-32's ~90 KB free heap and crashed the update check with
-// an out-of-memory watchdog reset. The string parser adds ~0 bytes of heap.
-static const size_t GH_RESPONSE_CAP = 24 * 1024;
+// Cap for the heap buffer used to receive latest.json / beta.json. A normal
+// manifest is below 1 KB; 4 KB leaves room for future fields without reviving
+// the old large-response heap pressure.
+static const size_t MANIFEST_RESPONSE_CAP = 4 * 1024;
 
 // esp_https_ota in IDF 6.x no longer exposes ESP_ERR_HTTPS_OTA_INCOMPLETE; use
 // a private application code to report a download that ended prematurely.
@@ -70,25 +61,10 @@ void _update_check_task_func(void *parameter)
 
 // ---- Testable helpers ------------------------------------------------------
 
-void buildReleasesApiUrl(bool beta, char* out, size_t outLen)
+void buildUpdateManifestUrl(bool beta, char* out, size_t outLen)
 {
-    // "/releases/latest" excludes prereleases; "/releases" lists every
-    // non-draft release including prereleases, newest first.
-    if (beta) {
-        // per_page=1: each release JSON is ~13 KB; cJSON needs 3-5× RAM
-        // for its internal parse tree. With per_page=2 the 27 KB response
-        // exhausted the heap (64 KB buffer + ~60 KB cJSON tree > 94 KB heap).
-        // per_page=1 keeps the response at ~14 KB, leaving heap for cJSON.
-        // GitHub's /releases endpoint generally returns newest first; the
-        // rare out-of-order case is covered by the fallback string parser.
-        snprintf(out, outLen,
-                 "https://api.github.com/repos/%s/releases?per_page=1",
-                 GITHUB_REPO);
-    } else {
-        snprintf(out, outLen,
-                 "https://api.github.com/repos/%s/releases/latest",
-                 GITHUB_REPO);
-    }
+    snprintf(out, outLen, "%s/%s.json", UPDATE_MANIFEST_BASE,
+             beta ? "beta" : "latest");
 }
 
 void normalizeTag(const char* tag, char* out, size_t outLen)
@@ -110,8 +86,8 @@ void normalizeTag(const char* tag, char* out, size_t outLen)
 
 // ---- HTTP response accumulator --------------------------------------------
 
-struct GhResponse {
-    char *buf;        // heap-allocated lazily (GH_RESPONSE_CAP + terminator)
+struct ManifestResponse {
+    char *buf;        // heap-allocated lazily (MANIFEST_RESPONSE_CAP + terminator)
     size_t len;
     size_t cap;
     int httpStatus;
@@ -119,33 +95,31 @@ struct GhResponse {
     bool truncated;   // true when the response exceeded cap
 };
 
-static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
+static esp_err_t _manifest_event_handler(esp_http_client_event_t *evt)
 {
-    GhResponse *r = (GhResponse *)evt->user_data;
+    ManifestResponse *r = (ManifestResponse *)evt->user_data;
     if (!r) return ESP_OK;
 
     if (evt->event_id == HTTP_EVENT_ON_DATA) {
         if (r->httpStatus == 0) {
             r->httpStatus = esp_http_client_get_status_code(evt->client);
         }
-        // Only buffer successful responses. A 403 (rate limit) or 404 (no
-        // releases yet) body is small and not worth parsing.
+        // Only buffer successful responses. Error bodies are small and not
+        // worth parsing.
         if (r->httpStatus == 200) {
-            // Allocate the (large) response buffer lazily, only once body data
-            // is actually arriving. By this point the TLS handshake is already
-            // complete, so we never hold ~48 KB of heap across the handshake -
-            // that starved the PSA-crypto signature verification on the
-            // WROOM-32 (no PSRAM) and aborted the handshake with
-            // PSA_ERROR_INSUFFICIENT_MEMORY (-0x008D / -141).
+            // Allocate the response buffer lazily, only once body data is
+            // actually arriving. By this point the TLS handshake is already
+            // complete, so the manifest buffer never overlaps with the peak
+            // handshake memory pressure.
             if (!r->buf && !r->allocFailed) {
                 r->buf = (char *)malloc(r->cap + 1);
                 if (!r->buf) {
                     r->allocFailed = true;
-                    ESP_LOGE(TAG, "Failed to allocate %u bytes for GitHub response",
+                    ESP_LOGE(TAG, "Failed to allocate %u bytes for update manifest",
                              (unsigned)r->cap);
                     // Abort the transfer immediately: there is no point
-                    // decrypting and downloading the rest of a response we
-                    // cannot store. _doFetch reports the error via allocFailed.
+                    // downloading the rest of a response we cannot store.
+                    // _doFetch reports the error via allocFailed.
                     return ESP_ERR_NO_MEM;
                 }
             }
@@ -160,7 +134,7 @@ static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
                     r->len += copy;
                 }
                 if (r->truncated) {
-                    // Never accept a release parsed from an incomplete JSON
+                    // Never accept a manifest parsed from an incomplete JSON
                     // document. Abort early and report a deterministic error.
                     return ESP_ERR_INVALID_SIZE;
                 }
@@ -170,161 +144,72 @@ static esp_err_t _gh_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-// Zero-allocation parser for the GitHub Releases JSON response.
-//
-// Replaces cJSON, which needed 3-5x the JSON size in heap for its parse tree
-// and - combined with the response buffer and the still-live TLS context -
-// exhausted the WROOM-32's ~90 KB free heap, crashing the update check with an
-// out-of-memory watchdog reset. This parser allocates nothing on the heap.
-//
-// Handles both response shapes:
-//   - /releases/latest  -> a single release object
-//   - /releases?per_page=N -> an array of release objects
-// The list endpoint is deliberately requested with per_page=1, so parsing the
-// first non-draft release is sufficient and avoids large temporary objects on
-// the task stack. Extracts tag_name (->version), published_at,
-// prerelease, draft (skipped), the firmware_*.bin browser_download_url and the
-// release-notes body. releaseUrl is constructed from the repo + tag because the
-// "html_url" field is interleaved with author/uploader objects and cannot be
-// reliably matched to a release by string scanning alone.
-static bool _parseGitHubReleasesString(const char *buf, ReleaseInfo *out)
+static const char* json_string(cJSON *root, const char *name)
+{
+    cJSON *item = cJSON_GetObjectItem(root, name);
+    return cJSON_IsString(item) ? item->valuestring : NULL;
+}
+
+static bool json_bool(cJSON *root, const char *name, bool fallback)
+{
+    cJSON *item = cJSON_GetObjectItem(root, name);
+    if (cJSON_IsBool(item)) return cJSON_IsTrue(item);
+    return fallback;
+}
+
+static bool is_hex_sha256(const char *value)
+{
+    if (!value || strlen(value) != 64) return false;
+    for (const char *p = value; *p; p++) {
+        bool digit = (*p >= '0' && *p <= '9');
+        bool lower = (*p >= 'a' && *p <= 'f');
+        bool upper = (*p >= 'A' && *p <= 'F');
+        if (!digit && !lower && !upper) return false;
+    }
+    return true;
+}
+
+static bool copy_string_field(char *dst, size_t dstLen, const char *src)
+{
+    if (!dst || dstLen == 0 || !src || !src[0]) return false;
+    snprintf(dst, dstLen, "%s", src);
+    return true;
+}
+
+static bool _parseUpdateManifest(const char *buf, ReleaseInfo *out)
 {
     if (!buf || !out) return false;
-
-    // Parse directly into the caller-owned result. ReleaseInfo contains a 4 KB
-    // notes buffer; keeping both "current" and "best" copies here consumed
-    // nearly 10 KB of stack on top of refresh()'s result object and overflowed
-    // the 12 KB UpdateCheck task at its first run, 30 seconds after boot.
     memset(out, 0, sizeof(*out));
-    const char *p = buf;
 
-    while ((p = strstr(p, "\"tag_name\":")) != NULL) {
-        // --- version (strip a single leading v/V) ---
-        const char *v = p + strlen("\"tag_name\":");
-        while (*v == ' ' || *v == ':') v++;
-        if (*v == '"') v++;
-        const char *tagEnd = strchr(v, '"');
-        if (!tagEnd) break;
-        {
-            const char *vp = v;
-            if ((vp[0] == 'v' || vp[0] == 'V') && vp[1] >= '0' && vp[1] <= '9') vp++;
-            size_t tl = (size_t)(tagEnd - vp);
-            if (tl >= sizeof(out->version)) tl = sizeof(out->version) - 1;
-            memcpy(out->version, vp, tl);
-            out->version[tl] = 0;
-        }
+    cJSON *root = cJSON_Parse(buf);
+    if (!root) return false;
 
-        // Remaining fields of this release object live up to the next tag_name
-        // (or end of buffer).
-        const char *scan = tagEnd + 1;
-        const char *objEnd = strstr(scan, "\"tag_name\":");
-        if (!objEnd) objEnd = scan + strlen(scan);
+    const char *version = json_string(root, "version");
+    const char *downloadUrl = json_string(root, "downloadUrl");
+    if (!downloadUrl) downloadUrl = json_string(root, "url");
+    const char *sha256 = json_string(root, "sha256");
+    const char *releaseUrl = json_string(root, "releaseUrl");
+    const char *publishedAt = json_string(root, "publishedAt");
+    const char *notes = json_string(root, "releaseNotes");
+    if (!notes) notes = json_string(root, "notes");
+    const char *notesUrl = json_string(root, "notesUrl");
 
-        // --- draft (drafts are skipped) ---
-        bool isDraft = false;
-        const char *dr = strstr(scan, "\"draft\":");
-        if (dr && dr < objEnd) {
-            dr += strlen("\"draft\":");
-            while (*dr == ' ' || *dr == ':') dr++;
-            isDraft = (strncmp(dr, "true", 4) == 0);
-        }
-        if (isDraft) {
-            memset(out, 0, sizeof(*out));
-            p = objEnd;
-            continue;
-        }
-
-        // --- prerelease ---
-        const char *pr = strstr(scan, "\"prerelease\":");
-        if (pr && pr < objEnd) {
-            pr += strlen("\"prerelease\":");
-            while (*pr == ' ' || *pr == ':') pr++;
-            out->isPrerelease = (strncmp(pr, "true", 4) == 0);
-        }
-
-        // --- published_at ---
-        const char *pa = strstr(scan, "\"published_at\":");
-        if (pa && pa < objEnd) {
-            pa += strlen("\"published_at\":");
-            while (*pa == ' ' || *pa == ':') pa++;
-            if (*pa == '"') pa++;
-            const char *pe = strchr(pa, '"');
-            if (pe) {
-                size_t pl = (size_t)(pe - pa);
-                if (pl >= sizeof(out->publishedAt)) pl = sizeof(out->publishedAt) - 1;
-                memcpy(out->publishedAt, pa, pl);
-                out->publishedAt[pl] = 0;
-            }
-        }
-
-        // --- firmware_*.bin browser_download_url ---
-        const char *bdu = strstr(scan, "\"browser_download_url\":");
-        while (bdu && bdu < objEnd) {
-            const char *bv = bdu + strlen("\"browser_download_url\":");
-            while (*bv == ' ' || *bv == ':') bv++;
-            if (*bv == '"') bv++;
-            const char *be = strchr(bv, '"');
-            if (!be) break;
-            size_t bl = (size_t)(be - bv);
-            // extract the filename portion (after the last '/')
-            const char *fn = bv;
-            for (const char *c = bv; c < be; c++) {
-                if (*c == '/') fn = c + 1;
-            }
-            size_t fnLen = (size_t)(be - fn);
-            if (!isDraft &&
-                fnLen > 9 && strncmp(fn, "firmware_", 9) == 0 &&
-                fnLen > 4 && strncmp(be - 4, ".bin", 4) == 0 &&
-                bl < sizeof(out->downloadUrl)) {
-                memcpy(out->downloadUrl, bv, bl);
-                out->downloadUrl[bl] = 0;
-            }
-            bdu = strstr(be, "\"browser_download_url\":");
-        }
-
-        // --- body (release notes), JSON-unescaped, capped to the buffer ---
-        const char *bt = strstr(scan, "\"body\":");
-        if (bt && bt < objEnd) {
-            bt += strlen("\"body\":");
-            while (*bt == ' ' || *bt == ':') bt++;
-            if (*bt == '"') bt++;
-            const char *be = bt;
-            while (*be) {
-                if (*be == '\\' && be[1]) { be += 2; continue; }
-                if (*be == '"') break;
-                be++;
-            }
-            size_t cap = sizeof(out->body) - 1;
-            size_t bi = 0;
-            const char *src = bt;
-            while (src < be && bi < cap) {
-                if (*src == '\\' && src + 1 < be) {
-                    char c = src[1];
-                    if (c == 'n') out->body[bi++] = '\n';
-                    else if (c == 't') out->body[bi++] = '\t';
-                    else if (c != 'r') out->body[bi++] = c;  // drop \r
-                    src += 2;
-                } else {
-                    out->body[bi++] = *src++;
-                }
-            }
-            out->body[bi] = 0;
-        }
-
-        if (out->version[0]) {
-            // releaseUrl: reconstruct from repo + tag (reliable and avoids the
-            // html_url ordering issue with nested author/uploader objects).
-            snprintf(out->releaseUrl, sizeof(out->releaseUrl),
-                     "https://github.com/%s/releases/tag/v%s",
-                     GITHUB_REPO, out->version);
-            out->valid = true;
-            return true;
-        }
-
-        memset(out, 0, sizeof(*out));
-        p = objEnd;
+    bool ok = false;
+    if (version && downloadUrl && is_hex_sha256(sha256)) {
+        normalizeTag(version, out->version, sizeof(out->version));
+        ok = out->version[0] &&
+             copy_string_field(out->downloadUrl, sizeof(out->downloadUrl), downloadUrl) &&
+             copy_string_field(out->sha256, sizeof(out->sha256), sha256);
+        if (releaseUrl) copy_string_field(out->releaseUrl, sizeof(out->releaseUrl), releaseUrl);
+        if (publishedAt) copy_string_field(out->publishedAt, sizeof(out->publishedAt), publishedAt);
+        if (notes) copy_string_field(out->body, sizeof(out->body), notes);
+        else if (notesUrl) snprintf(out->body, sizeof(out->body), "Release notes: %s", notesUrl);
+        out->isPrerelease = json_bool(root, "isPrerelease", json_bool(root, "prerelease", false));
+        out->valid = ok;
     }
-    return false;
+
+    cJSON_Delete(root);
+    return ok;
 }
 
 // ---- UpdateCheck -----------------------------------------------------------
@@ -519,11 +404,11 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
 {
     bool beta = _settings ? _settings->getBetaChannel() : false;
     char url[128];
-    buildReleasesApiUrl(beta, url, sizeof(url));
+    buildUpdateManifestUrl(beta, url, sizeof(url));
 
     size_t free_heap = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
-    ESP_LOGI(TAG, "Fetching %s release info from GitHub (beta: %d, heap free: %u KB)",
-             beta ? "latest (incl. pre-release)" : "stable", beta ? 1 : 0,
+    ESP_LOGI(TAG, "Fetching %s update manifest (beta: %d, heap free: %u KB)",
+             beta ? "beta" : "stable", beta ? 1 : 0,
              (unsigned)(free_heap / 1024));
 
     // Serialize with the changelog proxy — two TLS handshakes at once exhaust
@@ -533,7 +418,7 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
     if (g_net_fetch_mutex) {
         if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(15000)) != pdTRUE) {
             snprintf(out->error, sizeof(out->error), "network busy");
-            ESP_LOGW(TAG, "GitHub fetch skipped: another HTTPS operation is still active");
+            ESP_LOGW(TAG, "Update manifest fetch skipped: another HTTPS operation is still active");
             return false;
         }
         net_locked = true;
@@ -547,17 +432,17 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
     bool parsedOk = false;
 
     // These are declared before the first goto so they're never skipped.
-    GhResponse resp = {};
+    ManifestResponse resp = {};
     esp_http_client_config_t config = {};
 
-    // The response buffer is allocated lazily in _gh_event_handler once body
-    // data starts arriving, so its 24 KB is not held during the TLS handshake.
-    resp.cap = GH_RESPONSE_CAP;
+    // The response buffer is allocated lazily in the event handler once body
+    // data starts arriving, so it is not held during the TLS handshake.
+    resp.cap = MANIFEST_RESPONSE_CAP;
 
     configure_ota_http_client(config, url);
     config.timeout_ms = 10000;
     config.buffer_size = 2048;
-    config.event_handler = _gh_event_handler;
+    config.event_handler = _manifest_event_handler;
     config.user_data = &resp;
 
     client = esp_http_client_init(&config);
@@ -567,12 +452,10 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
         goto cleanup;
     }
 
-    // GitHub requires a User-Agent and accepts a vendor media type for JSON.
+    // Raw GitHub accepts normal JSON. Keep a User-Agent for proxy hygiene and
+    // request identity encoding because ESP-IDF does not decompress gzip.
     esp_http_client_set_header(client, "User-Agent", "HB-RF-ETH-ng");
-    esp_http_client_set_header(client, "Accept", "application/vnd.github+json");
-    // Prevent GitHub from gzip-compressing the response: ESP-IDF's HTTP client
-    // does not automatically decompress Content-Encoding, so the parser would
-    // receive binary data and fail. Asking for identity ensures plain JSON.
+    esp_http_client_set_header(client, "Accept", "application/json");
     esp_http_client_set_header(client, "Accept-Encoding", "identity");
 
     err = esp_http_client_perform(client);
@@ -590,10 +473,10 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
     parsedOk = false;
     if (resp.allocFailed) {
         snprintf(out->error, sizeof(out->error), "out of memory");
-        ESP_LOGE(TAG, "GitHub response buffer allocation failed");
+        ESP_LOGE(TAG, "Update manifest buffer allocation failed");
     } else if (resp.truncated) {
-        snprintf(out->error, sizeof(out->error), "GitHub response too large");
-        ESP_LOGE(TAG, "GitHub response exceeded %u-byte limit", (unsigned)resp.cap);
+        snprintf(out->error, sizeof(out->error), "update manifest too large");
+        ESP_LOGE(TAG, "Update manifest exceeded %u-byte limit", (unsigned)resp.cap);
     } else if (err == ESP_OK && status == 200 && bodyLen > 0 && resp.buf) {
         // Null-terminate before parsing.
         resp.buf[bodyLen] = 0;
@@ -622,33 +505,31 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
         }
 
         size_t heapBeforeParse = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
-        ESP_LOGI(TAG, "Parsing GitHub response (heap free %u KB)...",
+        ESP_LOGI(TAG, "Parsing update manifest (heap free %u KB)...",
                  (unsigned)(heapBeforeParse / 1024));
 
-        // Zero-allocation string parser - no cJSON heap overhead. Handles both
-        // /releases/latest (single object) and /releases?per_page=N (array).
-        parsedOk = _parseGitHubReleasesString(resp.buf, out);
+        parsedOk = _parseUpdateManifest(resp.buf, out);
 
         ESP_LOGI(TAG, "Parse %s (heap free %u KB)",
                  parsedOk ? "ok" : "failed",
                  (unsigned)(heap_caps_get_free_size(MALLOC_CAP_DEFAULT) / 1024));
 
         if (!parsedOk) {
-            snprintf(out->error, sizeof(out->error), "could not parse release JSON");
-            ESP_LOGE(TAG, "GitHub response parse failed");
+            snprintf(out->error, sizeof(out->error), "could not parse update manifest");
+            ESP_LOGE(TAG, "Update manifest parse failed");
         }
     } else if (err == ESP_OK && status == 404) {
         snprintf(out->error, sizeof(out->error),
-                 "no stable release available yet");
-        ESP_LOGW(TAG, "GitHub returned 404 - no stable release published");
+                 "update manifest not found");
+        ESP_LOGW(TAG, "Update manifest returned 404");
     } else if (err == ESP_OK && status == 403) {
         snprintf(out->error, sizeof(out->error),
-                 "GitHub API rate limit exceeded");
-        ESP_LOGW(TAG, "GitHub API rate limited (HTTP 403)");
+                 "update manifest access denied");
+        ESP_LOGW(TAG, "Update manifest access denied (HTTP 403)");
     } else {
         snprintf(out->error, sizeof(out->error),
                  "HTTP %d (%s)", status, esp_err_to_name(err));
-        ESP_LOGE(TAG, "GitHub fetch failed: HTTP %d (%s)", status, esp_err_to_name(err));
+        ESP_LOGE(TAG, "Update manifest fetch failed: HTTP %d (%s)", status, esp_err_to_name(err));
     }
 
 cleanup:
@@ -661,13 +542,14 @@ cleanup:
              (int)((int)heap_after - (int)free_heap) / 1024);
 
     if (parsedOk) {
-        ESP_LOGI(TAG, "Latest %s release: %s%s (asset: %s)",
-                 beta ? "any" : "stable",
+        ESP_LOGI(TAG, "Latest %s manifest: %s%s (asset: %s, sha256: %.12s...)",
+                 beta ? "beta" : "stable",
                  out->version,
                  out->isPrerelease ? " [prerelease]" : "",
-                 out->downloadUrl[0] ? out->downloadUrl : "(none)");
+                 out->downloadUrl[0] ? out->downloadUrl : "(none)",
+                 out->sha256);
     } else {
-        ESP_LOGW(TAG, "GitHub release fetch failed: %s", out->error);
+        ESP_LOGW(TAG, "Update manifest fetch failed: %s", out->error);
     }
 
     return parsedOk;
@@ -725,7 +607,7 @@ void UpdateCheck::_taskFunc()
     // 24h, split into 1h chunks: pdMS_TO_TICKS((TickType_t)ms * configTICK_RATE_HZ)
     // overflows 32-bit TickType_t arithmetic for a 24h millisecond value
     // (86,400,000 ms * 100 Hz > UINT32_MAX), which silently wrapped this
-    // delay down to ~500 s - hammering the GitHub API every ~8 minutes
+    // delay down to ~500 s - hammering the update manifest every ~8 minutes
     // instead of once a day. 1h chunks stay well within range.
     for (int hour = 0; hour < 24; hour++)
     {

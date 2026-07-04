@@ -488,7 +488,7 @@ export default {
   // Privacy
   privacy: {
     title: 'Privacy',
-    updateCheck: 'Automatic updates and firmware checks connect to the server api.github.com. Your IP address is transmitted to check for availability of new versions.'
+    updateCheck: 'Automatic updates and firmware checks connect to the server raw.githubusercontent.com / github.com. Your IP address is transmitted to check for availability of new versions.'
   },
 
   // Changelog

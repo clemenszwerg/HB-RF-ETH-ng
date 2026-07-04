@@ -512,10 +512,10 @@ onMounted(async () => {
 
   try {
     // Only read the device's cached snapshot - opening the Firmware page must
-    // never trigger a live GitHub fetch. The device runs its own 24h
+    // never trigger a live manifest fetch. The device runs its own 24h
     // background check, and the user can force a check on demand with the
     // "Check now" button. This keeps every page visit from consuming a
-    // (rate-limited) GitHub API call. If the cache is still empty (e.g. fresh
+    // manifest request. If the cache is still empty (e.g. fresh
     // boot before the background task ran), the page shows "n/a" until the
     // background task populates it, which the cached poll below picks up.
     await updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })

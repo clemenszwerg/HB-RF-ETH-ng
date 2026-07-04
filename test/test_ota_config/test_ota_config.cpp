@@ -33,28 +33,27 @@ void test_ota_config_defaults(void) {
     TEST_ASSERT_FALSE(config.skip_cert_common_name_check);
 }
 
-// GitHub Releases API URL: stable channel hits /releases/latest, beta
-// channel hits /releases?per_page=1 to keep response/parse memory bounded.
-void test_build_releases_api_url_stable(void) {
+// Static manifest URLs keep the device away from the large GitHub Releases API.
+void test_build_update_manifest_url_stable(void) {
     char buf[128];
-    buildReleasesApiUrl(false, buf, sizeof(buf));
+    buildUpdateManifestUrl(false, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING(
-        "https://api.github.com/repos/Xerolux/HB-RF-ETH-ng/releases/latest",
+        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/latest.json",
         buf);
 }
 
-void test_build_releases_api_url_beta(void) {
+void test_build_update_manifest_url_beta(void) {
     char buf[128];
-    buildReleasesApiUrl(true, buf, sizeof(buf));
+    buildUpdateManifestUrl(true, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING(
-        "https://api.github.com/repos/Xerolux/HB-RF-ETH-ng/releases?per_page=1",
+        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/beta.json",
         buf);
 }
 
 // Output buffer too small must yield a safe truncated null-terminated string.
-void test_build_releases_api_url_truncation(void) {
+void test_build_update_manifest_url_truncation(void) {
     char buf[16];
-    buildReleasesApiUrl(false, buf, sizeof(buf));
+    buildUpdateManifestUrl(false, buf, sizeof(buf));
     TEST_ASSERT_EQUAL(16, (int)strlen(buf) + 1);  // filled to the brim
     TEST_ASSERT_EQUAL('\0', buf[15]);
 }
@@ -95,9 +94,9 @@ void setup() {
     vTaskDelay(pdMS_TO_TICKS(2000));
     UNITY_BEGIN();
     RUN_TEST(test_ota_config_defaults);
-    RUN_TEST(test_build_releases_api_url_stable);
-    RUN_TEST(test_build_releases_api_url_beta);
-    RUN_TEST(test_build_releases_api_url_truncation);
+    RUN_TEST(test_build_update_manifest_url_stable);
+    RUN_TEST(test_build_update_manifest_url_beta);
+    RUN_TEST(test_build_update_manifest_url_truncation);
     RUN_TEST(test_normalize_tag_strips_v_prefix);
     RUN_TEST(test_normalize_tag_handles_null_and_empty);
     UNITY_END();

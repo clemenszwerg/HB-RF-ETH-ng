@@ -488,7 +488,7 @@ export default {
   // Privacy
   privacy: {
     title: 'Datenschutz',
-    updateCheck: 'Automatische Updates und Firmware-Checks verbinden sich mit dem Server api.github.com. Dabei wird Ihre IP-Adresse übertragen, um die Verfügbarkeit neuer Versionen zu prüfen.'
+    updateCheck: 'Automatische Updates und Firmware-Checks verbinden sich mit dem Server raw.githubusercontent.com / github.com. Dabei wird Ihre IP-Adresse übertragen, um die Verfügbarkeit neuer Versionen zu prüfen.'
   },
 
   // Changelog

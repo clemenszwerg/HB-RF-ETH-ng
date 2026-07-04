@@ -1630,6 +1630,7 @@ static void send_release_info_response(httpd_req_t *req)
     cJSON_AddStringToObject(root, "releaseNotes", info.valid ? info.body : "");
     cJSON_AddStringToObject(root, "releaseUrl", info.releaseUrl);
     cJSON_AddStringToObject(root, "downloadUrl", info.downloadUrl);
+    cJSON_AddStringToObject(root, "sha256", info.sha256);
     cJSON_AddStringToObject(root, "publishedAt", info.publishedAt);
     cJSON_AddNumberToObject(root, "fetchedAt", (double)info.fetchedAtMs);
     cJSON_AddBoolToObject(root, "betaChannel", _settings->getBetaChannel());
@@ -1662,8 +1663,8 @@ esp_err_t get_check_update_handler_func(httpd_req_t *req)
     }
 
     // GET returns the cached snapshot only - no network fetch. The WebUI
-    // uses POST /api/check_update to trigger a refresh; this keeps GET
-    // cheap for polling and avoids spamming the GitHub API.
+    // uses POST /api/check_update to trigger a refresh; this keeps GET cheap
+    // for polling and avoids redundant manifest requests.
     send_release_info_response(req);
     return ESP_OK;
 }
@@ -1674,7 +1675,7 @@ httpd_uri_t get_check_update_handler = {
     .handler = get_check_update_handler_func,
     .user_ctx = NULL};
 
-// POST /api/check_update: triggers an immediate GitHub Releases API fetch.
+// POST /api/check_update: triggers an immediate update-manifest fetch.
 // Runs in a detached task because the fetch can take up to 10 s and the
 // httpd task must stay responsive.
 struct RefreshJob {

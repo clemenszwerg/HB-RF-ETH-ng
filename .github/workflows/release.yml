@@ -211,3 +211,103 @@ jobs:
           make_latest: ${{ steps.release_type.outputs.IS_PRERELEASE == 'false' && steps.release_type.outputs.IS_DRAFT == 'false' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate update manifest
+        if: steps.release_type.outputs.IS_DRAFT == 'false'
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          VERSION_TAG="${{ steps.get_version.outputs.VERSION_TAG }}"
+          IS_PRERELEASE="${{ steps.release_type.outputs.IS_PRERELEASE }}"
+
+          FIRMWARE_FILE="firmware_${VERSION}.bin"
+          if [ ! -f "release/${FIRMWARE_FILE}" ]; then
+            echo "ERROR: release/${FIRMWARE_FILE} not found"
+            ls -la release
+            exit 1
+          fi
+
+          SHA256="$(awk -v file="${FIRMWARE_FILE}" '$2 == file { print $1 }' release/SHA256SUMS.txt)"
+          if [ -z "$SHA256" ]; then
+            echo "ERROR: SHA256 for ${FIRMWARE_FILE} not found in release/SHA256SUMS.txt"
+            cat release/SHA256SUMS.txt
+            exit 1
+          fi
+
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            CHANNEL="beta"
+            MANIFEST_FILE="beta.json"
+          else
+            CHANNEL="stable"
+            MANIFEST_FILE="latest.json"
+          fi
+
+          PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          mkdir -p manifest-out
+          VERSION="$VERSION" \
+          VERSION_TAG="$VERSION_TAG" \
+          FIRMWARE_FILE="$FIRMWARE_FILE" \
+          SHA256="$SHA256" \
+          CHANNEL="$CHANNEL" \
+          MANIFEST_FILE="$MANIFEST_FILE" \
+          IS_PRERELEASE="$IS_PRERELEASE" \
+          PUBLISHED_AT="$PUBLISHED_AT" \
+            python3 - <<'PY'
+          import json
+          import os
+
+          version = os.environ["VERSION"]
+          version_tag = os.environ["VERSION_TAG"]
+          firmware_file = os.environ["FIRMWARE_FILE"]
+          sha256 = os.environ["SHA256"]
+          channel = os.environ["CHANNEL"]
+          manifest_file = os.environ["MANIFEST_FILE"]
+          is_prerelease = os.environ["IS_PRERELEASE"] == "true"
+
+          release_url = f"https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/{version_tag}"
+          manifest = {
+              "version": version,
+              "channel": channel,
+              "isPrerelease": is_prerelease,
+              "publishedAt": os.environ["PUBLISHED_AT"],
+              "downloadUrl": f"https://github.com/Xerolux/HB-RF-ETH-ng/releases/download/{version_tag}/{firmware_file}",
+              "sha256": sha256,
+              "releaseUrl": release_url,
+              "notesUrl": release_url,
+          }
+
+          with open(os.path.join("manifest-out", manifest_file), "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+              f.write("\n")
+          PY
+
+          echo "Generated ${MANIFEST_FILE}:"
+          cat "manifest-out/${MANIFEST_FILE}"
+
+      - name: Checkout main for manifest update
+        if: steps.release_type.outputs.IS_DRAFT == 'false'
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: manifest-repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish update manifest to main
+        if: steps.release_type.outputs.IS_DRAFT == 'false'
+        working-directory: manifest-repo
+        run: |
+          MANIFEST_FILE="${{ steps.release_type.outputs.IS_PRERELEASE == 'true' && 'beta.json' || 'latest.json' }}"
+          VERSION_TAG="${{ steps.get_version.outputs.VERSION_TAG }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          cp "../manifest-out/${MANIFEST_FILE}" "${MANIFEST_FILE}"
+
+          git add "${MANIFEST_FILE}"
+          if git diff --cached --quiet; then
+            echo "${MANIFEST_FILE} already up to date"
+            exit 0
+          fi
+
+          git commit -m "chore: update ${MANIFEST_FILE} for ${VERSION_TAG}"
+          git push origin main

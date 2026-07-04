@@ -447,9 +447,15 @@ snapshot is refreshed automatically every 24 h by a background task and on
 demand via `POST /api/check_update`. No network request is triggered by GET,
 so it is safe to poll.
 
-The release data is sourced from the public GitHub Releases API
-(`https://api.github.com/repos/Xerolux/HB-RF-ETH-ng/releases/latest` for the
-stable channel, `/releases` for the beta channel).
+The release data is sourced from static update manifests in this repository:
+`https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/latest.json` for
+the stable channel and `.../beta.json` for the beta channel. GitHub Releases
+still host the firmware binary, but the device no longer parses the GitHub
+Releases API.
+
+When publishing a release, update `latest.json` and, if the beta channel should
+see the same or a newer pre-release, `beta.json`. The manifest `sha256` must
+match the firmware binary entry in the release `SHA256SUMS.txt`.
 
 **Authentication:** Required
 
@@ -463,6 +469,7 @@ stable channel, `/releases` for the beta channel).
   "releaseNotes": "## What's new\n\n- Fixed ...",
   "releaseUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/v2.1.12",
   "downloadUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/download/v2.1.12/firmware_2.1.12.bin",
+  "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "publishedAt": "2025-08-14T12:34:56Z",
   "fetchedAt": 1735300000000,
   "betaChannel": false,
@@ -475,14 +482,15 @@ stable channel, `/releases` for the beta channel).
 - `currentVersion`: Firmware version currently running on the device.
 - `latestVersion`: Latest version matching the selected channel (`"n/a"` before the first successful fetch).
 - `updateAvailable`: `true` when `latestVersion > currentVersion` per semver.
-- `isPrerelease`: Mirrors the GitHub `prerelease` flag of the matched release.
-- `releaseNotes`: Markdown body of the GitHub release (truncated to the last 4 KB).
-- `releaseUrl`: `html_url` of the release for the "View on GitHub" link.
-- `downloadUrl`: `browser_download_url` of the `firmware_*.bin` asset. Empty when no asset is attached.
-- `publishedAt`: ISO 8601 timestamp from GitHub.
+- `isPrerelease`: Mirrors the manifest's pre-release flag.
+- `releaseNotes`: Optional Markdown excerpt from the manifest.
+- `releaseUrl`: Release page for the "View on GitHub" link.
+- `downloadUrl`: Firmware binary URL advertised by the manifest.
+- `sha256`: Expected SHA-256 of the firmware binary advertised by the manifest.
+- `publishedAt`: ISO 8601 timestamp from the manifest.
 - `fetchedAt`: Unix epoch (milliseconds) of the last successful fetch; `0` if never fetched.
 - `betaChannel`: Current value of the `betaChannel` setting.
-- `fetchInProgress`: `true` while a GitHub fetch is in flight.
+- `fetchInProgress`: `true` while a manifest fetch is in flight.
 - `error`: Human-readable description of the last fetch failure, `null` if the snapshot is valid.
 
 **Example:**
@@ -495,12 +503,12 @@ curl http://192.168.1.100/api/check_update \
 
 ### POST /api/check_update
 
-Trigger an immediate refresh from the GitHub Releases API. Returns the same
+Trigger an immediate refresh from the static update manifest. Returns the same
 JSON shape as `GET /api/check_update` once the fetch completes. The endpoint
 runs the fetch in a detached task so the single-threaded HTTP server stays
 responsive; the response is sent after the fetch finishes (typically 3–10 s).
 Concurrent requests coalesce onto the in-flight fetch rather than spawning
-duplicate GitHub API calls.
+duplicate manifest requests.
 
 **Authentication:** Required
 

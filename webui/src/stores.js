@@ -272,6 +272,7 @@ export const useUpdateStore = defineStore('update', {
     // browser_download_url of the firmware_*.bin asset. Empty when no asset
     // is attached (should not happen for normal releases).
     downloadUrl: '',
+    sha256: '',
     publishedAt: '',
     // Whether the device is currently configured to consider pre-releases.
     betaChannel: false,
@@ -287,8 +288,8 @@ export const useUpdateStore = defineStore('update', {
   },
   actions: {
     // Refreshes the cached release info from the device. By default a POST
-    // is sent which triggers an immediate GitHub API fetch on the device
-    // (slow, ~3-10 s). Pass { cached: true } to only read the cached state.
+    // triggers an immediate static-manifest fetch on the device. Pass
+    // { cached: true } to only read the cached state.
     async checkForUpdate(currentVersion, options = {}) {
       if (this.isChecking) return
       const cached = options && options.cached === true
@@ -298,7 +299,7 @@ export const useUpdateStore = defineStore('update', {
 
       try {
         // Worst case on the device: up to 15 s waiting for g_net_fetch_mutex
-        // (another TLS fetch already running) plus up to 10 s for the GitHub
+        // (another TLS fetch already running) plus up to 10 s for the manifest
         // request itself - give the client enough headroom to not time out
         // while the device is still legitimately working.
         const config = cached
@@ -315,6 +316,7 @@ export const useUpdateStore = defineStore('update', {
         this.releaseNotes = data.releaseNotes || ''
         this.releaseUrl = data.releaseUrl || ''
         this.downloadUrl = data.downloadUrl || ''
+        this.sha256 = data.sha256 || ''
         this.publishedAt = data.publishedAt || ''
         this.betaChannel = !!data.betaChannel
         this.fetchInProgress = !!data.fetchInProgress

@@ -36,7 +36,8 @@
 struct ReleaseInfo {
     bool valid;                 // true once a successful fetch has populated the fields
     char version[32];           // normalized, e.g. "2.1.11" or "2.2.0-beta.1"
-    char downloadUrl[256];      // GitHub asset browser_download_url of firmware_*.bin
+    char downloadUrl[256];      // firmware binary URL advertised by the manifest
+    char sha256[65];            // expected SHA-256 of the firmware binary
     char releaseUrl[256];       // html_url of the release (view on GitHub)
     char publishedAt[32];       // ISO timestamp from GitHub
     bool isPrerelease;          // matches GitHub "prerelease" flag
@@ -116,7 +117,7 @@ public:
     void start();
     void stop();
 
-    // Perform a synchronous fetch from the GitHub Releases API. Returns true
+    // Perform a synchronous fetch from the static update manifest. Returns true
     // on success, false on network/parse failure or if another fetch is in
     // progress. Respects the configured beta channel setting.
     bool refresh();
@@ -144,7 +145,7 @@ public:
     bool tryBeginOtaOperation();
     void finishOtaOperation();
 
-    // Triggers OTA from the cached downloadUrl (the GitHub asset URL).
+    // Triggers OTA from the cached downloadUrl advertised by the manifest.
     // Updates the OTA state machine while running. Blocks until OTA either
     // succeeds (and restarts) or fails.
     void performOnlineUpdate();
@@ -158,14 +159,10 @@ public:
 
 // ---- Testable helpers (no ESP-IDF dependencies) ---------------------------
 
-// Build the GitHub Releases API URL for the given channel.
-//   beta=false -> ".../releases/latest"
-//   beta=true  -> ".../releases?per_page=1"
-// per_page=1 keeps the beta-channel response small (~13 KB); each release
-// object is large (release-notes markdown + verbose per-asset metadata) and
-// the response is parsed by a zero-allocation string parser that operates on a
-// 24 KB buffer (see GH_RESPONSE_CAP in updatecheck.cpp).
-void buildReleasesApiUrl(bool beta, char* out, size_t outLen);
+// Build the static update manifest URL for the given channel.
+//   beta=false -> raw.githubusercontent.com/.../latest.json
+//   beta=true  -> raw.githubusercontent.com/.../beta.json
+void buildUpdateManifestUrl(bool beta, char* out, size_t outLen);
 
 // Normalize a Git tag (strip leading 'v'/'V', copy into out).
 // "v2.1.11"        -> "2.1.11"

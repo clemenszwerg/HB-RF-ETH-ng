@@ -12,8 +12,9 @@ can only be proven on a physical device — that is what this protocol is for.
 ## Prerequisites
 
 - A device reachable on the LAN with a known IP and admin password.
-- The device has working DNS + outbound HTTPS (needed to reach `api.github.com`
-  and `objects.githubusercontent.com`).
+- The device has working DNS + outbound HTTPS (needed to reach
+  `raw.githubusercontent.com`, GitHub release downloads and
+  `objects.githubusercontent.com`).
 - Python 3 on the test host (for `test_ota_function.py`).
 - A serial console attached is helpful but optional (`./idf.py monitor`) to watch
   the `UpdateCheck` / OTA log lines.
@@ -22,7 +23,7 @@ can only be proven on a physical device — that is what this protocol is for.
 
 ## Part 1 — Update search (`/api/check_update`)
 
-Goal: confirm the device fetches the GitHub Releases API, parses it, and reports
+Goal: confirm the device fetches the static update manifest, parses it, and reports
 the correct latest version for both channels.
 
 ### 1a. Stable channel
@@ -37,7 +38,8 @@ the correct latest version for both channels.
 1. Enable the **beta channel** toggle and press **Check for update** again.
 2. Expected: `latestVersion` resolves to the highest pre-release
    (e.g. `2.2.0-Beta.14`), `isPrerelease=true`, a non-empty `downloadUrl`
-   ending in `firmware_<version>.bin`, and `updateAvailable=true` when the
+   ending in `firmware_<version>.bin`, a valid `sha256`, and
+   `updateAvailable=true` when the
    running firmware is older.
 
 ### 1c. Raw API spot-check (optional)
@@ -52,8 +54,9 @@ curl -s -X POST http://<device-ip>/api/check_update \
   -H "Authorization: Token $TOKEN" | python3 -m json.tool
 ```
 
-Check that `latestVersion`, `downloadUrl`, `betaChannel` and `fetchInProgress`
-look sane and that the call returns within ~25 s even under contention.
+Check that `latestVersion`, `downloadUrl`, `sha256`, `betaChannel` and
+`fetchInProgress` look sane and that the call returns within ~25 s even under
+contention.
 
 ### Search — pass criteria
 

@@ -85,10 +85,22 @@ void LogManager::_begin(size_t size) {
     if (!_mutex) {
         _mutex = xSemaphoreCreateMutex();
     }
+    if (!_mutex) {
+        ESP_LOGE(TAG, "Failed to create log buffer mutex");
+        return;
+    }
 
+    bool enabled = false;
     xSemaphoreTake(_mutex, portMAX_DELAY);
 
-    if (log_buffer) free(log_buffer);
+    if (_orig_vprintf) {
+        esp_log_set_vprintf(_orig_vprintf);
+        _orig_vprintf = nullptr;
+    }
+
+    if (log_buffer) {
+        free(log_buffer);
+    }
     log_buffer_size = size;
     log_buffer = (char *)malloc(log_buffer_size);
     total_written = 0;
@@ -99,13 +111,19 @@ void LogManager::_begin(size_t size) {
         // Install our capture hook; remember the previous sink so stop() can
         // restore it (avoids the per-line double-format overhead of log_vprintf
         // when logging is disabled).
-        _orig_vprintf = esp_log_set_vprintf(log_vprintf);
+        if (_orig_vprintf == nullptr) {
+            _orig_vprintf = esp_log_set_vprintf(log_vprintf);
+        }
+        enabled = true;
+    }
+
+    xSemaphoreGive(_mutex);
+
+    if (enabled) {
         ESP_LOGI(TAG, "Log buffering enabled (%d bytes, RingBuffer)", size);
     } else {
         ESP_LOGE(TAG, "Failed to allocate log buffer");
     }
-
-    xSemaphoreGive(_mutex);
 }
 
 void LogManager::_stop() {
