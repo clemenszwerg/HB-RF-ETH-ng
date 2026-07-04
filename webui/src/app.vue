@@ -61,12 +61,17 @@ const showUpdateSuccess = ref(false)
 const otaUpdateVersion = ref('')
 let updateSuccessTimer = null
 const pageTitle = computed(() => `${sysInfoStore.hostname || 'HB-RF-ETH-ng'} - HB-RF-ETH-ng`)
+const testDesignEnabled = computed(() => experimentalStore.testDesignEnabled)
 
 // Idle timeout is handled globally in main.js via the login store's
 // activity tracking (5-minute timeout with cross-tab sync via localStorage).
 
 watch(pageTitle, (title) => {
   document.title = title
+}, { immediate: true })
+
+watch(testDesignEnabled, (enabled) => {
+  document.body.classList.toggle('newdesign-active', enabled)
 }, { immediate: true })
 
 onMounted(() => {
@@ -88,6 +93,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  document.body.classList.remove('newdesign-active')
   if (updateSuccessTimer) {
     clearTimeout(updateSuccessTimer)
   }

@@ -45,8 +45,10 @@
           :to="item.to"
           class="nav-item"
           active-class="active"
+          exact-active-class="exact-active"
         >
-          {{ item.label }}
+          <AppIcon :name="item.icon" />
+          <span>{{ item.label }}</span>
           <span v-if="item.to === '/firmware' && updateStore.shouldShowUpdateBadge" class="mini-dot"></span>
         </router-link>
       </div>
@@ -255,7 +257,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 14px;
   padding: 12px 16px;
   border-radius: 28px;
 }
@@ -324,28 +326,74 @@ onUnmounted(() => {
 .desktop-nav {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 3px;
   flex: 1;
-  flex-wrap: wrap;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.34);
+  scrollbar-width: none;
+}
+
+.desktop-nav .nav-item {
+  flex: 0 0 auto;
+}
+
+.desktop-nav::-webkit-scrollbar {
+  display: none;
+}
+
+[data-bs-theme="dark"] .desktop-nav {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .nav-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border-radius: var(--radius-pill);
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   color: var(--color-text-secondary);
   text-decoration: none;
   font-weight: 700;
-  font-size: 0.9rem;
-  transition: all var(--transition-fast);
+  font-size: 0.82rem;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
 }
 
-.nav-item:hover,
-.nav-item.active {
+.nav-item .app-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.nav-item:hover {
   color: var(--color-text);
-  background: rgba(127, 127, 127, 0.18);
+  background: rgba(255, 255, 255, 0.58);
+  border-color: var(--color-border);
+}
+
+[data-bs-theme="dark"] .nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-item.active,
+.nav-item.exact-active {
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
+  border-color: rgba(242, 106, 61, 0.22);
+}
+
+.nav-item.exact-active {
+  box-shadow: inset 0 -2px 0 rgba(242, 106, 61, 0.28);
 }
 
 .mini-dot {
@@ -625,6 +673,12 @@ onUnmounted(() => {
 
   .update-banner-actions {
     width: 100%;
+  }
+}
+
+@media (max-width: 1599px) {
+  .device-chip {
+    display: none;
   }
 }
 </style>

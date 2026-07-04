@@ -765,3 +765,292 @@ button {
     --spacing-2xl: 3.5rem;
   }
 }
+
+/* ============================================
+   Experimental New Design Shell
+   ============================================ */
+
+body.newdesign-active {
+  background: #f5f7fb;
+}
+
+[data-bs-theme="dark"] body.newdesign-active,
+body.newdesign-active[data-bs-theme="dark"] {
+  background: #111722;
+}
+
+body.newdesign-active .newdesign-shell {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --newdesign-panel: #ffffff;
+  --newdesign-panel-soft: #f8fafc;
+  --newdesign-border: #dbe3ee;
+  --newdesign-border-strong: #c7d2e1;
+  --newdesign-text-soft: #667085;
+}
+
+[data-bs-theme="dark"] body.newdesign-active .newdesign-shell,
+body.newdesign-active[data-bs-theme="dark"] .newdesign-shell {
+  --newdesign-panel: #182131;
+  --newdesign-panel-soft: #121a27;
+  --newdesign-border: rgba(148, 163, 184, 0.22);
+  --newdesign-border-strong: rgba(148, 163, 184, 0.34);
+  --newdesign-text-soft: #a8b3c5;
+}
+
+body.newdesign-active .newdesign-shell .page-shell,
+body.newdesign-active .newdesign-shell .firmware-page,
+body.newdesign-active .newdesign-shell .about-page,
+body.newdesign-active .newdesign-shell .change-password-page {
+  gap: 16px;
+}
+
+body.newdesign-active .newdesign-shell .page-hero,
+body.newdesign-active .newdesign-shell .page-header {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 18px 20px !important;
+}
+
+body.newdesign-active .newdesign-shell .hero-eyebrow {
+  border-radius: 5px !important;
+  border-color: rgba(242, 106, 61, 0.22) !important;
+  background: var(--color-primary-soft) !important;
+  letter-spacing: 0.04em !important;
+}
+
+body.newdesign-active .newdesign-shell .hero-title {
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem) !important;
+  letter-spacing: 0 !important;
+}
+
+body.newdesign-active .newdesign-shell .hero-subtitle,
+body.newdesign-active .newdesign-shell .section-subtitle,
+body.newdesign-active .newdesign-shell .form-text,
+body.newdesign-active .newdesign-shell .text-muted {
+  color: var(--newdesign-text-soft) !important;
+}
+
+body.newdesign-active .newdesign-shell .glass-panel,
+body.newdesign-active .newdesign-shell .glass-card,
+body.newdesign-active .newdesign-shell .surface-card,
+body.newdesign-active .newdesign-shell .card-glass,
+body.newdesign-active .newdesign-shell .settings-card,
+body.newdesign-active .newdesign-shell .update-card,
+body.newdesign-active .newdesign-shell .about-section,
+body.newdesign-active .newdesign-shell .info-card,
+body.newdesign-active .newdesign-shell .lib-card,
+body.newdesign-active .newdesign-shell .diagnostic-card,
+body.newdesign-active .newdesign-shell .quick-action,
+body.newdesign-active .newdesign-shell .metric-card,
+body.newdesign-active .newdesign-shell .stat-card,
+body.newdesign-active .newdesign-shell .info-card-section,
+body.newdesign-active .newdesign-shell .change-password-card {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.newdesign-active .newdesign-shell .card-hover:hover,
+body.newdesign-active .newdesign-shell .quick-action:hover,
+body.newdesign-active .newdesign-shell .lib-card:hover {
+  transform: translateY(-1px) !important;
+  border-color: var(--newdesign-border-strong) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+body.newdesign-active .newdesign-shell .card-header,
+body.newdesign-active .newdesign-shell .section-header,
+body.newdesign-active .newdesign-shell .archive-main-row,
+body.newdesign-active .newdesign-shell .mobile-panel-top {
+  border-bottom: 1px solid var(--newdesign-border) !important;
+  background: transparent !important;
+}
+
+body.newdesign-active .newdesign-shell .card-header {
+  padding: 16px 18px !important;
+}
+
+body.newdesign-active .newdesign-shell .card-body {
+  padding: 18px !important;
+}
+
+body.newdesign-active .newdesign-shell .header-icon,
+body.newdesign-active .newdesign-shell .icon-badge,
+body.newdesign-active .newdesign-shell .section-icon,
+body.newdesign-active .newdesign-shell .upload-icon,
+body.newdesign-active .newdesign-shell .file-icon {
+  border-radius: 6px !important;
+}
+
+body.newdesign-active .newdesign-shell .meta-chip,
+body.newdesign-active .newdesign-shell .status-chip,
+body.newdesign-active .newdesign-shell .pill-chip,
+body.newdesign-active .newdesign-shell .chip-btn,
+body.newdesign-active .newdesign-shell .status-pill,
+body.newdesign-active .newdesign-shell .clock-chip,
+body.newdesign-active .newdesign-shell .current-badge,
+body.newdesign-active .newdesign-shell .beta-badge,
+body.newdesign-active .newdesign-shell .version-badge {
+  border-radius: 6px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+  box-shadow: none !important;
+}
+
+body.newdesign-active .newdesign-shell .tabs-container,
+body.newdesign-active .newdesign-shell .archive-toolbar,
+body.newdesign-active .newdesign-shell .quick-actions {
+  border-radius: 8px !important;
+}
+
+body.newdesign-active .newdesign-shell .segmented-control,
+body.newdesign-active .newdesign-shell .archive-filters,
+body.newdesign-active .newdesign-shell .mode-toggle,
+body.newdesign-active .newdesign-shell .time-source-options {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: none !important;
+  padding: 4px !important;
+}
+
+body.newdesign-active .newdesign-shell .segment-btn,
+body.newdesign-active .newdesign-shell .filter-btn,
+body.newdesign-active .newdesign-shell .mode-btn,
+body.newdesign-active .newdesign-shell .time-source-card {
+  border-radius: 6px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--newdesign-text-soft) !important;
+  box-shadow: none !important;
+}
+
+body.newdesign-active .newdesign-shell .segment-btn.active,
+body.newdesign-active .newdesign-shell .filter-btn.active,
+body.newdesign-active .newdesign-shell .mode-btn.active,
+body.newdesign-active .newdesign-shell .time-source-card.active {
+  border-color: rgba(242, 106, 61, 0.25) !important;
+  background: var(--color-primary-soft) !important;
+  color: var(--color-primary-strong) !important;
+}
+
+body.newdesign-active .newdesign-shell .form-control,
+body.newdesign-active .newdesign-shell .form-select,
+body.newdesign-active .newdesign-shell textarea,
+body.newdesign-active .newdesign-shell .pem-textarea {
+  border-radius: 6px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+  box-shadow: none !important;
+}
+
+body.newdesign-active .newdesign-shell .form-control:focus,
+body.newdesign-active .newdesign-shell .form-select:focus,
+body.newdesign-active .newdesign-shell textarea:focus {
+  border-color: rgba(242, 106, 61, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(242, 106, 61, 0.12) !important;
+  background: var(--newdesign-panel) !important;
+}
+
+body.newdesign-active .newdesign-shell .btn,
+body.newdesign-active .newdesign-shell .tool-btn,
+body.newdesign-active .newdesign-shell .check-btn,
+body.newdesign-active .newdesign-shell .action-btn,
+body.newdesign-active .newdesign-shell .archive-link,
+body.newdesign-active .newdesign-shell .archive-install-btn,
+body.newdesign-active .newdesign-shell .save-btn,
+body.newdesign-active .newdesign-shell .security-save-btn,
+body.newdesign-active .newdesign-shell .btn-load-file,
+body.newdesign-active .newdesign-shell .github-link,
+body.newdesign-active .newdesign-shell .submit-btn {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+body.newdesign-active .newdesign-shell .btn:hover:not(:disabled),
+body.newdesign-active .newdesign-shell .tool-btn:hover:not(:disabled),
+body.newdesign-active .newdesign-shell .check-btn:hover:not(:disabled),
+body.newdesign-active .newdesign-shell .archive-install-btn:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+}
+
+body.newdesign-active .newdesign-shell .form-switch .form-check-input {
+  border-radius: 999px !important;
+}
+
+body.newdesign-active .newdesign-shell .upload-zone,
+body.newdesign-active .newdesign-shell .file-preview,
+body.newdesign-active .newdesign-shell .archive-item,
+body.newdesign-active .newdesign-shell .archive-warning,
+body.newdesign-active .newdesign-shell .archive-error,
+body.newdesign-active .newdesign-shell .archive-empty,
+body.newdesign-active .newdesign-shell .archive-notes,
+body.newdesign-active .newdesign-shell .update-info,
+body.newdesign-active .newdesign-shell .no-update,
+body.newdesign-active .newdesign-shell .beta-toggle-row,
+body.newdesign-active .newdesign-shell .security-item,
+body.newdesign-active .newdesign-shell .backup-action-card,
+body.newdesign-active .newdesign-shell .experimental-option,
+body.newdesign-active .newdesign-shell .experimental-warning,
+body.newdesign-active .newdesign-shell .tls-section,
+body.newdesign-active .newdesign-shell .command-section,
+body.newdesign-active .newdesign-shell .alert-warning-soft,
+body.newdesign-active .newdesign-shell .log-viewer,
+body.newdesign-active .newdesign-shell .log-entry,
+body.newdesign-active .newdesign-shell .toolbar,
+body.newdesign-active .newdesign-shell .language-card {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+  box-shadow: none !important;
+}
+
+body.newdesign-active .newdesign-shell .archive-notes pre,
+body.newdesign-active .newdesign-shell pre,
+body.newdesign-active .newdesign-shell code {
+  border-radius: 6px !important;
+}
+
+body.newdesign-active .newdesign-shell .modal-content,
+body.newdesign-active .newdesign-shell .dropdown-menu,
+body.newdesign-active .newdesign-shell .locale-menu,
+body.newdesign-active .newdesign-shell .mobile-panel {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14) !important;
+}
+
+body.newdesign-active .newdesign-shell .progress,
+body.newdesign-active .newdesign-shell .progress-bar,
+body.newdesign-active .newdesign-shell .progress-track,
+body.newdesign-active .newdesign-shell .progress-fill,
+body.newdesign-active .newdesign-shell .metric-progress {
+  border-radius: 999px !important;
+}
+
+body.newdesign-active .newdesign-shell .settings-content,
+body.newdesign-active .newdesign-shell .content-grid,
+body.newdesign-active .newdesign-shell .stats-grid,
+body.newdesign-active .newdesign-shell .info-grid,
+body.newdesign-active .newdesign-shell .diagnostics-grid,
+body.newdesign-active .newdesign-shell .archive-list {
+  gap: 14px !important;
+}
+
+@media (max-width: 991px) {
+  body.newdesign-active .newdesign-shell .page-hero,
+  body.newdesign-active .newdesign-shell .page-header {
+    padding: 16px !important;
+  }
+}
