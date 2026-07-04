@@ -50,15 +50,25 @@
                   <h4>{{ t('settings.adminUsername') }}</h4>
                   <p>{{ t('settings.adminUsernameHint') }}</p>
                 </div>
-                <BFormInput
-                  v-model.trim="adminUsername"
-                  class="security-control"
-                  type="text"
-                  autocomplete="username"
-                  autocapitalize="none"
-                  spellcheck="false"
-                  :state="v$.adminUsername.$error ? false : null"
-                />
+                <div class="security-control-row">
+                  <BFormInput
+                    v-model.trim="adminUsername"
+                    class="security-control"
+                    type="text"
+                    autocomplete="username"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    :state="v$.adminUsername.$error ? false : null"
+                  />
+                  <BButton
+                    variant="primary"
+                    class="security-save-btn"
+                    @click="saveSettingsClick"
+                    :disabled="v$.adminUsername.$error || !adminUsernameChanged"
+                  >
+                    {{ t('common.save') }}
+                  </BButton>
+                </div>
               </div>
 
               <div class="security-item">
@@ -725,6 +735,7 @@ const updateDirtyState = () => {
 watch([adminUsername, hostname, useDHCP, localIP, netmask, gateway, dns1, dns2, ccuIP, timesource, dcfOffset, gpsBaudrate, ntpServer, ledBrightness, ledProgramValues, enableIPv6, ipv6Mode, ipv6Address, ipv6PrefixLength, ipv6Gateway, ipv6Dns1, ipv6Dns2], updateDirtyState, { deep: true })
 
 const hasUnsavedChanges = computed(() => loadedSnapshot.value !== '' && serializedCurrent.value !== '' && serializedCurrent.value !== loadedSnapshot.value)
+const adminUsernameChanged = computed(() => adminUsername.value !== (settingsStore.adminUsername || 'admin'))
 
 // Load settings from store
 const loadSettings = () => {
@@ -986,8 +997,19 @@ const restoreSettings = async () => {
   color: var(--color-text-secondary);
 }
 
+.security-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(360px, 100%);
+}
+
 .security-control {
-  width: min(240px, 100%);
+  min-width: 0;
+}
+
+.security-save-btn {
+  flex: 0 0 auto;
 }
 
 hr {
@@ -1302,6 +1324,11 @@ hr {
 
   .security-item .btn {
     width: 100%;
+  }
+
+  .security-control-row {
+    width: 100%;
+    flex-direction: column;
   }
 
   .security-control {

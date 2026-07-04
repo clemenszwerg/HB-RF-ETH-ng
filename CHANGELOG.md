@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.2] - 2026-07-04
+
+### Fixed
+- Added an inline save button next to the administrator username field so changing the login name no longer depends on the floating global save bar.
+
 ## [2.2.3-Beta.1] - 2026-07-04
 
 ### Breaking Changes
