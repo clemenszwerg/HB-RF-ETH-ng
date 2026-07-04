@@ -235,10 +235,10 @@ jobs:
 
           if [ "$IS_PRERELEASE" = "true" ]; then
             CHANNEL="beta"
-            MANIFEST_FILE="beta.json"
+            MANIFEST_FILES="beta.json"
           else
             CHANNEL="stable"
-            MANIFEST_FILE="latest.json"
+            MANIFEST_FILES="latest.json,beta.json"
           fi
 
           PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -248,7 +248,7 @@ jobs:
           FIRMWARE_FILE="$FIRMWARE_FILE" \
           SHA256="$SHA256" \
           CHANNEL="$CHANNEL" \
-          MANIFEST_FILE="$MANIFEST_FILE" \
+          MANIFEST_FILES="$MANIFEST_FILES" \
           IS_PRERELEASE="$IS_PRERELEASE" \
           PUBLISHED_AT="$PUBLISHED_AT" \
             python3 - <<'PY'
@@ -260,7 +260,7 @@ jobs:
           firmware_file = os.environ["FIRMWARE_FILE"]
           sha256 = os.environ["SHA256"]
           channel = os.environ["CHANNEL"]
-          manifest_file = os.environ["MANIFEST_FILE"]
+          manifest_files = [name.strip() for name in os.environ["MANIFEST_FILES"].split(",") if name.strip()]
           is_prerelease = os.environ["IS_PRERELEASE"] == "true"
 
           release_url = f"https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/{version_tag}"
@@ -275,13 +275,18 @@ jobs:
               "notesUrl": release_url,
           }
 
-          with open(os.path.join("manifest-out", manifest_file), "w", encoding="utf-8") as f:
-              json.dump(manifest, f, indent=2)
-              f.write("\n")
+          for manifest_file in manifest_files:
+              with open(os.path.join("manifest-out", manifest_file), "w", encoding="utf-8") as f:
+                  json.dump(manifest, f, indent=2)
+                  f.write("\n")
           PY
 
-          echo "Generated ${MANIFEST_FILE}:"
-          cat "manifest-out/${MANIFEST_FILE}"
+          echo "Generated manifests:"
+          ls -la manifest-out
+          for manifest in manifest-out/*.json; do
+            echo "--- ${manifest} ---"
+            cat "${manifest}"
+          done
 
       - name: Checkout main for manifest update
         if: steps.release_type.outputs.IS_DRAFT == 'false'
@@ -295,19 +300,18 @@ jobs:
         if: steps.release_type.outputs.IS_DRAFT == 'false'
         working-directory: manifest-repo
         run: |
-          MANIFEST_FILE="${{ steps.release_type.outputs.IS_PRERELEASE == 'true' && 'beta.json' || 'latest.json' }}"
           VERSION_TAG="${{ steps.get_version.outputs.VERSION_TAG }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          cp "../manifest-out/${MANIFEST_FILE}" "${MANIFEST_FILE}"
+          cp ../manifest-out/*.json .
 
-          git add "${MANIFEST_FILE}"
+          git add *.json
           if git diff --cached --quiet; then
-            echo "${MANIFEST_FILE} already up to date"
+            echo "Update manifests already up to date"
             exit 0
           fi
 
-          git commit -m "chore: update ${MANIFEST_FILE} for ${VERSION_TAG}"
+          git commit -m "chore: update manifests for ${VERSION_TAG}"
           git push origin main
