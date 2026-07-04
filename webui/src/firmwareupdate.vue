@@ -227,7 +227,7 @@
               :key="filter.value"
               type="button"
               :class="['filter-btn', { active: archiveFilter === filter.value }]"
-              @click="archiveFilter = filter.value"
+              @click="setArchiveFilter(filter.value)"
             >
               {{ filter.label }}
             </button>
@@ -259,44 +259,55 @@
           {{ t('firmware.archiveEmpty') }}
         </div>
 
-        <div v-else class="archive-list">
-          <div v-for="release in filteredFirmwareArchive" :key="release.id" class="archive-item">
+        <div v-else class="archive-picker">
+          <label class="archive-select-label" for="firmwareArchiveSelect">{{ t('firmware.archiveSelect') }}</label>
+          <select id="firmwareArchiveSelect" v-model="selectedArchiveVersion" class="archive-select">
+            <option
+              v-for="release in filteredFirmwareArchive"
+              :key="release.id"
+              :value="release.version"
+            >
+              {{ archiveOptionLabel(release) }}
+            </option>
+          </select>
+
+          <div v-if="selectedArchiveRelease" class="archive-selected">
             <div class="archive-main-row">
               <div class="archive-version">
                 <div class="archive-title-row">
-                  <strong>v{{ release.version }}</strong>
-                  <span v-if="release.prerelease" class="beta-badge">{{ t('firmware.beta') }}</span>
-                  <span v-if="release.isCurrent" class="current-badge">{{ t('firmware.archiveCurrent') }}</span>
+                  <strong>v{{ selectedArchiveRelease.version }}</strong>
+                  <span v-if="selectedArchiveRelease.prerelease" class="beta-badge">{{ t('firmware.beta') }}</span>
+                  <span v-if="selectedArchiveRelease.isCurrent" class="current-badge">{{ t('firmware.archiveCurrent') }}</span>
                 </div>
                 <div class="archive-meta">
-                  <span>{{ formatReleaseDate(release.publishedAt) }}</span>
-                  <span v-if="release.assetName">· {{ release.assetName }}</span>
-                  <span v-if="release.assetSize">· {{ formatSize(release.assetSize) }}</span>
+                  <span>{{ formatReleaseDate(selectedArchiveRelease.publishedAt) }}</span>
+                  <span v-if="selectedArchiveRelease.assetName">· {{ selectedArchiveRelease.assetName }}</span>
+                  <span v-if="selectedArchiveRelease.assetSize">· {{ formatSize(selectedArchiveRelease.assetSize) }}</span>
                 </div>
               </div>
               <div class="archive-actions">
-                <a class="archive-link" :href="release.releaseUrl" target="_blank" rel="noopener noreferrer">
+                <a class="archive-link" :href="selectedArchiveRelease.releaseUrl" target="_blank" rel="noopener noreferrer">
                   <AppIcon name="externalLink" />
                   {{ t('firmware.viewOnGithub') }}
                 </a>
                 <button
                   class="archive-install-btn"
                   type="button"
-                  :disabled="otaUpdating || !release.downloadUrl || release.isCurrent"
-                  @click="installArchivedFirmware(release)"
+                  :disabled="otaUpdating || !selectedArchiveRelease.downloadUrl || selectedArchiveRelease.isCurrent"
+                  @click="installArchivedFirmware(selectedArchiveRelease)"
                 >
-                  <span v-if="archiveInstallingVersion === release.version" class="spinner-border spinner-border-sm"></span>
+                  <span v-if="archiveInstallingVersion === selectedArchiveRelease.version" class="spinner-border spinner-border-sm"></span>
                   <AppIcon v-else name="download" />
-                  {{ release.isCurrent ? t('firmware.archiveInstalled') : t('firmware.archiveInstall') }}
+                  {{ selectedArchiveRelease.isCurrent ? t('firmware.archiveInstalled') : t('firmware.archiveInstall') }}
                 </button>
               </div>
             </div>
-            <details v-if="release.notes" class="archive-notes">
+            <details v-if="selectedArchiveRelease.notes" class="archive-notes" open>
               <summary>
                 <AppIcon name="logs" />
                 {{ t('firmware.archiveReleaseNotes') }}
               </summary>
-              <pre>{{ release.notes }}</pre>
+              <pre>{{ selectedArchiveRelease.notes }}</pre>
             </details>
           </div>
         </div>
@@ -358,6 +369,7 @@ const archiveLoading = ref(false)
 const archiveError = ref('')
 const firmwareArchive = ref([])
 const archiveInstallingVersion = ref('')
+const selectedArchiveVersion = ref('')
 
 const ARCHIVE_MANIFEST_URL = '/api/firmware_archive'
 
@@ -378,6 +390,29 @@ const filteredFirmwareArchive = computed(() => {
   }
   return firmwareArchive.value
 })
+
+const selectedArchiveRelease = computed(() => (
+  filteredFirmwareArchive.value.find((release) => release.version === selectedArchiveVersion.value)
+  || filteredFirmwareArchive.value[0]
+  || null
+))
+
+const selectDefaultArchiveRelease = () => {
+  const releases = filteredFirmwareArchive.value
+  if (releases.length === 0) {
+    selectedArchiveVersion.value = ''
+    return
+  }
+  const currentSelectionStillVisible = releases.some((release) => release.version === selectedArchiveVersion.value)
+  if (!currentSelectionStillVisible) {
+    selectedArchiveVersion.value = (releases.find((release) => !release.isCurrent) || releases[0]).version
+  }
+}
+
+const setArchiveFilter = (filter) => {
+  archiveFilter.value = filter
+  selectDefaultArchiveRelease()
+}
 
 const onBetaToggle = async (event) => {
   const enabled = event.target.checked
@@ -417,6 +452,13 @@ const formatSize = (bytes) => {
 const formatReleaseDate = (dateStr) => {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString()
+}
+
+const archiveOptionLabel = (release) => {
+  const channel = release.prerelease ? t('firmware.archiveBeta') : t('firmware.archiveStable')
+  const current = release.isCurrent ? ` - ${t('firmware.archiveCurrent')}` : ''
+  const date = formatReleaseDate(release.publishedAt)
+  return `v${release.version} - ${channel}${date ? ` - ${date}` : ''}${current}`
 }
 
 const normalizeArchiveEntry = (entry, index = 0) => {
@@ -465,6 +507,7 @@ const loadFirmwareArchive = async () => {
 
   try {
     firmwareArchive.value = await loadArchiveManifest()
+    selectDefaultArchiveRelease()
   } catch (error) {
     const status = error.response?.status
     const serverMessage = typeof error.response?.data === 'string' ? error.response.data : ''
@@ -1214,12 +1257,35 @@ onUnmounted(() => {
   background: var(--color-bg);
 }
 
-.archive-list {
+.archive-picker {
   display: grid;
   gap: var(--spacing-sm);
 }
 
-.archive-item {
+.archive-select-label {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-text-secondary);
+}
+
+.archive-select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 9px 12px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.archive-select:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-primary-light);
+}
+
+.archive-selected {
   padding: var(--spacing-md);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);

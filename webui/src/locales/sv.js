@@ -297,6 +297,7 @@ export default {
     archiveTitle: 'Firmwarearkiv',
     archiveHint: 'Installera en tidigare utgåva, byt från beta till stabil eller testa en viss version.',
     archiveFilter: 'Filter för firmwarearkiv',
+    archiveSelect: 'Välj firmwareversion',
     archiveStable: 'Stabil',
     archiveBeta: 'Beta',
     archiveAll: 'Alla',

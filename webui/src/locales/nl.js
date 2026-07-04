@@ -297,6 +297,7 @@ export default {
     archiveTitle: 'Firmwarearchief',
     archiveHint: 'Installeer een eerdere release, wissel van bèta naar stabiel of test een specifieke versie.',
     archiveFilter: 'Filter voor firmwarearchief',
+    archiveSelect: 'Firmwareversie selecteren',
     archiveStable: 'Stabiel',
     archiveBeta: 'Bèta',
     archiveAll: 'Alles',

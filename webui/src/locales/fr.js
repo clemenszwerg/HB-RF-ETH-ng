@@ -297,6 +297,7 @@ export default {
     archiveTitle: 'Archive du firmware',
     archiveHint: 'Installez une version antérieure, passez d’une bêta à une version stable ou testez une version précise.',
     archiveFilter: 'Filtre de l’archive du firmware',
+    archiveSelect: 'Sélectionner la version du firmware',
     archiveStable: 'Stable',
     archiveBeta: 'Bêta',
     archiveAll: 'Toutes',

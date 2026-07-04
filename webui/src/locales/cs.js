@@ -297,6 +297,7 @@ export default {
     archiveTitle: 'Archiv firmwaru',
     archiveHint: 'Nainstalujte starší vydání, přejděte z beta verze na stabilní nebo otestujte konkrétní verzi.',
     archiveFilter: 'Filtr archivu firmwaru',
+    archiveSelect: 'Vybrat verzi firmwaru',
     archiveStable: 'Stabilní',
     archiveBeta: 'Beta',
     archiveAll: 'Vše',

@@ -297,6 +297,7 @@ export default {
     archiveTitle: 'Firmware-Archiv',
     archiveHint: 'Eine frühere Version installieren, von Beta auf Stable wechseln oder gezielt eine Version testen.',
     archiveFilter: 'Firmware-Archiv Filter',
+    archiveSelect: 'Firmware-Version auswählen',
     archiveStable: 'Stable',
     archiveBeta: 'Beta',
     archiveAll: 'Alle',

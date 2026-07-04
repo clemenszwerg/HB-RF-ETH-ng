@@ -297,6 +297,7 @@ export default {
     archiveTitle: 'Fastvarearkiv',
     archiveHint: 'Installer en tidligere utgivelse, bytt fra beta til stabil eller test en bestemt versjon.',
     archiveFilter: 'Filter for fastvarearkiv',
+    archiveSelect: 'Velg fastvareversjon',
     archiveStable: 'Stabil',
     archiveBeta: 'Beta',
     archiveAll: 'Alle',
