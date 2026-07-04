@@ -391,6 +391,11 @@ const filteredFirmwareArchive = computed(() => {
   return firmwareArchive.value
 })
 
+const prefersBetaArchive = () => (
+  updateStore.betaChannel
+  || /(?:beta|alpha|rc)/i.test(sysInfoStore.currentVersion || '')
+)
+
 const selectedArchiveRelease = computed(() => (
   filteredFirmwareArchive.value.find((release) => release.version === selectedArchiveVersion.value)
   || filteredFirmwareArchive.value[0]
@@ -411,6 +416,11 @@ const selectDefaultArchiveRelease = () => {
 
 const setArchiveFilter = (filter) => {
   archiveFilter.value = filter
+  selectDefaultArchiveRelease()
+}
+
+const syncArchiveFilterWithUpdateChannel = () => {
+  archiveFilter.value = prefersBetaArchive() ? 'beta' : 'stable'
   selectDefaultArchiveRelease()
 }
 
@@ -765,6 +775,7 @@ onMounted(async () => {
   } catch (e) {
     console.warn('Initial cached update read failed:', e.response?.status || e.message)
   }
+  syncArchiveFilterWithUpdateChannel()
   loadFirmwareArchive()
   // Periodically re-read the cache while the page is open so the
   // "last check" indicator and download URL stay fresh (cached read only,

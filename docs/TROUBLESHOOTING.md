@@ -293,6 +293,27 @@ With current firmware versions, reconnect handling after restarts has been impro
 
 ## Firmware Update Issues
 
+### Beta Update Not Shown
+
+**Important:** If the device is already running the newest beta, the WebUI
+correctly reports no update available. Check `currentVersion` and
+`latestVersion` in `/api/check_update`: when both values are identical, there is
+no newer beta to install.
+
+**Checks:**
+
+1. Enable the beta channel in Firmware / Network Update.
+2. Press "Check now" to force a manifest refresh.
+3. Verify the public beta manifest:
+   `https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/beta.json?t=<timestamp>`.
+4. In the firmware archive, use the Beta filter. On beta devices the WebUI
+   should select this filter automatically.
+
+**Developer note:** The firmware update check must use the raw `main/*.json`
+manifest URL with a cache-busting query value. Avoid switching back to
+`refs/heads/main` without testing immediately after a release, because GitHub
+raw CDN edges can temporarily serve stale manifest content.
+
 ### Firmware Upload Fails
 
 **Symptoms:**
