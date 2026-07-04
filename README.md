@@ -35,9 +35,17 @@ Hierbei gilt, dass bei einer debmatic oder piVCCU3 Installation immer nur ein Fu
 ### Kurzüberblick
 - Firmware für HB-RF-ETH mit Unterstützung für `HM-MOD-RPI-PCB`, `RPI-RF-MOD` und `HmIP-RFUSB`
 - Moderne WebUI auf Basis von Vue 3, Vite und Bootstrap 5 (Dark/Light, 10 Sprachen)
+- Login mit Benutzername und Passwort: Standard-Benutzername `admin`, das bestehende Administrator-Passwort bleibt nach Updates erhalten und der Benutzername kann in den Einstellungen geändert werden.
+- Dashboard zeigt den unter Einstellungen/Netzwerk gesetzten Hostnamen prominent im Systemstatus, damit mehrere HB-RF-ETH-ng Geräte sofort unterscheidbar sind.
 - **Monitoring via MQTT** (mit Home Assistant Auto-Discovery, TLS/mTLS, Kommando-Token) und CheckMK
 - OTA-Updates per Datei-Upload, URL-Download oder direkt aus Home Assistant heraus
 - ESP-IDF 6.0 Toolchain (native `idf.py` Builds), GCC 14.2 (xtensa-esp-elf)
+
+### Login nach Update
+Nach dem Update auf eine Version mit Benutzername-Pflicht muss die Anmeldung einmalig mit dem Standard-Benutzernamen `admin` und dem bisherigen Administrator-Passwort erfolgen. Alte gespeicherte Browser-Sessions werden dabei aus Sicherheitsgründen ungültig. Der Benutzername kann anschließend unter **Einstellungen > Allgemein > Sicherheit** geändert werden, z.B. für Passwortmanager oder Installationen mit mehreren Geräten.
+
+### Backup & Restore
+Backups enthalten den konfigurierten Administrator-Benutzernamen, damit Login-Einstellungen bei mehreren Geräten oder nach einer Wiederherstellung konsistent bleiben. Das Administrator-Passwort wird aus Sicherheitsgründen weiterhin nicht exportiert; beim Restore bleibt das aktuelle Passwort des Zielgeräts erhalten.
 
 > Die vollständige MQTT-API-Referenz (alle Status-, Event- und Command-Topics,
 > HA-Entitäten, TLS-Konfiguration, Sicherheitsmodell) findet sich im

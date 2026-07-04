@@ -21,6 +21,8 @@ LogManager& LogManager::instance() {
 // Custom vprintf handler to capture logs
 // Note: This must NOT be static because it's a friend function declared in the header with extern linkage
 int log_vprintf(const char *fmt, va_list args) {
+    LogManager &manager = LogManager::instance();
+
     // FIX: va_list can only be consumed once. We need two copies:
     // one for measuring length + formatting, one for forwarding to UART.
     va_list args_for_uart;
@@ -34,7 +36,7 @@ int log_vprintf(const char *fmt, va_list args) {
 
     if (len < 0) {
         // Still forward to UART even if we can't capture
-        int ret = vprintf(fmt, args_for_uart);
+        int ret = manager._orig_vprintf ? manager._orig_vprintf(fmt, args_for_uart) : vprintf(fmt, args_for_uart);
         va_end(args_for_uart);
         return ret;
     }
@@ -48,7 +50,7 @@ int log_vprintf(const char *fmt, va_list args) {
         buf = (char*)malloc(len + 1);
         if (!buf) {
             // OOM, skip ring buffer but still forward to UART
-            int ret = vprintf(fmt, args_for_uart);
+            int ret = manager._orig_vprintf ? manager._orig_vprintf(fmt, args_for_uart) : vprintf(fmt, args_for_uart);
             va_end(args_for_uart);
             return ret;
         }
@@ -59,12 +61,12 @@ int log_vprintf(const char *fmt, va_list args) {
     vsnprintf(buf, len + 1, fmt, args);
 
     // Write to ring buffer
-    LogManager::instance().write(buf, len);
+    manager.write(buf, len);
 
     if (heap_alloc) free(buf);
 
-    // Forward to default UART handler using the copy
-    int ret = vprintf(fmt, args_for_uart);
+    // Forward to the previous ESP-IDF log sink using the copy.
+    int ret = manager._orig_vprintf ? manager._orig_vprintf(fmt, args_for_uart) : vprintf(fmt, args_for_uart);
     va_end(args_for_uart);
     return ret;
 }

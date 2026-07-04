@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.1] - 2026-07-04
+
+### Breaking Changes
+- **BREAKING CHANGE**: The WebUI login now requires a username and password. The standard username is `admin`; existing installations must log in once with username `admin` and their existing password after updating. The username can be changed later in Settings.
+
+### Added
+- Added configurable administrator username support for password managers.
+- Backup/restore now includes the administrator username while continuing to exclude the administrator password for security.
+- Dashboard now shows the configured hostname prominently in the system status header.
+
 ## [2.2.2] - 2026-07-04
 
 ### Changes

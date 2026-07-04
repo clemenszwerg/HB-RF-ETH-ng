@@ -210,6 +210,13 @@ const icons = {
       { type: 'circle', cx: 12, cy: 7.5, r: 0.8 }
     ]
   },
+  user: {
+    viewBox: '0 0 24 24',
+    nodes: [
+      { type: 'circle', cx: 12, cy: 8, r: 3.5 },
+      { type: 'path', d: 'M5.5 20a6.5 6.5 0 0 1 13 0' }
+    ]
+  },
   language: {
     viewBox: '0 0 24 24',
     nodes: [

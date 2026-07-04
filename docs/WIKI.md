@@ -7,6 +7,8 @@ Willkommen im Wiki der modernisierten HB-RF-ETH-ng Firmware. Hier finden Sie all
 Die Firmware wurde kürzlich mit wichtigen neuen Funktionen und Verbesserungen aktualisiert:
 
 ### Neue Features
+- **Benutzername + Passwort Login**: Standard-Benutzername `admin`, spaeter in den Einstellungen aenderbar
+- **Hostname im Dashboard**: Der konfigurierte Hostname wird im Systemstatus prominent angezeigt
 - **Session-Persistierung**: Login bleibt nach Neustarts erhalten
 - **OTA Success Feedback**: Visueller Bestätigungs-Dialog nach erfolgreichen Updates
 - **System Log Sharing**: Debug-Reports mit automatischer Maskierung sensibler Daten
@@ -45,12 +47,16 @@ Die Firmware wurde kürzlich mit wichtigen neuen Funktionen und Verbesserungen a
 
 ### Moderne WebUI
 * **Responsive Design** für Desktop und Mobile mit glassmorphen Effekten und modernem Styling
-* Initiales Passwort: `admin` (muss nach dem ersten Login geändert werden)
+* Login mit Benutzername und Passwort
+  * Standard-Benutzername: `admin`
+  * Initiales Passwort: `admin` (muss nach dem ersten Login geändert werden)
+  * Nach Updates mit bestehendem Passwort einmalig als `admin` anmelden; der Benutzername kann danach unter Einstellungen geändert werden
 * **Dark/Light Theme Toggle** für helles und dunkles Design
 * **Multi-Language Support** (10 Sprachen: Deutsch, Englisch, Spanisch, Französisch, Italienisch, Niederländisch, Norwegisch, Polnisch, Tschechisch, Schwedisch)
 * **System Log Viewer** - Live-Ansicht der Systemlogs mit 3-Sekunden-Polling, Download-Funktion, Ein/Aus-Schalter und manueller Aktualisierung (High-Contrast)
 * **Changelog Modal** - Vollständiger Changelog direkt in der WebUI mit Markdown-Rendering
 * **Dashboard** mit Gradient-Icons, Hover-Effekten und kompaktem 3-Spalten-Grid auf Mobile
+* **Hostname-Anzeige im Systemstatus** - Der unter Einstellungen/Netzwerk konfigurierte Hostname wird auf der Startseite prominent angezeigt, hilfreich bei mehreren HB-RF-ETH-ng Boards
 * **Sponsor-Button** im Footer mit verschiedenen Optionen (PayPal, Buy Me a Coffee, Tesla referral)
 * **LED-Helligkeitssteuerung** (0-100%) für alle Status-LEDs
 * **Konfigurierbare LED-Programme** für verschiedene Systemzustände
@@ -72,12 +78,15 @@ Die Firmware wurde kürzlich mit wichtigen neuen Funktionen und Verbesserungen a
 ### Sicherheit
 * **Sichere JSON-Verarbeitung** mit cJSON-Bibliothek (keine Buffer Overflows)
 * **Memory Safety** - `secure_zero` zum sicheren Löschen sensibler Daten, XOR-basierter Constant-Time `secure_strcmp`
+* **Benutzername + Passwort Authentifizierung** - Standard-Benutzername `admin`, spaeter in den Einstellungen aenderbar
 * Stärkere Passwort-Anforderungen (8 Zeichen, Groß-/Kleinschreibung, Zahlen) mit Stärke-Anzeige
 * **Persistente Sessions** via `localStorage` mit automatischem Logout nach 10 Minuten Inaktivität (Cross-Tab-synchronisiert)
 * **Rate Limiting** bei Login-Versuchen mit vollständigem IPv4/IPv6-Support
 * Moderne Security Headers (CSP, X-Frame-Options, etc.)
 * HTTP gzip Kompression für schnellere Übertragung
 * **Backup & Restore** der Einstellungen über die WebUI
+  * Der Administrator-Benutzername wird im Backup gespeichert und beim Restore wiederhergestellt
+  * Das Administrator-Passwort wird aus Sicherheitsgründen nicht exportiert; beim Restore bleibt das aktuelle Passwort des Zielgeräts erhalten
 
 ### Netzwerk-Optimierung
 * **DNS-Caching** für schnellere Verbindungen und reduzierten Netzwerk-Traffic
@@ -126,6 +135,7 @@ Die Benutzeroberfläche wurde speziell für mobile Endgeräte optimiert und biet
 ### Token Persistierung (ab v2.2.0-Beta.7)
 * **Sessions überleben Neustarts**: Der Authentifizierungs-Token wird in NVS gespeichert
 * Login bleibt nach Firmware-Updates und Geräte-Reboots erhalten
+* Beim Update auf die Benutzername-Pflicht werden alte Browser-Tokens einmalig ungueltig; Anmeldung danach mit Benutzername `admin` und dem bestehenden Administrator-Passwort
 * **Automatisches Logout** nach 10 Minuten Inaktivität (Cross-Tab-synchronisiert)
 * Token wird bei Passwortänderung neu generiert und beim Werkreset gelöscht
 

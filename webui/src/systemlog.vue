@@ -54,7 +54,7 @@
             <AppIcon name="download" />
             {{ t('systemlog.download') }}
           </button>
-          <button class="btn btn-primary btn-sm" type="button" :disabled="!filteredEntries.length" @click="shareLog">
+          <button class="btn btn-primary btn-sm" type="button" :disabled="shareLoading" @click="shareLog">
             <AppIcon name="share" />
             {{ t('systemlog.share') }}
           </button>

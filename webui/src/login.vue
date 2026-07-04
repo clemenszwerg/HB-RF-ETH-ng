@@ -13,15 +13,36 @@
 
           <BForm @submit.stop.prevent class="login-form">
             <div class="input-group-modern">
+              <span class="input-icon"><AppIcon name="user" /></span>
+              <input
+                type="text"
+                name="username"
+                v-model.trim="username"
+                :placeholder="t('login.usernamePlaceholder')"
+                class="modern-input"
+                :class="{ 'has-error': v$.username.$error }"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                autofocus
+                @keyup.enter="loginClick"
+              />
+            </div>
+            <div v-if="v$.username.$error" class="error-text">
+              {{ t('login.usernameRequired') }}
+            </div>
+
+            <div class="input-group-modern">
               <span class="input-icon"><AppIcon name="lock" /></span>
               <input
                 type="password"
+                name="password"
                 v-model="password"
                 :placeholder="t('login.passwordPlaceholder')"
                 class="modern-input"
                 :class="{ 'has-error': v$.password.$error }"
+                autocomplete="current-password"
                 @keyup.enter="loginClick"
-                autofocus
               />
             </div>
             <div v-if="v$.password.$error" class="error-text">
@@ -43,7 +64,7 @@
               block
               size="lg"
               @click="loginClick"
-              :disabled="!password || loading"
+              :disabled="!username || !password || loading"
               class="login-btn"
             >
               <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
@@ -80,15 +101,17 @@ const route = useRoute()
 const loginStore = useLoginStore()
 const sysInfoStore = useSysInfoStore()
 
+const username = ref('admin')
 const password = ref('')
 const showError = ref(false)
 const loading = ref(false)
 
 const rules = {
+  username: { required },
   password: { required }
 }
 
-const v$ = useVuelidate(rules, { password })
+const v$ = useVuelidate(rules, { username, password })
 
 onMounted(() => {
   sysInfoStore.update().catch((error) => {
@@ -103,7 +126,7 @@ const loginClick = async () => {
   showError.value = false
   loading.value = true
 
-  const success = await loginStore.tryLogin(password.value)
+  const success = await loginStore.tryLogin(username.value, password.value)
   loading.value = false
 
   if (success) {

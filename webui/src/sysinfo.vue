@@ -6,7 +6,7 @@
           <AppIcon name="dashboard" />
           {{ t('sysinfo.dashboardTitle') }}
         </span>
-        <h1 class="hero-title">HB-RF-ETH-ng</h1>
+        <h1 class="hero-title">{{ sysInfoStore.hostname || 'HB-RF-ETH-ng' }}</h1>
         <p class="hero-subtitle">{{ t('sysinfo.system') }} · {{ t('sysinfo.network') }} · {{ t('sysinfo.radioModule') }}</p>
       </div>
 
@@ -130,6 +130,13 @@
             </div>
           </div>
           <div class="kv-list">
+            <div class="kv-row">
+              <span class="kv-label">{{ t('sysinfo.hostname') }}</span>
+              <button class="copy-value" @click="copyValue(sysInfoStore.hostname, t('sysinfo.hostname'))">
+                <span class="kv-value mono">{{ sysInfoStore.hostname || '-' }}</span>
+                <AppIcon name="copy" />
+              </button>
+            </div>
             <div class="kv-row">
               <span class="kv-label">{{ t('sysinfo.serial') }}</span>
               <button class="copy-value" @click="copyValue(sysInfoStore.serial, t('sysinfo.serial'))">

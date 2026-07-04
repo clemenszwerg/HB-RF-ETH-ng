@@ -93,9 +93,9 @@ export const useLoginStore = defineStore('login', {
       }
       return false
     },
-    async tryLogin(password) {
+    async tryLogin(username, password) {
       try {
-        const response = await axios.post("/login.json", { password }, { timeout: 8000 })
+        const response = await axios.post("/login.json", { username, password }, { timeout: 8000 })
         if (response.data?.isAuthenticated && response.data?.token) {
           this.login(response.data.token)
           this.setPasswordChanged(response.data.passwordChanged !== false)
@@ -115,6 +115,7 @@ export const useLoginStore = defineStore('login', {
 export const useSysInfoStore = defineStore('sysInfo', {
   state: () => ({
     serial: "",
+    hostname: "",
     currentVersion: "",
     latestVersion: "",
     rawUartRemoteAddress: "",
@@ -157,6 +158,7 @@ export const useSysInfoStore = defineStore('sysInfo', {
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
     hostname: "",
+    adminUsername: "admin",
     useDHCP: true,
     localIP: "",
     netmask: "",

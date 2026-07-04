@@ -37,14 +37,16 @@ export default {
   // Login Page
   login: {
     title: 'Please log in',
-    subtitle: 'Please enter your password to continue',
+    subtitle: 'Please enter username and password to continue',
     username: 'Username',
+    usernamePlaceholder: 'admin',
     password: 'Password',
     passwordPlaceholder: 'Password',
     login: 'Login',
     loginFailed: 'Login failed',
     invalidCredentials: 'Invalid credentials',
     loginError: 'Login was not successful.',
+    usernameRequired: 'Username is required',
     passwordRequired: 'Password is required',
     loggingIn: 'Logging in...'
   },
@@ -90,6 +92,8 @@ export default {
 
     // Security Settings
     security: 'Security',
+    adminUsername: 'Administrator username',
+    adminUsernameHint: 'Defaults to admin. Change it here for password managers or multi-device setups.',
     changePasswordHint: 'Change your administrator password for secure access',
     otaPassword: 'OTA Password',
     otaPasswordHint: 'Separate password required for firmware updates',
@@ -151,8 +155,8 @@ export default {
 
     // Backup & Restore
     backupRestore: 'Backup & Restore',
-    backupInfo: 'Download a backup of your settings to restore them later.',
-    restoreInfo: 'Upload a backup file to restore settings. The system will restart afterwards.',
+    backupInfo: 'Download a backup of your settings. The administrator username is included; the password is excluded for security.',
+    restoreInfo: 'Upload a backup file to restore settings including the administrator username. The password is preserved. The system will restart afterwards.',
     downloadBackup: 'Download Backup',
     restore: 'Restore',
     restoreBtn: 'Restore',
@@ -176,6 +180,7 @@ export default {
     goodAfternoon: 'Good Afternoon',
     goodEvening: 'Good Evening',
     serial: 'Serial number',
+    hostname: 'Hostname',
     boardRevision: 'Board revision',
     uptime: 'Uptime',
     resetReason: 'Last reboot',
@@ -251,7 +256,7 @@ export default {
     otaSuccess: 'Download successful. Installing...',
     currentVersion: 'Current Version',
     installedVersion: 'Installed version',
-    versionInfo: 'Modernized fork v2.2.2 by Xerolux (2025) - Based on the original work by Alexander Reinert.',
+    versionInfo: 'Modernized fork v2.2.3-Beta.1 by Xerolux (2025) - Based on the original work by Alexander Reinert.',
     updateAvailable: 'An update to version {latestVersion} is available.',
     newVersionAvailable: 'New version {version} is available!',
     viewUpdate: 'View',
@@ -367,7 +372,7 @@ export default {
   // About Page
   about: {
     title: 'About',
-    version: 'Version 2.2.2',
+    version: 'Version 2.2.3-Beta.1',
     fork: 'Modernized Fork',
     forkDescription: 'This version is a modernized fork by Xerolux (2025), based on the original HB-RF-ETH firmware. Updated to ESP-IDF 6.0, modern toolchains and current WebUI technologies (Vue 3, Vite, Pinia).',
     original: 'Original Author',

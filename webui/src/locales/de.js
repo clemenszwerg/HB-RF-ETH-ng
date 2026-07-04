@@ -37,14 +37,16 @@ export default {
   // Login Page
   login: {
     title: 'Bitte anmelden',
-    subtitle: 'Bitte geben Sie Ihr Passwort ein',
+    subtitle: 'Bitte geben Sie Benutzername und Passwort ein',
     username: 'Benutzername',
+    usernamePlaceholder: 'admin',
     password: 'Passwort',
     passwordPlaceholder: 'Passwort',
     login: 'Anmelden',
     loginFailed: 'Anmeldung fehlgeschlagen',
     invalidCredentials: 'Ungültige Anmeldedaten',
     loginError: 'Anmelden war nicht erfolgreich.',
+    usernameRequired: 'Benutzername ist erforderlich',
     passwordRequired: 'Passwort ist erforderlich',
     loggingIn: 'Anmeldung läuft...'
   },
@@ -90,6 +92,8 @@ export default {
 
     // Security Settings
     security: 'Sicherheit',
+    adminUsername: 'Administrator-Benutzername',
+    adminUsernameHint: 'Standard ist admin. Kann fuer Passwortmanager oder mehrere Geraete angepasst werden.',
     changePasswordHint: 'Ändern Sie Ihr Administrator-Passwort für sicheren Zugriff',
     otaPassword: 'OTA Passwort',
     otaPasswordHint: 'Separates Passwort für Firmware-Updates erforderlich',
@@ -151,8 +155,8 @@ export default {
 
     // Backup & Restore
     backupRestore: 'Sichern & Wiederherstellen',
-    backupInfo: 'Laden Sie eine Sicherung Ihrer Einstellungen herunter, um sie später wiederherzustellen.',
-    restoreInfo: 'Laden Sie eine Sicherungsdatei hoch, um die Einstellungen wiederherzustellen. Das System wird danach neu gestartet.',
+    backupInfo: 'Laden Sie eine Sicherung Ihrer Einstellungen herunter. Der Administrator-Benutzername ist enthalten, das Passwort aus Sicherheitsgründen nicht.',
+    restoreInfo: 'Laden Sie eine Sicherungsdatei hoch, um die Einstellungen inklusive Administrator-Benutzername wiederherzustellen. Das Passwort bleibt erhalten. Das System wird danach neu gestartet.',
     downloadBackup: 'Sicherung herunterladen',
     restore: 'Wiederherstellen',
     restoreBtn: 'Wiederherstellen',
@@ -182,6 +186,7 @@ export default {
     goodAfternoon: 'Guten Tag',
     goodEvening: 'Guten Abend',
     serial: 'Seriennummer',
+    hostname: 'Hostname',
     boardRevision: 'Board-Revision',
     uptime: 'Laufzeit',
     resetReason: 'Letzter Neustart',
@@ -251,7 +256,7 @@ export default {
     otaSuccess: 'Download erfolgreich. Installation...',
     currentVersion: 'Aktuelle Version',
     installedVersion: 'Installierte Version',
-    versionInfo: 'Modernisierte Fork v2.2.2 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
+    versionInfo: 'Modernisierte Fork v2.2.3-Beta.1 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
     updateAvailable: 'Ein Update auf Version {latestVersion} ist verfügbar.',
     newVersionAvailable: 'Neue Version {version} ist verfügbar!',
     viewUpdate: 'Ansehen',
@@ -367,7 +372,7 @@ export default {
   // About Page
   about: {
     title: 'Über',
-    version: 'Version 2.2.2',
+    version: 'Version 2.2.3-Beta.1',
     fork: 'Modernisierte Fork',
     forkDescription: 'Diese Version ist eine modernisierte Fork von Xerolux (2025), basierend auf der originalen HB-RF-ETH Firmware. Aktualisiert auf ESP-IDF 6.0, moderne Toolchains und aktuelle WebUI-Technologien (Vue 3, Vite, Pinia).',
     original: 'Original-Autor',

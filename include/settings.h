@@ -38,6 +38,7 @@ class Settings
 {
 private:
   char _adminPassword[33] = {0};
+  char _adminUsername[33] = {0};
   bool _passwordChanged;
 
   char _hostname[64] = {0};
@@ -79,7 +80,9 @@ public:
   void clear();
 
   char *getAdminPassword();
+  char *getAdminUsername();
   bool setAdminPassword(const char* password);
+  bool setAdminUsername(const char* username);
   bool getPasswordChanged();
 
   char *getHostname();

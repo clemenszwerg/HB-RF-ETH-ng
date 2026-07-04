@@ -47,6 +47,22 @@
             <div class="card-body">
               <div class="security-item">
                 <div class="security-info">
+                  <h4>{{ t('settings.adminUsername') }}</h4>
+                  <p>{{ t('settings.adminUsernameHint') }}</p>
+                </div>
+                <BFormInput
+                  v-model.trim="adminUsername"
+                  class="security-control"
+                  type="text"
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  :state="v$.adminUsername.$error ? false : null"
+                />
+              </div>
+
+              <div class="security-item">
+                <div class="security-info">
                   <h4>{{ t('settings.changePassword') }}</h4>
                   <p>{{ t('settings.changePasswordHint') }}</p>
                 </div>
@@ -490,6 +506,7 @@ const timeSources = computed(() => [
 // Local form state
 const restoreFile = ref(null)
 const fileInput = ref(null)
+const adminUsername = ref('admin')
 const hostname = ref('')
 const useDHCP = ref(true)
 const localIP = ref('')
@@ -569,6 +586,7 @@ const isGpsActivated = computed(() => timesource.value === 2)
 const isIPv6Static = computed(() => enableIPv6.value && ipv6Mode.value === 'static')
 
 const hostname_validator = helpers.regex(/^[a-zA-Z0-9][a-zA-Z0-9.-]{0,62}$/)
+const username_validator = helpers.regex(/^[a-zA-Z0-9._-]{1,32}$/)
 const domainname_validator = helpers.regex(/^([a-zA-Z0-9_-]{1,63}\.)*[a-zA-Z0-9_-]{1,63}$/)
 const ipv6_validator = helpers.regex(/^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$/)
 
@@ -586,6 +604,11 @@ const ccuIPValidator = (value) => {
 
 // Validation rules
 const rules = {
+  adminUsername: {
+    required,
+    username_validator,
+    maxLength: maxLength(32)
+  },
   hostname: {
     required,
     hostname_validator,
@@ -646,6 +669,7 @@ const rules = {
 }
 
 const v$ = useVuelidate(rules, {
+  adminUsername,
   hostname,
   localIP,
   netmask,
@@ -663,6 +687,7 @@ const v$ = useVuelidate(rules, {
 })
 
 const buildSettingsPayload = () => ({
+  adminUsername: adminUsername.value,
   hostname: hostname.value,
   useDHCP: useDHCP.value,
   localIP: localIP.value,
@@ -697,12 +722,13 @@ const updateDirtyState = () => {
   }, 300)
 }
 
-watch([hostname, useDHCP, localIP, netmask, gateway, dns1, dns2, ccuIP, timesource, dcfOffset, gpsBaudrate, ntpServer, ledBrightness, ledProgramValues, enableIPv6, ipv6Mode, ipv6Address, ipv6PrefixLength, ipv6Gateway, ipv6Dns1, ipv6Dns2], updateDirtyState, { deep: true })
+watch([adminUsername, hostname, useDHCP, localIP, netmask, gateway, dns1, dns2, ccuIP, timesource, dcfOffset, gpsBaudrate, ntpServer, ledBrightness, ledProgramValues, enableIPv6, ipv6Mode, ipv6Address, ipv6PrefixLength, ipv6Gateway, ipv6Dns1, ipv6Dns2], updateDirtyState, { deep: true })
 
 const hasUnsavedChanges = computed(() => loadedSnapshot.value !== '' && serializedCurrent.value !== '' && serializedCurrent.value !== loadedSnapshot.value)
 
 // Load settings from store
 const loadSettings = () => {
+  adminUsername.value = settingsStore.adminUsername || 'admin'
   hostname.value = settingsStore.hostname
   useDHCP.value = settingsStore.useDHCP
   localIP.value = settingsStore.localIP
@@ -958,6 +984,10 @@ const restoreSettings = async () => {
   margin: 0;
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+}
+
+.security-control {
+  width: min(240px, 100%);
 }
 
 hr {
@@ -1271,6 +1301,10 @@ hr {
   }
 
   .security-item .btn {
+    width: 100%;
+  }
+
+  .security-control {
     width: 100%;
   }
 

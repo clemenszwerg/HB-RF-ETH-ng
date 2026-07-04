@@ -31,6 +31,7 @@
 #include <stdarg.h>
 #include "webui.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "cJSON.h"
 #include "esp_ota_ops.h"
 #include "mbedtls/md.h"
@@ -228,9 +229,13 @@ esp_err_t post_login_json_handler_func(httpd_req_t *req)
             return ESP_OK;
         }
 
+        char *username = cJSON_GetStringValue(cJSON_GetObjectItem(root, "username"));
         char *password = cJSON_GetStringValue(cJSON_GetObjectItem(root, "password"));
 
-        bool isAuthenticated = (password != NULL) && (secure_strcmp(password, _settings->getAdminPassword()) == 0);
+        bool isAuthenticated = (username != NULL) &&
+                               (password != NULL) &&
+                               (secure_strcmp(username, _settings->getAdminUsername()) == 0) &&
+                               (secure_strcmp(password, _settings->getAdminPassword()) == 0);
 
         cJSON_Delete(root);
 
@@ -302,6 +307,7 @@ esp_err_t get_sysinfo_json_handler_func(httpd_req_t *req)
     cJSON *sysInfo = cJSON_AddObjectToObject(root, "sysInfo");
 
     cJSON_AddStringToObject(sysInfo, "serial", _sysInfo->getSerialNumber());
+    cJSON_AddStringToObject(sysInfo, "hostname", _settings->getHostname());
     cJSON_AddStringToObject(sysInfo, "currentVersion", _sysInfo->getCurrentVersion());
     cJSON_AddStringToObject(sysInfo, "latestVersion", _updateCheck->getLatestVersion());
     cJSON_AddNumberToObject(sysInfo, "memoryUsage", _sysInfo->getMemoryUsage());
@@ -348,6 +354,7 @@ void add_settings(cJSON *root)
     cJSON *settings = cJSON_AddObjectToObject(root, "settings");
 
     cJSON_AddStringToObject(settings, "hostname", _settings->getHostname());
+    cJSON_AddStringToObject(settings, "adminUsername", _settings->getAdminUsername());
 
     cJSON_AddBoolToObject(settings, "useDHCP", _settings->getUseDHCP());
 
@@ -563,7 +570,16 @@ esp_err_t post_settings_json_handler_func(httpd_req_t *req)
 
     char *ccuIP = cJSON_GetStringValue(cJSON_GetObjectItem(root, "ccuIP"));
 
+    char *adminUsername = cJSON_GetStringValue(cJSON_GetObjectItem(root, "adminUsername"));
     char *adminPassword = cJSON_GetStringValue(cJSON_GetObjectItem(root, "adminPassword"));
+
+    if (adminUsername && adminUsername[0] != '\0') {
+        if (!_settings->setAdminUsername(adminUsername)) {
+            cJSON_Delete(root);
+            return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
+                                       "Username must be 1-32 characters using letters, numbers, dot, dash, or underscore");
+        }
+    }
 
     if (adminPassword && adminPassword[0] != '\0') {
         if (!validateAdminPassword(adminPassword) || !_settings->setAdminPassword(adminPassword)) {
@@ -643,6 +659,8 @@ esp_err_t get_backup_handler_func(httpd_req_t *req)
     cJSON *root = cJSON_CreateObject();
 
     // NOTE: Admin password is intentionally excluded from backup for security.
+    // The admin username is included because it is not secret and is needed to
+    // restore password-manager friendly login settings across devices.
     // On restore, the current password will be preserved unless explicitly changed.
 
     add_settings(root);
@@ -650,7 +668,7 @@ esp_err_t get_backup_handler_func(httpd_req_t *req)
     // Merge settings object into root if add_settings creates a sub-object
     // NOTE: add_settings creates a "settings" object inside root.
     // If we want a flat structure or specific structure for restore, we need to match post_settings_json_handler expectations.
-    // post_settings_json_handler expects a flat JSON object with keys like "adminPassword", "hostname", etc.
+    // post_settings_json_handler expects a flat JSON object with keys like "adminUsername", "adminPassword", "hostname", etc.
     // But add_settings creates { "settings": { "hostname": ... } }
 
     // We need to flatten it.
@@ -713,6 +731,7 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
          return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
     }
 
+    char *adminUsername = cJSON_GetStringValue(cJSON_GetObjectItem(root, "adminUsername"));
     char *adminPassword = cJSON_GetStringValue(cJSON_GetObjectItem(root, "adminPassword"));
 
     char *hostname = cJSON_GetStringValue(cJSON_GetObjectItem(root, "hostname"));
@@ -768,6 +787,14 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
     char *ipv6Gateway = cJSON_GetStringValue(cJSON_GetObjectItem(root, "ipv6Gateway"));
     char *ipv6Dns1 = cJSON_GetStringValue(cJSON_GetObjectItem(root, "ipv6Dns1"));
     char *ipv6Dns2 = cJSON_GetStringValue(cJSON_GetObjectItem(root, "ipv6Dns2"));
+
+    if (adminUsername && adminUsername[0] != '\0') {
+        if (!_settings->setAdminUsername(adminUsername)) {
+            cJSON_Delete(root);
+            return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
+                                       "Username must be 1-32 characters using letters, numbers, dot, dash, or underscore");
+        }
+    }
 
     if (adminPassword && adminPassword[0] != '\0') {
         if (!validateAdminPassword(adminPassword) || !_settings->setAdminPassword(adminPassword)) {
@@ -1829,6 +1856,75 @@ httpd_uri_t get_log_status_handler = {
     .handler = get_log_status_handler_func,
     .user_ctx = NULL};
 
+static void emit_log_enable_snapshot()
+{
+    ESP_LOGI(TAG, "System log capture enabled via WebUI");
+    ESP_LOGW(TAG, "Boot logs before activation are not available because the log buffer is allocated on demand");
+
+    if (_sysInfo) {
+        ESP_LOGI(TAG, "Snapshot: version=%s, serial=%s, uptime=%lus, free_heap=%u",
+                 _sysInfo->getCurrentVersion(),
+                 _sysInfo->getSerialNumber(),
+                 (unsigned long)_sysInfo->getUptimeSeconds(),
+                 (unsigned int)esp_get_free_heap_size());
+        ESP_LOGI(TAG, "Snapshot: cpu=%.0f%%, memory=%.0f%%, reset_reason=%s",
+                 _sysInfo->getCpuUsage(),
+                 _sysInfo->getMemoryUsage(),
+                 _sysInfo->getResetReason());
+    } else {
+        ESP_LOGW(TAG, "Snapshot: system info unavailable");
+    }
+
+    if (_ethernet) {
+        ip4_addr_t ip, nm, gw, dns1, dns2;
+        _ethernet->getNetworkSettings(&ip, &nm, &gw, &dns1, &dns2);
+        char linkBuf[40] = "";
+        if (_ethernet->isConnected()) {
+            snprintf(linkBuf, sizeof(linkBuf), ", speed=%dMbps, duplex=%s",
+                     _ethernet->getLinkSpeedMbps(),
+                     _ethernet->getDuplexMode());
+        }
+        ip4_addr_t unsetIp = {};
+        unsetIp.addr = IPADDR_ANY;
+        ESP_LOGI(TAG, "Snapshot: ethernet=%s%s, ip=%s, gateway=%s, dns1=%s",
+                 _ethernet->isConnected() ? "connected" : "disconnected",
+                 linkBuf,
+                 ip2str(_settings ? _settings->getLocalIP() : unsetIp, ip),
+                 ip2str(_settings ? _settings->getGateway() : unsetIp, gw),
+                 ip2str(_settings ? _settings->getDns1() : unsetIp, dns1));
+    } else {
+        ESP_LOGW(TAG, "Snapshot: ethernet unavailable");
+    }
+
+    if (_radioModuleDetector) {
+        const char *typeStr = "unknown";
+        switch (_radioModuleDetector->getRadioModuleType()) {
+            case RADIO_MODULE_HM_MOD_RPI_PCB: typeStr = "HM-MOD-RPI-PCB"; break;
+            case RADIO_MODULE_RPI_RF_MOD:     typeStr = "RPI-RF-MOD";     break;
+            case RADIO_MODULE_HMIP_RFUSB:     typeStr = "HMIP-RFUSB";     break;
+            default: break;
+        }
+
+        const uint8_t *fw = _radioModuleDetector->getFirmwareVersion();
+        ESP_LOGI(TAG, "Snapshot: radio=%s, serial=%s, firmware=%u.%u.%u, bidcos=0x%06" PRIX32 ", hmip=0x%06" PRIX32,
+                 typeStr,
+                 _radioModuleDetector->getSerial(),
+                 fw[0], fw[1], fw[2],
+                 _radioModuleDetector->getBidCosRadioMAC(),
+                 _radioModuleDetector->getHmIPRadioMAC());
+    } else {
+        ESP_LOGW(TAG, "Snapshot: radio module detector unavailable");
+    }
+
+    if (_rawUartUdpListener) {
+        ip4_addr_t ccuAddr = _rawUartUdpListener->getConnectedRemoteAddress();
+        ESP_LOGI(TAG, "Snapshot: ccu_connected=%s%s%s",
+                 ccuAddr.addr != IPADDR_ANY ? "yes" : "no",
+                 ccuAddr.addr != IPADDR_ANY ? ", ccu_address=" : "",
+                 ccuAddr.addr != IPADDR_ANY ? ip2str(ccuAddr) : "");
+    }
+}
+
 // POST /api/log/enable - allocate the ring buffer and start capturing logs.
 esp_err_t post_log_enable_handler_func(httpd_req_t *req)
 {
@@ -1852,6 +1948,9 @@ esp_err_t post_log_enable_handler_func(httpd_req_t *req)
     }
 
     LogManager::begin(8192);
+    if (LogManager::instance().isEnabled()) {
+        emit_log_enable_snapshot();
+    }
     httpd_resp_set_type(req, "application/json");
     char body[32];
     snprintf(body, sizeof(body), "{\"enabled\":%s}",

@@ -79,6 +79,27 @@ void Settings::load()
 
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle));
 
+  size_t adminUsernameLength = sizeof(_adminUsername);
+  if (nvs_get_str(handle, "adminUsername", _adminUsername, &adminUsernameLength) != ESP_OK)
+  {
+    strncpy(_adminUsername, "admin", sizeof(_adminUsername) - 1);
+    _adminUsername[sizeof(_adminUsername) - 1] = '\0';
+    ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_set_str(handle, "adminUsername", _adminUsername));
+    // Force one login after the username feature is introduced. Existing
+    // passwords remain valid; only old browser tokens are invalidated.
+    size_t tokenLength = 0;
+    if (nvs_get_str(handle, "adminToken", NULL, &tokenLength) == ESP_OK)
+    {
+      ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_erase_key(handle, "adminToken"));
+    }
+    ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_commit(handle));
+  }
+  else if (_adminUsername[0] == '\0')
+  {
+    strncpy(_adminUsername, "admin", sizeof(_adminUsername) - 1);
+    _adminUsername[sizeof(_adminUsername) - 1] = '\0';
+  }
+
   size_t adminPasswordLength = sizeof(_adminPassword);
   if (nvs_get_str(handle, "adminPassword", _adminPassword, &adminPasswordLength) != ESP_OK)
   {
@@ -227,6 +248,7 @@ void Settings::save()
   }
 
   SET_STR(handle, "adminPassword", _adminPassword);
+  SET_STR(handle, "adminUsername", _adminUsername);
   SET_BOOL(handle, "passwordChanged", _passwordChanged);
 
   SET_STR(handle, "hostname", _hostname);
@@ -293,6 +315,11 @@ char *Settings::getAdminPassword()
   return _adminPassword;
 }
 
+char *Settings::getAdminUsername()
+{
+  return _adminUsername;
+}
+
 bool Settings::setAdminPassword(const char *adminPassword)
 {
   if (adminPassword == nullptr || adminPassword[0] == '\0' || strlen(adminPassword) >= sizeof(_adminPassword))
@@ -304,6 +331,33 @@ bool Settings::setAdminPassword(const char *adminPassword)
   snprintf(_adminPassword, sizeof(_adminPassword), "%s", adminPassword);
   // Mark password as changed when it's explicitly set
   _passwordChanged = true;
+  return true;
+}
+
+bool Settings::setAdminUsername(const char *adminUsername)
+{
+  if (adminUsername == nullptr || adminUsername[0] == '\0' || strlen(adminUsername) >= sizeof(_adminUsername))
+  {
+    ESP_LOGE(TAG, "Invalid admin username length, keeping current username");
+    return false;
+  }
+
+  const size_t len = strlen(adminUsername);
+  for (size_t i = 0; i < len; i++)
+  {
+    const char c = adminUsername[i];
+    const bool valid = (c >= 'A' && c <= 'Z') ||
+                       (c >= 'a' && c <= 'z') ||
+                       (c >= '0' && c <= '9') ||
+                       c == '-' || c == '_' || c == '.';
+    if (!valid)
+    {
+      ESP_LOGE(TAG, "Invalid character in admin username, keeping current username");
+      return false;
+    }
+  }
+
+  snprintf(_adminUsername, sizeof(_adminUsername), "%s", adminUsername);
   return true;
 }
 
