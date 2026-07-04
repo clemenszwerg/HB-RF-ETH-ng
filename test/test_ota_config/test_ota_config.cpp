@@ -38,7 +38,7 @@ void test_build_update_manifest_url_stable(void) {
     char buf[128];
     buildUpdateManifestUrl(false, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING(
-        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/latest.json",
+        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main/latest.json",
         buf);
 }
 
@@ -46,7 +46,7 @@ void test_build_update_manifest_url_beta(void) {
     char buf[128];
     buildUpdateManifestUrl(true, buf, sizeof(buf));
     TEST_ASSERT_EQUAL_STRING(
-        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/beta.json",
+        "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main/beta.json",
         buf);
 }
 

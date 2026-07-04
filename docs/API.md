@@ -448,14 +448,16 @@ demand via `POST /api/check_update`. No network request is triggered by GET,
 so it is safe to poll.
 
 The release data is sourced from static update manifests in this repository:
-`https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/latest.json` for
-the stable channel and `.../beta.json` for the beta channel. GitHub Releases
-still host the firmware binary, but the device no longer parses the GitHub
-Releases API.
+`https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/refs/heads/main/latest.json`
+for the stable channel and `.../beta.json` for the beta channel. GitHub
+Releases still host the firmware binary, but the device no longer parses the
+GitHub Releases API. The explicit `refs/heads/main` raw path avoids the stale
+CDN edge sometimes seen with the shorter `/main/` path.
 
-When publishing a release, update `latest.json` and, if the beta channel should
-see the same or a newer pre-release, `beta.json`. The manifest `sha256` must
-match the firmware binary entry in the release `SHA256SUMS.txt`.
+The release workflow updates the manifests automatically. Stable releases write
+both `latest.json` and `beta.json`; pre-releases write only `beta.json`. The
+manifest `sha256` must match the firmware binary entry in the release
+`SHA256SUMS.txt`.
 
 **Authentication:** Required
 
