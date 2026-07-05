@@ -13,6 +13,7 @@ CONFIG_MQTT_PROTOCOL_311=y
 
 # HTTP Server
 CONFIG_HTTPD_MAX_URI_HANDLERS=15
+CONFIG_HTTPD_WS_SUPPORT=y
 
 # TLS certificate verification: use the full Mozilla root CA bundle so the
 # ECDSA roots GitHub's CDN may present (e.g. ISRG Root X2) are covered. Keeps

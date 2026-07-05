@@ -288,16 +288,37 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
         hints.ai_socktype = SOCK_STREAM;
         struct addrinfo *res = NULL;
         char port_str[8];
+        int sock = -1;
+        int flags = -1;
+        fd_set wset;
+        struct timeval tv = { .tv_sec = 8, .tv_usec = 0 };
+        int soerr = 0;
+        socklen_t sl = sizeof(soerr);
+        mbedtls_ssl_context ssl;
+        mbedtls_ssl_config conf;
+        mbedtls_net_context net_fd;
+        bool tls_active = false;
+        char line[256];
+        int code = 0;
+        char hostbuf[64];
+        int r = 0;
+        unsigned char obuf[128];
+        size_t olen = 0;
+
+        mbedtls_ssl_init(&ssl);
+        mbedtls_ssl_config_init(&conf);
+        mbedtls_net_init(&net_fd);
+
         snprintf(port_str, sizeof(port_str), "%u", s_cfg.smtp_port ? s_cfg.smtp_port : 587);
         if (getaddrinfo(s_cfg.smtp_server, port_str, &hints, &res) != ESP_OK || !res) {
             goto release_mutex;
         }
 
-        int sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+        sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         if (sock < 0) { freeaddrinfo(res); goto release_mutex; }
 
         // 8s connect timeout.
-        int flags = fcntl(sock, F_GETFL, 0);
+        flags = fcntl(sock, F_GETFL, 0);
         if (flags >= 0) fcntl(sock, F_SETFL, flags | O_NONBLOCK);
         if (connect(sock, res->ai_addr, res->ai_addrlen) != 0
             && errno != EINPROGRESS && errno != EWOULDBLOCK) {
@@ -305,26 +326,17 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
         }
         freeaddrinfo(res);
 
-        fd_set wset; FD_ZERO(&wset); FD_SET(sock, &wset);
-        struct timeval tv = { .tv_sec = 8, .tv_usec = 0 };
+        FD_ZERO(&wset); FD_SET(sock, &wset);
         if (select(sock + 1, NULL, &wset, NULL, &tv) <= 0) {
             close(sock); goto release_mutex;
         }
-        int soerr = 0; socklen_t sl = sizeof(soerr);
         if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &soerr, &sl) != 0 || soerr != 0) {
             close(sock); goto release_mutex;
         }
         if (flags >= 0) fcntl(sock, F_SETFL, flags);  // restore blocking
 
         // For implicit TLS we wrap the socket in mbedtls before SMTP talk.
-        mbedtls_ssl_context ssl;
-        mbedtls_ssl_config  conf;
-        mbedtls_net_context net_fd;
-        bool tls_active = false;
         if (use_tls) {
-            mbedtls_ssl_init(&ssl);
-            mbedtls_ssl_config_init(&conf);
-            mbedtls_net_init(&net_fd);
             net_fd.fd = sock;
             if (mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_CLIENT,
                                             MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -336,10 +348,8 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
             mbedtls_ssl_conf_ca_chain(&conf, esp_crt_bundle_get_bundle(NULL), NULL);
             mbedtls_ssl_setup(&ssl, &conf);
             mbedtls_ssl_set_bio(&ssl, &net_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
-            char hostbuf[64];
             snprintf(hostbuf, sizeof(hostbuf), "%s", s_cfg.smtp_server);
             mbedtls_ssl_set_hostname(&ssl, hostbuf);
-            int r;
             while ((r = mbedtls_ssl_handshake(&ssl)) != 0) {
                 if (r != MBEDTLS_ERR_SSL_WANT_READ && r != MBEDTLS_ERR_SSL_WANT_WRITE) {
                     mbedtls_ssl_free(&ssl); mbedtls_ssl_config_free(&conf);
@@ -350,9 +360,6 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
         }
 
         // Helper macros for line-oriented SMTP I/O.
-        char line[256];
-        int code = 0;
-
         #define SMTP_RECV(expected) do { \
             code = tls_active ? -1 : smtp_read_reply(sock, line, sizeof(line)); \
             if (tls_active) { \
@@ -404,9 +411,6 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
             SMTP_SEND("STARTTLS");
             SMTP_RECV(220);
             // Upgrade to TLS.
-            mbedtls_ssl_init(&ssl);
-            mbedtls_ssl_config_init(&conf);
-            mbedtls_net_init(&net_fd);
             net_fd.fd = sock;
             if (mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_CLIENT,
                                             MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -415,10 +419,8 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
             mbedtls_ssl_conf_ca_chain(&conf, esp_crt_bundle_get_bundle(NULL), NULL);
             mbedtls_ssl_setup(&ssl, &conf);
             mbedtls_ssl_set_bio(&ssl, &net_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
-            char hostbuf[64];
             snprintf(hostbuf, sizeof(hostbuf), "%s", s_cfg.smtp_server);
             mbedtls_ssl_set_hostname(&ssl, hostbuf);
-            int r;
             while ((r = mbedtls_ssl_handshake(&ssl)) != 0) {
                 if (r != MBEDTLS_ERR_SSL_WANT_READ && r != MBEDTLS_ERR_SSL_WANT_WRITE) goto smtp_fail;
             }
@@ -431,8 +433,6 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
         if (s_cfg.smtp_user[0]) {
             SMTP_SEND("AUTH LOGIN");
             SMTP_RECV(334);
-            unsigned char obuf[128];
-            size_t olen = 0;
             mbedtls_base64_encode(obuf, sizeof(obuf), &olen,
                                   (const unsigned char *)s_cfg.smtp_user, strlen(s_cfg.smtp_user));
             obuf[olen] = '\0';
