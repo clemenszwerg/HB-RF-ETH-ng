@@ -24,6 +24,7 @@
 #include "ethernet.h"
 #include "pins.h"
 #include "esp_eth_phy_lan87xx.h"
+#include "lwip/ip6_addr.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -264,12 +265,15 @@ int Ethernet::getIPv6AddressStrings(char out[][48], int max_count)
     if (!max_count || !_isConnected.load() || _eth_netif == NULL)
         return 0;
 
-    esp_ip6_addr_t ip6[ESP_NETIF_IPV6_ADDRS_MAX];
+    // CONFIG_LWIP_IPV6_NUM_ADDRESSES is typically 3; use a fixed ceiling
+    // that is guaranteed >= the configured value.
+    static const int MAX_IPV6 = 4;
+    esp_ip6_addr_t ip6[MAX_IPV6];
     memset(ip6, 0, sizeof(ip6));
     if (esp_netif_get_all_ip6(_eth_netif, ip6) != ESP_OK)
         return 0;
 
-    for (int i = 0; i < ESP_NETIF_IPV6_ADDRS_MAX && count < max_count; i++)
+    for (int i = 0; i < MAX_IPV6 && count < max_count; i++)
     {
         // Skip unassigned (all-zero) slots
         if (ip6[i].addr[0] == 0 && ip6[i].addr[1] == 0 &&
