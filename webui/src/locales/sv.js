@@ -443,6 +443,8 @@ export default {
     warningMessage: 'Detta är din första inloggning eller lösenordet är fortfarande satt till "admin". Av säkerhetsskäl måste du byta lösenordet.',
     success: 'Lösenord bytt framgångsrikt',
     newPasswordPlaceholder: 'Ange nytt lösenord',
+    currentPasswordPlaceholder: 'Ange aktuellt lösenord',
+    currentPasswordRequired: 'Aktuellt lösenord krävs',
     confirmPasswordPlaceholder: 'Bekräfta nytt lösenord'
   },
 
@@ -453,6 +455,8 @@ export default {
     otaPassword: 'OTA Lösenord',
     otaPasswordPlaceholder: 'Ange OTA lösenord',
     confirmPassword: 'Bekräfta Lösenord',
+    currentPasswordPlaceholder: 'Ange aktuellt lösenord',
+    currentPasswordRequired: 'Aktuellt lösenord krävs',
     confirmPasswordPlaceholder: 'Bekräfta OTA lösenord',
     passwordTooShort: 'Lösenordet måste vara minst 8 tecken långt',
     passwordRequirements: 'Måste innehålla versaler, gemener och siffror',

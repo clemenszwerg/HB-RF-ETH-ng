@@ -443,7 +443,9 @@ export default {
     warningMessage: 'This is your first login or the password is still set to "admin". For security reasons, you must change the password.',
     success: 'Password changed successfully',
     newPasswordPlaceholder: 'Enter new password',
-    confirmPasswordPlaceholder: 'Confirm new password'
+    confirmPasswordPlaceholder: 'Confirm new password',
+    currentPasswordPlaceholder: 'Enter current password',
+    currentPasswordRequired: 'Current password is required'
   },
 
   // OTA Password Modal

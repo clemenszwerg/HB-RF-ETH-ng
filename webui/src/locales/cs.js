@@ -443,6 +443,8 @@ export default {
     warningMessage: 'Toto je vaše první přihlášení nebo je heslo stále nastaveno na "admin". Z bezpečnostních důvodů musíte heslo změnit.',
     success: 'Heslo úspěšně změněno',
     newPasswordPlaceholder: 'Zadejte nové heslo',
+    currentPasswordPlaceholder: 'Zadejte aktuální heslo',
+    currentPasswordRequired: 'Aktuální heslo je vyžadováno',
     confirmPasswordPlaceholder: 'Potvrďte nové heslo'
   },
 
@@ -453,6 +455,8 @@ export default {
     otaPassword: 'Heslo OTA',
     otaPasswordPlaceholder: 'Zadejte heslo OTA',
     confirmPassword: 'Potvrdit heslo',
+    currentPasswordPlaceholder: 'Zadejte aktuální heslo',
+    currentPasswordRequired: 'Aktuální heslo je vyžadováno',
     confirmPasswordPlaceholder: 'Potvrďte heslo OTA',
     passwordTooShort: 'Heslo musí mít alespoň 8 znaků',
     passwordRequirements: 'Musí obsahovat velká, malá písmena a čísla',

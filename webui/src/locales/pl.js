@@ -443,6 +443,8 @@ export default {
     warningMessage: 'To twoje pierwsze logowanie lub hasło jest nadal ustawione na "admin". Ze względów bezpieczeństwa musisz zmienić hasło.',
     success: 'Hasło zmienione pomyślnie',
     newPasswordPlaceholder: 'Wprowadź nowe hasło',
+    currentPasswordPlaceholder: 'Wprowadź aktualne hasło',
+    currentPasswordRequired: 'Aktualne hasło jest wymagane',
     confirmPasswordPlaceholder: 'Potwierdź nowe hasło'
   },
 
@@ -453,6 +455,8 @@ export default {
     otaPassword: 'Hasło OTA',
     otaPasswordPlaceholder: 'Wprowadź hasło OTA',
     confirmPassword: 'Potwierdź hasło',
+    currentPasswordPlaceholder: 'Wprowadź aktualne hasło',
+    currentPasswordRequired: 'Aktualne hasło jest wymagane',
     confirmPasswordPlaceholder: 'Potwierdź hasło OTA',
     passwordTooShort: 'Hasło musi mieć co najmniej 8 znaków',
     passwordRequirements: 'Musi zawierać wielkie, małe litery i cyfry',

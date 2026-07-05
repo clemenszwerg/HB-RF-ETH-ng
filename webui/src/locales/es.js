@@ -443,6 +443,8 @@ export default {
     warningMessage: 'Este es su primer inicio de sesión o la contraseña todavía está establecida en "admin". Por razones de seguridad, debe cambiar la contraseña.',
     success: 'Contraseña cambiada correctamente',
     newPasswordPlaceholder: 'Ingrese nueva contraseña',
+    currentPasswordPlaceholder: 'Ingrese contraseña actual',
+    currentPasswordRequired: 'Se requiere contraseña actual',
     confirmPasswordPlaceholder: 'Confirmar nueva contraseña'
   },
 
@@ -453,6 +455,8 @@ export default {
     otaPassword: 'Contraseña OTA',
     otaPasswordPlaceholder: 'Ingrese contraseña OTA',
     confirmPassword: 'Confirmar contraseña',
+    currentPasswordPlaceholder: 'Ingrese contraseña actual',
+    currentPasswordRequired: 'Se requiere contraseña actual',
     confirmPasswordPlaceholder: 'Confirmar contraseña OTA',
     passwordTooShort: 'La contraseña debe tener al menos 8 caracteres',
     passwordRequirements: 'Debe contener mayúsculas, minúsculas y números',

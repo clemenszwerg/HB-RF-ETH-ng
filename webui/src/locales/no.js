@@ -443,6 +443,8 @@ export default {
     warningMessage: 'Dette er din første innlogging eller passordet er fortsatt satt til "admin". Av sikkerhetsgrunner må du endre passordet.',
     success: 'Passord endret',
     newPasswordPlaceholder: 'Skriv inn nytt passord',
+    currentPasswordPlaceholder: 'Skriv inn nåværende passord',
+    currentPasswordRequired: 'Nåværende passord kreves',
     confirmPasswordPlaceholder: 'Bekreft nytt passord'
   },
 
@@ -453,6 +455,8 @@ export default {
     otaPassword: 'OTA-passord',
     otaPasswordPlaceholder: 'Angi OTA-passord',
     confirmPassword: 'Bekreft Passord',
+    currentPasswordPlaceholder: 'Skriv inn nåværende passord',
+    currentPasswordRequired: 'Nåværende passord kreves',
     confirmPasswordPlaceholder: 'Bekreft OTA-passord',
     passwordTooShort: 'Passordet må være minst 8 tegn langt',
     passwordRequirements: 'Må inneholde store og små bokstaver og tall',

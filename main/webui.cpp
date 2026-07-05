@@ -1520,7 +1520,21 @@ esp_err_t post_change_password_handler_func(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
     }
 
+    char *currentPassword = cJSON_GetStringValue(cJSON_GetObjectItem(root, "currentPassword"));
     char *newPassword = cJSON_GetStringValue(cJSON_GetObjectItem(root, "newPassword"));
+
+    // Require the current password for re-authentication so a briefly
+    // unlocked session cannot be used to change the password permanently.
+    if (currentPassword == NULL || currentPassword[0] == '\0')
+    {
+        cJSON_Delete(root);
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Current password is required");
+    }
+    if (secure_strcmp(currentPassword, _settings->getAdminPassword()) != 0)
+    {
+        cJSON_Delete(root);
+        return httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "Current password is incorrect");
+    }
 
     if (!validateAdminPassword(newPassword))
     {

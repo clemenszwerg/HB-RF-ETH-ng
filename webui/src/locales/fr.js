@@ -443,6 +443,8 @@ export default {
     warningMessage: 'Ceci est votre première connexion ou le mot de passe est toujours défini sur "admin". Pour des raisons de sécurité, vous devez changer le mot de passe.',
     success: 'Mot de passe changé avec succès',
     newPasswordPlaceholder: 'Entrer le nouveau mot de passe',
+    currentPasswordPlaceholder: 'Entrez le mot de passe actuel',
+    currentPasswordRequired: 'Le mot de passe actuel est requis',
     confirmPasswordPlaceholder: 'Confirmer le nouveau mot de passe'
   },
 
@@ -453,6 +455,8 @@ export default {
     otaPassword: 'Mot de passe OTA',
     otaPasswordPlaceholder: 'Entrer le mot de passe OTA',
     confirmPassword: 'Confirmer le mot de passe',
+    currentPasswordPlaceholder: 'Entrez le mot de passe actuel',
+    currentPasswordRequired: 'Le mot de passe actuel est requis',
     confirmPasswordPlaceholder: 'Confirmer le mot de passe OTA',
     passwordTooShort: 'Le mot de passe doit comporter au moins 8 caractères',
     passwordRequirements: 'Doit contenir des majuscules, des minuscules et des chiffres',

@@ -17,6 +17,19 @@
       </p>
 
       <BForm @submit.stop.prevent="handleSubmit">
+        <BFormGroup :label="t('changePassword.currentPassword')">
+          <BFormInput
+            type="password"
+            v-model="currentPassword"
+            :placeholder="t('changePassword.currentPasswordPlaceholder')"
+            :state="v$.currentPassword.$error ? false : null"
+            size="lg"
+          />
+          <BFormInvalidFeedback v-if="v$.currentPassword.required.$invalid">
+            {{ t('changePassword.currentPasswordRequired') }}
+          </BFormInvalidFeedback>
+        </BFormGroup>
+
         <BFormGroup :label="t('changePassword.newPassword')">
           <BFormInput
             type="password"
@@ -112,6 +125,7 @@ const router = useRouter()
 const loginStore = useLoginStore()
 
 const showModal = ref(props.modelValue)
+const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const error = ref(null)
@@ -120,17 +134,19 @@ const loading = ref(false)
 const password_validator = helpers.regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/)
 
 const rules = computed(() => ({
+  currentPassword: { required },
   newPassword: { required, minLength: minLength(8), password_validator },
   confirmPassword: { required, sameAs: sameAs(newPassword.value) }
 }))
 
-const v$ = useVuelidate(rules, { newPassword, confirmPassword }, { $stopPropagation: true })
+const v$ = useVuelidate(rules, { currentPassword, newPassword, confirmPassword }, { $stopPropagation: true })
 
 // Watch for prop changes
 watch(() => props.modelValue, (newVal) => {
   showModal.value = newVal
   if (newVal) {
     // Reset form when opening
+    currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
     error.value = null
@@ -164,9 +180,10 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    const response = await axios.post('/api/change-password', {
-      newPassword: newPassword.value
-    })
+      const response = await axios.post('/api/change-password', {
+        currentPassword: currentPassword.value,
+        newPassword: newPassword.value
+      })
 
     if (response.data.success) {
       // Update token in store

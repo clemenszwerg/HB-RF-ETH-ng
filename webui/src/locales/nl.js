@@ -443,6 +443,8 @@ export default {
     warningMessage: 'Dit is uw eerste aanmelding of het wachtwoord is nog ingesteld op "admin". Om veiligheidsredenen moet u het wachtwoord wijzigen.',
     success: 'Wachtwoord succesvol gewijzigd',
     newPasswordPlaceholder: 'Voer nieuw wachtwoord in',
+    currentPasswordPlaceholder: 'Voer huidig wachtwoord in',
+    currentPasswordRequired: 'Huidig wachtwoord is vereist',
     confirmPasswordPlaceholder: 'Bevestig nieuw wachtwoord'
   },
 
@@ -453,6 +455,8 @@ export default {
     otaPassword: 'OTA Wachtwoord',
     otaPasswordPlaceholder: 'Voer OTA wachtwoord in',
     confirmPassword: 'Bevestig Wachtwoord',
+    currentPasswordPlaceholder: 'Voer huidig wachtwoord in',
+    currentPasswordRequired: 'Huidig wachtwoord is vereist',
     confirmPasswordPlaceholder: 'Bevestig OTA wachtwoord',
     passwordTooShort: 'Wachtwoord moet minstens 8 tekens lang zijn',
     passwordRequirements: 'Moet hoofdletters, kleine letters en cijfers bevatten',

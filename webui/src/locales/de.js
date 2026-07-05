@@ -443,6 +443,8 @@ export default {
     warningMessage: 'Dies ist Ihre erste Anmeldung oder das Passwort ist noch auf "admin". Aus Sicherheitsgründen müssen Sie das Passwort ändern.',
     success: 'Passwort erfolgreich geändert',
     newPasswordPlaceholder: 'Neues Passwort eingeben',
+    currentPasswordPlaceholder: 'Aktuelles Passwort eingeben',
+    currentPasswordRequired: 'Aktuelles Passwort ist erforderlich',
     confirmPasswordPlaceholder: 'Neues Passwort bestätigen'
   },
 
@@ -453,6 +455,8 @@ export default {
     otaPassword: 'OTA Passwort',
     otaPasswordPlaceholder: 'OTA Passwort eingeben',
     confirmPassword: 'Passwort bestätigen',
+    currentPasswordPlaceholder: 'Aktuelles Passwort eingeben',
+    currentPasswordRequired: 'Aktuelles Passwort ist erforderlich',
     confirmPasswordPlaceholder: 'OTA Passwort bestätigen',
     passwordTooShort: 'Passwort muss mindestens 8 Zeichen lang sein',
     passwordRequirements: 'Muss Groß-, Kleinbuchstaben und Zahlen enthalten',
