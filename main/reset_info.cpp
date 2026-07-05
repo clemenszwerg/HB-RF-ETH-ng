@@ -1,5 +1,8 @@
 /*
- *  reset_info.cpp is part of the HB-RF-ETH firmware v2.1
+ *  reset_info.cpp is part of the HB-RF-ETH firmware v2.0
+ *
+ *  Original work Copyright 2022 Alexander Reinert
+ *  https://github.com/alexreinert/HB-RF-ETH
  *
  *  Modified work Copyright 2025 Xerolux
  *  Modernized fork - Updated to ESP-IDF 6.0 and modern toolchains
@@ -9,6 +12,12 @@
  *
  *  You should have received a copy of the license along with this
  *  work.  If not, see <http://creativecommons.org/licenses/by-nc-sa/4.0/>.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  *
  */
 

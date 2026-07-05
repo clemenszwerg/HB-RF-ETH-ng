@@ -1,3 +1,26 @@
+/*
+ *  log_manager.cpp is part of the HB-RF-ETH firmware v2.0
+ *
+ *  Original work Copyright 2022 Alexander Reinert
+ *  https://github.com/alexreinert/HB-RF-ETH
+ *
+ *  Modified work Copyright 2025 Xerolux
+ *  Modernized fork - Updated to ESP-IDF 6.0 and modern toolchains
+ *
+ *  The HB-RF-ETH firmware is licensed under a
+ *  Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+ *
+ *  You should have received a copy of the license along with this
+ *  work.  If not, see <http://creativecommons.org/licenses/by-nc-sa/4.0/>.
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
 #include "log_manager.h"
 #include <esp_log.h>
 #include <esp_timer.h>
@@ -147,7 +170,7 @@ void LogManager::_stop() {
 
     xSemaphoreGive(_mutex);
     // Logged through the restored default sink (UART).
-    printf("LogManager: log buffering disabled (buffer freed)\n");
+    ESP_LOGI(TAG, "log buffering disabled (buffer freed)");
 }
 
 bool LogManager::isEnabled() const {
