@@ -1280,6 +1280,12 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
             httpd_resp_sendstr(req, "{\"success\":false,\"error\":\"Firmware URL must use HTTPS\"}");
             return ESP_OK;
         }
+        if (strlen(url_json) >= sizeof(url_buf)) {
+            cJSON_Delete(root);
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_sendstr(req, "{\"success\":false,\"error\":\"URL too long\"}");
+            return ESP_OK;
+        }
         strncpy(url_buf, url_json, sizeof(url_buf) - 1);
     }
 
