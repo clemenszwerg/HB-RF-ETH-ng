@@ -17,7 +17,7 @@ NEW_HEADER_TEMPLATE = """/*
  *  https://github.com/alexreinert/HB-RF-ETH
  *
  *  Modified work Copyright 2025 Xerolux
- *  Modernized fork - Updated to ESP-IDF 5.x and modern toolchains
+ *  Modernized fork - Updated to ESP-IDF 6.0 and modern toolchains
  *
  *  The HB-RF-ETH firmware is licensed under a
  *  Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
@@ -63,7 +63,7 @@ def main():
 
     # Directories to process
     directories = [
-        project_root / 'src',
+        project_root / 'main',
         project_root / 'include',
     ]
 
@@ -74,10 +74,11 @@ def main():
 
     for directory in directories:
         if not directory.exists():
+            print(f"Warning: directory {directory} not found, skipping")
             continue
 
         for ext in extensions:
-            for filepath in directory.glob(f'*{ext}'):
+            for filepath in directory.rglob(f'*{ext}'):
                 if update_file_header(filepath):
                     updated_count += 1
 
