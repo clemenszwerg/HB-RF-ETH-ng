@@ -11,7 +11,9 @@
     footer-class="changelog-footer"
   >
     <template #header-close>
-      <span class="close-icon">×</span>
+      <button type="button" class="close-icon" aria-label="Close">
+        ×
+      </button>
     </template>
 
     <div v-if="loading" class="text-center py-5">
@@ -81,6 +83,15 @@ const escapeHtml = (value) => value
   .replaceAll('"', '&quot;')
   .replaceAll("'", '&#39;')
 
+// Sanitize link targets to prevent javascript:/data: XSS via markdown links.
+const changelogRenderer = new marked.Renderer()
+changelogRenderer.link = ({ href, title, text }) => {
+  const safeHref = /^(javascript|data|vbscript):/i.test((href || '').trim()) ? '#' : href
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : ''
+  return `<a href="${escapeHtml(safeHref)}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`
+}
+marked.use({ renderer: changelogRenderer })
+
 const renderedChangelog = computed(() => {
   if (!changelog.value) return ''
   try {
@@ -148,6 +159,9 @@ watch(() => props.modelValue, (newValue) => {
   cursor: pointer;
   opacity: 1;
   transition: background 0.2s;
+  background: transparent;
+  color: inherit;
+  padding: 0;
 }
 
 .changelog-header .close-icon:hover {
