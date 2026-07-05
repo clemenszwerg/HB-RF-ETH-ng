@@ -279,7 +279,7 @@ int Ethernet::getIPv6AddressStrings(char out[][48], int max_count)
         if (ip6[i].addr[0] == 0 && ip6[i].addr[1] == 0 &&
             ip6[i].addr[2] == 0 && ip6[i].addr[3] == 0)
             continue;
-        ip6addr_ntoa_r(&ip6[i], out[count], 48);
+        ip6addr_ntoa_r((const ip6_addr_t *)&ip6[i], out[count], 48);
         out[count][47] = '\0';
         count++;
     }
