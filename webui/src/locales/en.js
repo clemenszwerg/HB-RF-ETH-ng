@@ -349,7 +349,7 @@ export default {
       password: 'Password',
       passwordHelp: 'Optional: MQTT Password',
       topicPrefix: 'Topic Prefix',
-      topicPrefixHelp: 'Default: hb-rf-eth-ng - Topics will be like prefix/status/...',
+      topicPrefixHelp: 'Root segment of every MQTT topic this device publishes/subscribes. Default: hb-rf-eth-ng. Examples: “prefix/status/uptime”, “prefix/status/version”, “prefix/command/update”. Visible in your MQTT broker (e.g. MQTT Explorer), not in the WebUI.',
       haDiscoveryEnabled: 'Home Assistant Discovery',
       haDiscoveryPrefix: 'Discovery Prefix',
       haDiscoveryPrefixHelp: 'Default: homeassistant',

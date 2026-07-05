@@ -238,7 +238,9 @@ void Settings::load()
   if (nvs_get_str(handle, "ccuIP", _ccuIP, &len) != ESP_OK) _ccuIP[0] = 0;
 
   GET_BOOL(handle, "betaChannel", _betaChannel, false);
-  GET_BOOL(handle, "systemLogEnabled", _systemLogEnabled, false);
+  // NVS key max length is 15; do not rename to "systemLogEnabled" (16) — it
+  // silently fails with ESP_ERR_NVS_KEY_TOO_LONG and the toggle won't persist.
+  GET_BOOL(handle, "sysLogEnabled", _systemLogEnabled, false);
 
   nvs_close(handle);
 
@@ -300,7 +302,7 @@ void Settings::save()
   SET_STR(handle, "ccuIP", _ccuIP);
 
   SET_BOOL(handle, "betaChannel", _betaChannel);
-  SET_BOOL(handle, "systemLogEnabled", _systemLogEnabled);
+  SET_BOOL(handle, "sysLogEnabled", _systemLogEnabled);
 
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_commit(handle));
   nvs_close(handle);

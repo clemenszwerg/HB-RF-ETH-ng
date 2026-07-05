@@ -94,7 +94,7 @@ export default {
     // Security Settings
     security: 'Sicherheit',
     adminUsername: 'Administrator-Benutzername',
-    adminUsernameHint: 'Standard ist admin. Kann fuer Passwortmanager oder mehrere Geraete angepasst werden.',
+    adminUsernameHint: 'Standard ist admin. Kann für Passwortmanager oder mehrere Geräte angepasst werden.',
     changePasswordHint: 'Ändern Sie Ihr Administrator-Passwort für sicheren Zugriff',
     otaPassword: 'OTA Passwort',
     otaPasswordHint: 'Separates Passwort für Firmware-Updates erforderlich',
@@ -349,7 +349,7 @@ export default {
       password: 'Passwort',
       passwordHelp: 'Optional: MQTT Passwort',
       topicPrefix: 'Topic Präfix',
-      topicPrefixHelp: 'Standard: hb-rf-eth-ng - Topics lauten präfix/status/...',
+      topicPrefixHelp: 'Wurzel aller vom Gerät veröffentlichten/abonnierten MQTT-Topics. Standard: hb-rf-eth-ng. Beispiele: „präfix/status/uptime“, „präfix/status/version“, „präfix/command/update“. Sichtbar im MQTT-Broker (z. B. MQTT Explorer), nicht im WebUI.',
       haDiscoveryEnabled: 'Home Assistant Discovery',
       haDiscoveryPrefix: 'Discovery Präfix',
       haDiscoveryPrefixHelp: 'Standard: homeassistant',

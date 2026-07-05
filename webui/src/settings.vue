@@ -950,6 +950,13 @@ const restoreSettings = async () => {
   display: flex;
   justify-content: center;
   margin-bottom: var(--spacing-xl);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabs-container::-webkit-scrollbar {
+  display: none;
 }
 
 .segmented-control {
@@ -959,12 +966,13 @@ const restoreSettings = async () => {
   border-radius: 20px;
   position: relative;
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
   gap: 4px;
 }
 
 .segment-btn {
-  flex: 1;
+  flex: 1 0 auto;
+  min-width: max-content;
   border: none;
   background: transparent;
   padding: 8px 16px;
@@ -981,6 +989,11 @@ const restoreSettings = async () => {
   display: inline-flex;
   justify-content: center;
   align-items: center;
+  white-space: nowrap;
+}
+
+.segment-label {
+  min-width: 0;
 }
 
 .segment-btn.active {
@@ -1368,13 +1381,6 @@ hr {
     margin-left: calc(-1 * var(--spacing-sm));
     margin-right: calc(-1 * var(--spacing-sm));
     padding: 0 var(--spacing-sm);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .tabs-container::-webkit-scrollbar {
-    display: none;
   }
 
   .segmented-control {
@@ -1386,7 +1392,6 @@ hr {
   .segment-btn {
     padding: 10px 16px;
     font-size: 0.875rem;
-    white-space: nowrap;
     flex: 0 0 auto;
   }
 
