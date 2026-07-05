@@ -13,12 +13,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: webui/package-lock.json
 
@@ -32,7 +32,7 @@ jobs:
         run: python3 rename_webui_files.py
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
@@ -61,7 +61,7 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload newdesign firmware artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: newdesign-firmware
           path: |
@@ -71,7 +71,7 @@ jobs:
           retention-days: 14
 
       - name: Upload newdesign WebUI artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: newdesign-webui-dist
           path: webui/dist/

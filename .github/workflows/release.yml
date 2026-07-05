@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
@@ -60,7 +60,7 @@ jobs:
           fi
 
       - name: Setup Python for version update
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
@@ -103,9 +103,9 @@ jobs:
           echo "Created and pushed tag $VERSION_TAG"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: webui/package-lock.json
 
@@ -326,7 +326,7 @@ jobs:
 
       - name: Checkout main for manifest update
         if: steps.release_type.outputs.IS_DRAFT == 'false'
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           ref: main
           path: manifest-repo
