@@ -52,6 +52,10 @@ static std::atomic<bool> mqtt_publish_request{false};
 static mqtt_config_t current_mqtt_config;
 static char mqtt_lwt_topic[160];
 
+// Serializes mqtt_handler_start / mqtt_handler_stop so configuration updates
+// cannot race with the publish task or a concurrent (re)start.
+static SemaphoreHandle_t mqtt_lifecycle_mutex = NULL;
+
 // Latch set by mqtt_handler_trigger_status_publish() so the periodic task
 // emits an immediate cycle out-of-band (after OTA state changes etc.).
 
@@ -801,22 +805,37 @@ void mqtt_handler_publish_ha_discovery(void)
 
 esp_err_t mqtt_handler_init(void)
 {
+    if (mqtt_lifecycle_mutex == NULL) {
+        mqtt_lifecycle_mutex = xSemaphoreCreateMutex();
+    }
     return ESP_OK;
 }
 
 esp_err_t mqtt_handler_start(const mqtt_config_t *config)
 {
+    if (mqtt_lifecycle_mutex == NULL) {
+        ESP_LOGE(TAG, "MQTT lifecycle mutex not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (xSemaphoreTake(mqtt_lifecycle_mutex, portMAX_DELAY) != pdTRUE) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
     if (mqtt_running.load()) {
         ESP_LOGW(TAG, "MQTT already running");
+        xSemaphoreGive(mqtt_lifecycle_mutex);
         return ESP_OK;
     }
 
     if (!config->enabled) {
+        xSemaphoreGive(mqtt_lifecycle_mutex);
         return ESP_OK;
     }
 
     if (strlen(config->server) == 0) {
         ESP_LOGE(TAG, "MQTT Server address is empty");
+        xSemaphoreGive(mqtt_lifecycle_mutex);
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -872,16 +891,35 @@ esp_err_t mqtt_handler_start(const mqtt_config_t *config)
     client = esp_mqtt_client_init(&mqtt_cfg);
     if (client == NULL) {
         ESP_LOGE(TAG, "Failed to initialize MQTT client");
+        xSemaphoreGive(mqtt_lifecycle_mutex);
         return ESP_FAIL;
     }
 
     esp_mqtt_client_register_event(client, MQTT_EVENT_ANY, mqtt_event_handler, NULL);
 
+    // Serialize the initial TLS handshake with other HTTPS subsystems so two
+    // concurrent handshakes do not exhaust the ESP32 heap.
+    bool net_locked = false;
+    if (g_net_fetch_mutex != NULL) {
+        if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(30000)) != pdTRUE) {
+            ESP_LOGE(TAG, "Failed to start MQTT client: HTTPS subsystem busy");
+            esp_mqtt_client_destroy(client);
+            client = NULL;
+            xSemaphoreGive(mqtt_lifecycle_mutex);
+            return ESP_ERR_TIMEOUT;
+        }
+        net_locked = true;
+    }
+
     esp_err_t err = esp_mqtt_client_start(client);
+    if (net_locked) {
+        xSemaphoreGive(g_net_fetch_mutex);
+    }
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start MQTT client: %s", esp_err_to_name(err));
         esp_mqtt_client_destroy(client);
         client = NULL;
+        xSemaphoreGive(mqtt_lifecycle_mutex);
         return err;
     }
 
@@ -897,16 +935,27 @@ esp_err_t mqtt_handler_start(const mqtt_config_t *config)
         esp_mqtt_client_stop(client);
         esp_mqtt_client_destroy(client);
         client = NULL;
+        xSemaphoreGive(mqtt_lifecycle_mutex);
         return ESP_ERR_NO_MEM;
     }
     mqtt_publish_task_handle.store(pub_handle);
 
+    xSemaphoreGive(mqtt_lifecycle_mutex);
     return ESP_OK;
 }
 
 esp_err_t mqtt_handler_stop(void)
 {
+    if (mqtt_lifecycle_mutex == NULL) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (xSemaphoreTake(mqtt_lifecycle_mutex, portMAX_DELAY) != pdTRUE) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
     if (!mqtt_running.load()) {
+        xSemaphoreGive(mqtt_lifecycle_mutex);
         return ESP_OK;
     }
 
@@ -933,5 +982,6 @@ esp_err_t mqtt_handler_stop(void)
         client = NULL;
     }
 
+    xSemaphoreGive(mqtt_lifecycle_mutex);
     return ESP_OK;
 }
