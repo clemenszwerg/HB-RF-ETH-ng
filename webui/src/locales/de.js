@@ -267,7 +267,7 @@ export default {
     otaSuccess: 'Download erfolgreich. Installation...',
     currentVersion: 'Aktuelle Version',
     installedVersion: 'Installierte Version',
-    versionInfo: 'Modernisierte Fork v2.2.3-Beta.6 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
+    versionInfo: 'Modernisierte Fork v2.2.3-Beta.7 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
     updateAvailableMessage: 'Ein Update auf Version {latestVersion} ist verfügbar.',
     newVersionAvailable: 'Neue Version {version} ist verfügbar!',
     viewUpdate: 'Ansehen',
@@ -400,7 +400,7 @@ export default {
   // About Page
   about: {
     title: 'Über',
-    version: 'Version 2.2.3-Beta.6',
+    version: 'Version 2.2.3-Beta.7',
     fork: 'Modernisierte Fork',
     forkDescription: 'Diese Version ist eine modernisierte Fork von Xerolux (2025), basierend auf der originalen HB-RF-ETH Firmware. Aktualisiert auf ESP-IDF 6.0, moderne Toolchains und aktuelle WebUI-Technologien (Vue 3, Vite, Pinia).',
     original: 'Original-Autor',
