@@ -236,11 +236,24 @@ See `docs/API.md` and `docs/openapi.yaml` for the full specification.
 Key endpoint categories:
 - `/sysinfo.json` — system status
 - `/settings.json` — read/write device settings
-- `/monitoring.json` — monitoring configuration
-- `/api/log` — polled system log (text), `/api/log/download` — full log download, `/api/log/share` — POST to upload the log + a system report to paste.blueml.eu
+- `/api/monitoring` — monitoring configuration (CheckMK / MQTT)
+- `/api/monitoring/test` — run a diagnostic self-test
+- `/api/change-password` — change the admin password
+- `/api/backup` — download a full settings backup
+- `/api/restore` — restore settings from a backup
+- `/api/factory-reset` — trigger a factory reset
+- `/ota_update` — OTA firmware upload (raw binary)
+- `/api/ota_url` — start OTA from a URL
+- `/api/ota_status` — poll OTA progress/state
 - `/api/check_update` — GET cached release info / POST to trigger a GitHub Releases fetch
-- `/update` — OTA firmware upload
-- `/resetpassword` — password reset
+- `/api/changelog` — fetch the firmware changelog (proxied from GitHub)
+- `/api/firmware_archive` — list previous firmware versions
+- `/api/log` — polled system log (text)
+- `/api/log/status` — check if log capture is active
+- `/api/log/enable` — enable log capture
+- `/api/log/disable` — disable log capture
+- `/api/log/download` — full log download
+- `/api/log/share` — POST to upload log + system report to paste.blueml.eu
 
 ---
 
