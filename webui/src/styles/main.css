@@ -766,10 +766,16 @@ button {
   }
 }
 
-/* ============================================
-   Experimental New Design Shell
-   ============================================ */
+/* ============================================================
+   New Design Shell — flat, panel-based theme
+   Activated by body.newdesign-active + .newdesign-shell on #app.
+   Note: Bootstrap modals/dropdowns teleport to <body>, so those
+   are styled via body.newdesign-active (without .newdesign-shell)
+   so they actually match — the previous .newdesign-shell-scoped
+   selectors never reached teleported content.
+   ============================================================ */
 
+/* ---- Theme tokens ---- */
 body.newdesign-active {
   background: #f5f7fb;
 }
@@ -784,11 +790,15 @@ body.newdesign-active .newdesign-shell {
   --radius-md: 8px;
   --radius-lg: 8px;
   --radius-xl: 10px;
+  --radius-pill: 999px;
+  --radius-full: 999px;
   --newdesign-panel: #ffffff;
   --newdesign-panel-soft: #f8fafc;
   --newdesign-border: #dbe3ee;
   --newdesign-border-strong: #c7d2e1;
   --newdesign-text-soft: #667085;
+  --newdesign-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --newdesign-shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.14);
 }
 
 [data-bs-theme="dark"] body.newdesign-active .newdesign-shell,
@@ -798,15 +808,142 @@ body.newdesign-active[data-bs-theme="dark"] .newdesign-shell {
   --newdesign-border: rgba(148, 163, 184, 0.22);
   --newdesign-border-strong: rgba(148, 163, 184, 0.34);
   --newdesign-text-soft: #a8b3c5;
+  --newdesign-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+  --newdesign-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.5);
 }
 
+/* Shared panel base used by many surfaces */
+body.newdesign-active .newdesign-shell .glass-panel,
+body.newdesign-active .newdesign-shell .glass-card,
+body.newdesign-active .newdesign-shell .surface-card,
+body.newdesign-active .newdesign-shell .card-glass,
+body.newdesign-active .newdesign-shell .settings-card,
+body.newdesign-active .newdesign-shell .update-card,
+body.newdesign-active .newdesign-shell .about-section,
+body.newdesign-active .newdesign-shell .info-card,
+body.newdesign-active .newdesign-shell .info-card-section,
+body.newdesign-active .newdesign-shell .lib-card,
+body.newdesign-active .newdesign-shell .diagnostic-card,
+body.newdesign-active .newdesign-shell .quick-action,
+body.newdesign-active .newdesign-shell .metric-card,
+body.newdesign-active .newdesign-shell .stat-card,
+body.newdesign-active .newdesign-shell .change-password-card,
+body.newdesign-active .newdesign-shell .archive-card,
+body.newdesign-active .newdesign-shell .network-update-card,
+body.newdesign-active .newdesign-shell .countdown-card,
+body.newdesign-active .newdesign-shell .radio-card,
+body.newdesign-active .newdesign-shell .action-tile,
+body.newdesign-active .newdesign-shell .system-actions .action-tile {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Soft (filled) panel base for sub-surfaces */
+body.newdesign-active .newdesign-shell .upload-zone,
+body.newdesign-active .newdesign-shell .file-preview,
+body.newdesign-active .newdesign-shell .archive-item,
+body.newdesign-active .newdesign-shell .archive-warning,
+body.newdesign-active .newdesign-shell .archive-error,
+body.newdesign-active .newdesign-shell .archive-empty,
+body.newdesign-active .newdesign-shell .archive-selected,
+body.newdesign-active .newdesign-shell .archive-notes,
+body.newdesign-active .newdesign-shell .update-info,
+body.newdesign-active .newdesign-shell .update-available,
+body.newdesign-active .newdesign-shell .no-update,
+body.newdesign-active .newdesign-shell .beta-toggle-row,
+body.newdesign-active .newdesign-shell .security-item,
+body.newdesign-active .newdesign-shell .security-info,
+body.newdesign-active .newdesign-shell .backup-action-card,
+body.newdesign-active .newdesign-shell .experimental-option,
+body.newdesign-active .newdesign-shell .experimental-warning,
+body.newdesign-active .newdesign-shell .tls-section,
+body.newdesign-active .newdesign-shell .command-section,
+body.newdesign-active .newdesign-shell .alert-warning-soft,
+body.newdesign-active .newdesign-shell .log-container,
+body.newdesign-active .newdesign-shell .toolbar,
+body.newdesign-active .newdesign-shell .language-card,
+body.newdesign-active .newdesign-shell .restore-confirm,
+body.newdesign-active .newdesign-shell .manual-network-settings,
+body.newdesign-active .newdesign-shell .ipv6-list,
+body.newdesign-active .newdesign-shell .password-requirements,
+body.newdesign-active .newdesign-shell .warning-alert,
+body.newdesign-active .newdesign-shell .spinner-container {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+  box-shadow: none !important;
+}
+
+/* ---- Shell layout (app.vue scoped) ---- */
 body.newdesign-active .newdesign-shell .page-shell,
 body.newdesign-active .newdesign-shell .firmware-page,
 body.newdesign-active .newdesign-shell .about-page,
-body.newdesign-active .newdesign-shell .change-password-page {
+body.newdesign-active .newdesign-shell .change-password-page,
+body.newdesign-active .newdesign-shell .log-page,
+body.newdesign-active .newdesign-shell .monitoring-page,
+body.newdesign-active .newdesign-shell .settings-page,
+body.newdesign-active .newdesign-shell .dashboard {
   gap: 16px;
 }
 
+body.newdesign-active .newdesign-shell .settings-content,
+body.newdesign-active .newdesign-shell .content-grid,
+body.newdesign-active .newdesign-shell .stats-grid,
+body.newdesign-active .newdesign-shell .info-grid,
+body.newdesign-active .newdesign-shell .diagnostics-grid,
+body.newdesign-active .newdesign-shell .archive-list,
+body.newdesign-active .newdesign-shell .libs-grid,
+body.newdesign-active .newdesign-shell .backup-grid,
+body.newdesign-active .newdesign-shell .led-programs-grid,
+body.newdesign-active .newdesign-shell .radio-grid,
+body.newdesign-active .newdesign-shell .system-actions {
+  gap: 14px !important;
+}
+
+/* ---- Login page: full-screen, ignores sidebar padding ---- */
+body.newdesign-active .newdesign-shell .login-page {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  background: inherit;
+}
+
+body.newdesign-active .newdesign-shell .login-card {
+  border-radius: 10px !important;
+  padding: 32px !important;
+}
+
+body.newdesign-active .newdesign-shell .brand-logo {
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+body.newdesign-active .newdesign-shell .modern-input {
+  border-radius: 6px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+  box-shadow: none !important;
+}
+
+body.newdesign-active .newdesign-shell .modern-input:focus {
+  border-color: rgba(242, 106, 61, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(242, 106, 61, 0.12) !important;
+  background: var(--newdesign-panel) !important;
+}
+
+body.newdesign-active .newdesign-shell .login-btn {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+/* ---- Hero / page header ---- */
 body.newdesign-active .newdesign-shell .page-hero,
 body.newdesign-active .newdesign-shell .page-header {
   border-radius: 8px !important;
@@ -833,45 +970,22 @@ body.newdesign-active .newdesign-shell .hero-title {
 body.newdesign-active .newdesign-shell .hero-subtitle,
 body.newdesign-active .newdesign-shell .section-subtitle,
 body.newdesign-active .newdesign-shell .form-text,
-body.newdesign-active .newdesign-shell .text-muted {
+body.newdesign-active .newdesign-shell .text-muted,
+body.newdesign-active .newdesign-shell .project-description,
+body.newdesign-active .newdesign-shell .license-info,
+body.newdesign-active .newdesign-shell .beta-toggle-hint,
+body.newdesign-active .newdesign-shell .archive-meta,
+body.newdesign-active .newdesign-shell .version-info,
+body.newdesign-active .newdesign-shell .last-check {
   color: var(--newdesign-text-soft) !important;
 }
 
-body.newdesign-active .newdesign-shell .glass-panel,
-body.newdesign-active .newdesign-shell .glass-card,
-body.newdesign-active .newdesign-shell .surface-card,
-body.newdesign-active .newdesign-shell .card-glass,
-body.newdesign-active .newdesign-shell .settings-card,
-body.newdesign-active .newdesign-shell .update-card,
-body.newdesign-active .newdesign-shell .about-section,
-body.newdesign-active .newdesign-shell .info-card,
-body.newdesign-active .newdesign-shell .lib-card,
-body.newdesign-active .newdesign-shell .diagnostic-card,
-body.newdesign-active .newdesign-shell .quick-action,
-body.newdesign-active .newdesign-shell .metric-card,
-body.newdesign-active .newdesign-shell .stat-card,
-body.newdesign-active .newdesign-shell .info-card-section,
-body.newdesign-active .newdesign-shell .change-password-card {
-  border-radius: 8px !important;
-  border: 1px solid var(--newdesign-border) !important;
-  background: var(--newdesign-panel) !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-body.newdesign-active .newdesign-shell .card-hover:hover,
-body.newdesign-active .newdesign-shell .quick-action:hover,
-body.newdesign-active .newdesign-shell .lib-card:hover {
-  transform: translateY(-1px) !important;
-  border-color: var(--newdesign-border-strong) !important;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
-}
-
+/* ---- Card header / body / section headers ---- */
 body.newdesign-active .newdesign-shell .card-header,
 body.newdesign-active .newdesign-shell .section-header,
 body.newdesign-active .newdesign-shell .archive-main-row,
-body.newdesign-active .newdesign-shell .mobile-panel-top {
+body.newdesign-active .newdesign-shell .mobile-panel-top,
+body.newdesign-active .newdesign-shell .card-header-content {
   border-bottom: 1px solid var(--newdesign-border) !important;
   background: transparent !important;
 }
@@ -880,43 +994,121 @@ body.newdesign-active .newdesign-shell .card-header {
   padding: 16px 18px !important;
 }
 
-body.newdesign-active .newdesign-shell .card-body {
+body.newdesign-active .newdesign-shell .card-body,
+body.newdesign-active .newdesign-shell .card-body-content {
   padding: 18px !important;
 }
 
+body.newdesign-active .newdesign-shell .card-title {
+  font-weight: 700 !important;
+}
+
+body.newdesign-active .newdesign-shell .header-content,
+body.newdesign-active .newdesign-shell .header-text {
+  gap: 12px;
+}
+
+/* ---- Hover lift for interactive cards ---- */
+body.newdesign-active .newdesign-shell .card-hover:hover,
+body.newdesign-active .newdesign-shell .quick-action:hover,
+body.newdesign-active .newdesign-shell .lib-card:hover,
+body.newdesign-active .newdesign-shell .action-tile:hover,
+body.newdesign-active .newdesign-shell .radio-card:hover {
+  transform: translateY(-1px) !important;
+  border-color: var(--newdesign-border-strong) !important;
+  box-shadow: var(--newdesign-shadow) !important;
+}
+
+body.newdesign-active .newdesign-shell .action-tile.warning:hover {
+  background: var(--color-warning-soft) !important;
+}
+
+body.newdesign-active .newdesign-shell .action-tile.danger:hover {
+  background: var(--color-danger-soft) !important;
+}
+
+/* ---- Icon badges / section icons ---- */
 body.newdesign-active .newdesign-shell .header-icon,
 body.newdesign-active .newdesign-shell .icon-badge,
 body.newdesign-active .newdesign-shell .section-icon,
 body.newdesign-active .newdesign-shell .upload-icon,
-body.newdesign-active .newdesign-shell .file-icon {
+body.newdesign-active .newdesign-shell .file-icon,
+body.newdesign-active .newdesign-shell .source-icon,
+body.newdesign-active .newdesign-shell .tile-icon,
+body.newdesign-active .newdesign-shell .support-icon,
+body.newdesign-active .newdesign-shell .modal-icon,
+body.newdesign-active .newdesign-shell .brand-logo {
   border-radius: 6px !important;
 }
 
+body.newdesign-active .newdesign-shell .icon-badge {
+  box-shadow: none !important;
+}
+
+/* ---- Chips / badges / pills ---- */
 body.newdesign-active .newdesign-shell .meta-chip,
 body.newdesign-active .newdesign-shell .status-chip,
 body.newdesign-active .newdesign-shell .pill-chip,
 body.newdesign-active .newdesign-shell .chip-btn,
+body.newdesign-active .newdesign-shell .toggle-chip,
 body.newdesign-active .newdesign-shell .status-pill,
 body.newdesign-active .newdesign-shell .clock-chip,
 body.newdesign-active .newdesign-shell .current-badge,
 body.newdesign-active .newdesign-shell .beta-badge,
-body.newdesign-active .newdesign-shell .version-badge {
+body.newdesign-active .newdesign-shell .version-badge,
+body.newdesign-active .newdesign-shell .warning-chip {
   border-radius: 6px !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
+body.newdesign-active .newdesign-shell .beta-badge {
+  background: var(--color-warning-soft) !important;
+  border-color: rgba(232, 154, 36, 0.22) !important;
+  color: var(--color-warning) !important;
+}
+
+body.newdesign-active .newdesign-shell .current-badge {
+  background: var(--color-success-soft) !important;
+  border-color: rgba(28, 169, 113, 0.22) !important;
+  color: var(--color-success) !important;
+}
+
+/* ---- Tabs & toolbars ---- */
 body.newdesign-active .newdesign-shell .tabs-container,
 body.newdesign-active .newdesign-shell .archive-toolbar,
-body.newdesign-active .newdesign-shell .quick-actions {
-  border-radius: 8px !important;
+body.newdesign-active .newdesign-shell .quick-actions,
+body.newdesign-active .newdesign-shell .toolbar,
+body.newdesign-active .newdesign-shell .log-actions,
+body.newdesign-active .newdesign-shell .archive-actions,
+body.newdesign-active .newdesign-shell .archive-title-row {
+  border-radius: 8px;
 }
 
+body.newdesign-active .newdesign-shell .tab-panel {
+  padding-top: 4px;
+}
+
+body.newdesign-active .newdesign-shell .search-field,
+body.newdesign-active .newdesign-shell .level-filter {
+  border-radius: 6px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ---- Segmented controls / filters / source & mode selectors ---- */
 body.newdesign-active .newdesign-shell .segmented-control,
 body.newdesign-active .newdesign-shell .archive-filters,
 body.newdesign-active .newdesign-shell .mode-toggle,
-body.newdesign-active .newdesign-shell .time-source-options {
+body.newdesign-active .newdesign-shell .mode-selector,
+body.newdesign-active .newdesign-shell .time-source-options,
+body.newdesign-active .newdesign-shell .source-selector {
   border-radius: 8px !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel) !important;
@@ -927,6 +1119,7 @@ body.newdesign-active .newdesign-shell .time-source-options {
 body.newdesign-active .newdesign-shell .segment-btn,
 body.newdesign-active .newdesign-shell .filter-btn,
 body.newdesign-active .newdesign-shell .mode-btn,
+body.newdesign-active .newdesign-shell .source-card,
 body.newdesign-active .newdesign-shell .time-source-card {
   border-radius: 6px !important;
   border: 1px solid transparent !important;
@@ -938,16 +1131,20 @@ body.newdesign-active .newdesign-shell .time-source-card {
 body.newdesign-active .newdesign-shell .segment-btn.active,
 body.newdesign-active .newdesign-shell .filter-btn.active,
 body.newdesign-active .newdesign-shell .mode-btn.active,
+body.newdesign-active .newdesign-shell .source-card.active,
 body.newdesign-active .newdesign-shell .time-source-card.active {
   border-color: rgba(242, 106, 61, 0.25) !important;
   background: var(--color-primary-soft) !important;
   color: var(--color-primary-strong) !important;
 }
 
+/* ---- Forms ---- */
 body.newdesign-active .newdesign-shell .form-control,
 body.newdesign-active .newdesign-shell .form-select,
 body.newdesign-active .newdesign-shell textarea,
-body.newdesign-active .newdesign-shell .pem-textarea {
+body.newdesign-active .newdesign-shell .pem-textarea,
+body.newdesign-active .newdesign-shell .archive-select,
+body.newdesign-active .newdesign-shell .brightness-control {
   border-radius: 6px !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
@@ -956,23 +1153,76 @@ body.newdesign-active .newdesign-shell .pem-textarea {
 
 body.newdesign-active .newdesign-shell .form-control:focus,
 body.newdesign-active .newdesign-shell .form-select:focus,
-body.newdesign-active .newdesign-shell textarea:focus {
+body.newdesign-active .newdesign-shell textarea:focus,
+body.newdesign-active .newdesign-shell .pem-textarea:focus,
+body.newdesign-active .newdesign-shell .archive-select:focus {
   border-color: rgba(242, 106, 61, 0.5) !important;
   box-shadow: 0 0 0 3px rgba(242, 106, 61, 0.12) !important;
   background: var(--newdesign-panel) !important;
 }
 
+body.newdesign-active .newdesign-shell .form-label,
+body.newdesign-active .newdesign-shell .switch-label,
+body.newdesign-active .newdesign-shell .segment-label,
+body.newdesign-active .newdesign-shell .source-label,
+body.newdesign-active .newdesign-shell .archive-select-label,
+body.newdesign-active .newdesign-shell .brightness-value,
+body.newdesign-active .newdesign-shell .metric-label {
+  letter-spacing: 0.04em !important;
+}
+
+body.newdesign-active .newdesign-shell .form-switch .form-check-input {
+  border-radius: 999px !important;
+}
+
+body.newdesign-active .newdesign-shell .switch-row,
+body.newdesign-active .newdesign-shell .security-control-row,
+body.newdesign-active .newdesign-shell .experimental-switch-row,
+body.newdesign-active .newdesign-shell .cert-status-row,
+body.newdesign-active .newdesign-shell .pem-label-row {
+  border-bottom: 1px solid var(--newdesign-border) !important;
+}
+
+body.newdesign-active .newdesign-shell .switch-row:last-child,
+body.newdesign-active .newdesign-shell .security-control-row:last-child {
+  border-bottom: none !important;
+}
+
+body.newdesign-active .newdesign-shell .led-program-item {
+  border-radius: 6px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+}
+
+body.newdesign-active .newdesign-shell .ios-slider {
+  border-radius: 999px !important;
+}
+
+body.newdesign-active .newdesign-shell .file-input,
+body.newdesign-active .newdesign-shell .hidden-input {
+  display: none !important;
+}
+
+/* ---- Buttons ---- */
 body.newdesign-active .newdesign-shell .btn,
 body.newdesign-active .newdesign-shell .tool-btn,
 body.newdesign-active .newdesign-shell .check-btn,
 body.newdesign-active .newdesign-shell .action-btn,
 body.newdesign-active .newdesign-shell .archive-link,
 body.newdesign-active .newdesign-shell .archive-install-btn,
+body.newdesign-active .newdesign-shell .archive-refresh,
 body.newdesign-active .newdesign-shell .save-btn,
 body.newdesign-active .newdesign-shell .security-save-btn,
 body.newdesign-active .newdesign-shell .btn-load-file,
 body.newdesign-active .newdesign-shell .github-link,
-body.newdesign-active .newdesign-shell .submit-btn {
+body.newdesign-active .newdesign-shell .submit-btn,
+body.newdesign-active .newdesign-shell .discard-btn,
+body.newdesign-active .newdesign-shell .cancel-btn,
+body.newdesign-active .newdesign-shell .login-btn,
+body.newdesign-active .newdesign-shell .remove-file-btn,
+body.newdesign-active .newdesign-shell .btn-retry,
+body.newdesign-active .newdesign-shell .btn-close-modal,
+body.newdesign-active .newdesign-shell .btn-link-danger {
   border-radius: 6px !important;
   box-shadow: none !important;
 }
@@ -980,77 +1230,292 @@ body.newdesign-active .newdesign-shell .submit-btn {
 body.newdesign-active .newdesign-shell .btn:hover:not(:disabled),
 body.newdesign-active .newdesign-shell .tool-btn:hover:not(:disabled),
 body.newdesign-active .newdesign-shell .check-btn:hover:not(:disabled),
-body.newdesign-active .newdesign-shell .archive-install-btn:hover:not(:disabled) {
+body.newdesign-active .newdesign-shell .archive-install-btn:hover:not(:disabled),
+body.newdesign-active .newdesign-shell .save-btn:hover:not(:disabled) {
   transform: translateY(-1px) !important;
 }
 
-body.newdesign-active .newdesign-shell .form-switch .form-check-input {
+body.newdesign-active .newdesign-shell .chip-btn {
+  border-radius: 6px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+}
+
+body.newdesign-active .newdesign-shell .archive-install-btn {
+  border-color: var(--color-primary) !important;
+}
+
+/* ---- Progress bars ---- */
+body.newdesign-active .newdesign-shell .progress,
+body.newdesign-active .newdesign-shell .progress-bar,
+body.newdesign-active .newdesign-shell .progress-track,
+body.newdesign-active .newdesign-shell .progress-fill,
+body.newdesign-active .newdesign-shell .progress-container,
+body.newdesign-active .newdesign-shell .metric-progress {
   border-radius: 999px !important;
 }
 
-body.newdesign-active .newdesign-shell .upload-zone,
-body.newdesign-active .newdesign-shell .file-preview,
-body.newdesign-active .newdesign-shell .archive-item,
-body.newdesign-active .newdesign-shell .archive-warning,
-body.newdesign-active .newdesign-shell .archive-error,
-body.newdesign-active .newdesign-shell .archive-empty,
-body.newdesign-active .newdesign-shell .archive-notes,
-body.newdesign-active .newdesign-shell .update-info,
-body.newdesign-active .newdesign-shell .no-update,
-body.newdesign-active .newdesign-shell .beta-toggle-row,
-body.newdesign-active .newdesign-shell .security-item,
-body.newdesign-active .newdesign-shell .backup-action-card,
-body.newdesign-active .newdesign-shell .experimental-option,
-body.newdesign-active .newdesign-shell .experimental-warning,
-body.newdesign-active .newdesign-shell .tls-section,
-body.newdesign-active .newdesign-shell .command-section,
-body.newdesign-active .newdesign-shell .alert-warning-soft,
-body.newdesign-active .newdesign-shell .log-viewer,
-body.newdesign-active .newdesign-shell .log-entry,
-body.newdesign-active .newdesign-shell .toolbar,
-body.newdesign-active .newdesign-shell .language-card {
-  border-radius: 8px !important;
+/* ---- Firmware page specifics ---- */
+body.newdesign-active .newdesign-shell .upload-zone.dragging,
+body.newdesign-active .newdesign-shell .upload-zone.has-file {
+  border-color: rgba(242, 106, 61, 0.45) !important;
+  background: var(--color-primary-soft) !important;
+}
+
+body.newdesign-active .newdesign-shell .beta-toggle-label,
+body.newdesign-active .newdesign-shell .beta-toggle-hint,
+body.newdesign-active .newdesign-shell .update-text strong,
+body.newdesign-active .newdesign-shell .file-name,
+body.newdesign-active .newdesign-shell .progress-label,
+body.newdesign-active .newdesign-shell .progress-value,
+body.newdesign-active .newdesign-shell .countdown-text,
+body.newdesign-active .newdesign-shell .countdown-title {
+  color: var(--color-text) !important;
+}
+
+body.newdesign-active .newdesign-shell .changelog-link {
+  border-radius: 6px !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
 }
 
+body.newdesign-active .newdesign-shell .archive-link {
+  border-color: var(--newdesign-border) !important;
+}
+
+body.newdesign-active .newdesign-shell .archive-picker {
+  gap: 8px;
+}
+
+body.newdesign-active .newdesign-shell .countdown-overlay {
+  background: rgba(15, 23, 42, 0.82) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+/* ---- Monitoring specifics ---- */
+body.newdesign-active .newdesign-shell .pem-feedback,
+body.newdesign-active .newdesign-shell .cert-present-hint {
+  font-weight: 600;
+}
+
+body.newdesign-active .newdesign-shell .diagnostic-copy {
+  gap: 4px;
+}
+
+/* ---- System log specifics ---- */
+body.newdesign-active .newdesign-shell .log-line {
+  border-radius: 6px !important;
+}
+
+body.newdesign-active .newdesign-shell .log-line:hover {
+  background: rgba(125, 139, 167, 0.1) !important;
+}
+
+body.newdesign-active .newdesign-shell .log-empty,
+body.newdesign-active .newdesign-shell .log-disabled {
+  border-radius: 8px !important;
+  color: var(--newdesign-text-soft) !important;
+}
+
+body.newdesign-active .newdesign-shell .line-copy,
+body.newdesign-active .newdesign-shell .copy-value {
+  border-radius: 6px !important;
+}
+
+/* ---- About page specifics ---- */
+body.newdesign-active .newdesign-shell .version-number,
+body.newdesign-active .newdesign-shell .version-label {
+  font-weight: 700 !important;
+}
+
+body.newdesign-active .newdesign-shell .github-link {
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+}
+
+body.newdesign-active .newdesign-shell .link-icon {
+  color: var(--color-primary) !important;
+}
+
+/* ---- Change password specifics ---- */
+body.newdesign-active .newdesign-shell .req-icon {
+  border-radius: 6px !important;
+}
+
+body.newdesign-active .newdesign-shell .lock-icon,
+body.newdesign-active .newdesign-shell .alert-icon {
+  border-radius: 6px !important;
+}
+
+/* ---- KV lists / metric value ---- */
+body.newdesign-active .newdesign-shell .kv-row {
+  border-bottom: 1px solid var(--newdesign-border) !important;
+}
+
+body.newdesign-active .newdesign-shell .metric-value {
+  letter-spacing: -0.01em !important;
+}
+
+body.newdesign-active .newdesign-shell .radio-stat,
+body.newdesign-active .newdesign-shell .ipv6-row {
+  border-radius: 6px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+}
+
+/* ---- Floating footer ---- */
+body.newdesign-active .newdesign-shell .floating-footer {
+  background: linear-gradient(to top, var(--newdesign-panel) 70%, transparent) !important;
+}
+
+body.newdesign-active .newdesign-shell .footer-container {
+  border-radius: 8px;
+}
+
+body.newdesign-active .newdesign-shell .footer-alert {
+  border-radius: 6px !important;
+}
+
+/* ---- In-shell menus (mobile panel is in-shell in NewDesignHeader) ---- */
+body.newdesign-active .newdesign-shell .locale-menu,
+body.newdesign-active .newdesign-shell .mobile-panel {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: var(--newdesign-shadow-lg) !important;
+}
+
+/* ============================================================
+   Teleported layers (Bootstrap modals & dropdowns land on
+   <body>, NOT inside .newdesign-shell). Use body.newdesign-active
+   without the .newdesign-shell scope so they actually match.
+   ============================================================ */
+
+body.newdesign-active .modal-content,
+body.newdesign-active .dropdown-menu {
+  border-radius: 10px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel, #ffffff) !important;
+  box-shadow: var(--newdesign-shadow-lg, 0 18px 50px rgba(15, 23, 42, 0.14)) !important;
+}
+
+[data-bs-theme="dark"] body.newdesign-active .modal-content,
+[data-bs-theme="dark"] body.newdesign-active .dropdown-menu {
+  background: #182131 !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+body.newdesign-active .modal-header {
+  border-bottom: 1px solid var(--newdesign-border, #dbe3ee) !important;
+}
+
+body.newdesign-active .modal-footer {
+  border-top: 1px solid var(--newdesign-border, #dbe3ee) !important;
+}
+
+body.newdesign-active .sponsor-modal-content {
+  border-radius: 10px !important;
+  border: 1px solid var(--newdesign-border, #dbe3ee) !important;
+  background: var(--newdesign-panel, #ffffff) !important;
+  box-shadow: var(--newdesign-shadow-lg, 0 18px 50px rgba(15, 23, 42, 0.14)) !important;
+}
+
+[data-bs-theme="dark"] body.newdesign-active .sponsor-modal-content {
+  background: #182131 !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+body.newdesign-active .sponsor-option,
+body.newdesign-active .close-btn {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+body.newdesign-active .sponsor-option {
+  background: var(--newdesign-panel-soft, #f8fafc) !important;
+  border: 1px solid var(--newdesign-border, #dbe3ee) !important;
+}
+
+[data-bs-theme="dark"] body.newdesign-active .sponsor-option {
+  background: #121a27 !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+body.newdesign-active .modal-header-custom {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong)) !important;
+}
+
+body.newdesign-active .modal-footer-custom {
+  background: var(--newdesign-panel-soft, #f8fafc) !important;
+  border-top: 1px solid var(--newdesign-border, #dbe3ee) !important;
+}
+
+[data-bs-theme="dark"] body.newdesign-active .modal-footer-custom {
+  background: #121a27 !important;
+}
+
+/* ---- Toasts (rendered inside #app, so within .newdesign-shell) ---- */
+body.newdesign-active .newdesign-shell .app-toast {
+  border-radius: 8px !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: var(--newdesign-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.newdesign-active .newdesign-shell .toast-icon-wrap,
+body.newdesign-active .newdesign-shell .toast-dismiss {
+  border-radius: 6px !important;
+}
+
+/* ---- Code / pre ---- */
 body.newdesign-active .newdesign-shell .archive-notes pre,
 body.newdesign-active .newdesign-shell pre,
 body.newdesign-active .newdesign-shell code {
   border-radius: 6px !important;
 }
 
-body.newdesign-active .newdesign-shell .modal-content,
-body.newdesign-active .newdesign-shell .dropdown-menu,
-body.newdesign-active .newdesign-shell .locale-menu,
-body.newdesign-active .newdesign-shell .mobile-panel {
+body.newdesign-active .newdesign-shell .archive-notes pre {
+  background: var(--newdesign-panel) !important;
+  border: 1px solid var(--newdesign-border) !important;
+}
+
+/* ---- Utility background colors (custom, mimic Bootstrap naming) ---- */
+body.newdesign-active .newdesign-shell .bg-primary-light { background-color: var(--color-primary-soft) !important; }
+body.newdesign-active .newdesign-shell .bg-success-light { background-color: var(--color-success-soft) !important; }
+body.newdesign-active .newdesign-shell .bg-danger-light { background-color: var(--color-danger-soft) !important; }
+body.newdesign-active .newdesign-shell .bg-warning-light { background-color: var(--color-warning-soft) !important; }
+body.newdesign-active .newdesign-shell .bg-info-light { background-color: var(--color-info-soft) !important; }
+
+/* ---- Alerts ---- */
+body.newdesign-active .newdesign-shell .alert {
   border-radius: 8px !important;
   border: 1px solid var(--newdesign-border) !important;
-  background: var(--newdesign-panel) !important;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14) !important;
+  box-shadow: none !important;
 }
 
-body.newdesign-active .newdesign-shell .progress,
-body.newdesign-active .newdesign-shell .progress-bar,
-body.newdesign-active .newdesign-shell .progress-track,
-body.newdesign-active .newdesign-shell .progress-fill,
-body.newdesign-active .newdesign-shell .metric-progress {
-  border-radius: 999px !important;
+/* ---- Skeleton ---- */
+body.newdesign-active .newdesign-shell .skeleton,
+body.newdesign-active .newdesign-shell .skeleton-block {
+  border-radius: 6px !important;
 }
 
-body.newdesign-active .newdesign-shell .settings-content,
-body.newdesign-active .newdesign-shell .content-grid,
-body.newdesign-active .newdesign-shell .stats-grid,
-body.newdesign-active .newdesign-shell .info-grid,
-body.newdesign-active .newdesign-shell .diagnostics-grid,
-body.newdesign-active .newdesign-shell .archive-list {
-  gap: 14px !important;
-}
-
+/* ---- Responsive ---- */
 @media (max-width: 991px) {
   body.newdesign-active .newdesign-shell .page-hero,
   body.newdesign-active .newdesign-shell .page-header {
     padding: 16px !important;
+  }
+
+  body.newdesign-active .newdesign-shell .login-page {
+    position: static;
+  }
+}
+
+@media (max-width: 480px) {
+  body.newdesign-active .newdesign-shell .login-card {
+    padding: 24px 18px !important;
   }
 }
