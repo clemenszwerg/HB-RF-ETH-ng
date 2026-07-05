@@ -325,6 +325,24 @@ esp_err_t get_sysinfo_json_handler_func(httpd_req_t *req)
     cJSON_AddBoolToObject(sysInfo, "ethernetConnected", _ethernet->isConnected());
     cJSON_AddNumberToObject(sysInfo, "ethernetSpeed", _ethernet->getLinkSpeedMbps());
     cJSON_AddStringToObject(sysInfo, "ethernetDuplex", _ethernet->getDuplexMode());
+
+    // Current live network configuration (DHCP-assigned or static).
+    ip4_addr_t currentIP, currentNM, currentGW, currentDNS1, currentDNS2;
+    _ethernet->getNetworkSettings(&currentIP, &currentNM, &currentGW, &currentDNS1, &currentDNS2);
+    cJSON_AddStringToObject(sysInfo, "localIP", ip2str(currentIP));
+    cJSON_AddStringToObject(sysInfo, "netmask", ip2str(currentNM));
+    cJSON_AddStringToObject(sysInfo, "gateway", ip2str(currentGW));
+    cJSON_AddStringToObject(sysInfo, "dns1", ip2str(currentDNS1));
+    cJSON_AddStringToObject(sysInfo, "dns2", ip2str(currentDNS2));
+
+    // IPv6 addresses (link-local + global)
+    char ipv6_addrs[4][48];
+    int ipv6_count = _ethernet->getIPv6AddressStrings(ipv6_addrs, 4);
+    cJSON *ipv6Array = cJSON_AddArrayToObject(sysInfo, "ipv6Addresses");
+    for (int i = 0; i < ipv6_count; i++) {
+        cJSON_AddItemToArray(ipv6Array, cJSON_CreateString(ipv6_addrs[i]));
+    }
+
     cJSON_AddStringToObject(sysInfo, "rawUartRemoteAddress", ip2str(_rawUartUdpListener->getConnectedRemoteAddress()));
     cJSON_AddStringToObject(sysInfo, "radioModuleType", radioModuleTypeStr);
     cJSON_AddStringToObject(sysInfo, "radioModuleSerial", _radioModuleDetector->getSerial());

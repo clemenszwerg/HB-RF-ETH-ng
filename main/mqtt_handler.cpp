@@ -438,8 +438,32 @@ void mqtt_handler_publish_status(void)
         eth->getNetworkSettings(&ip, &nm, &gw, &dns1, &dns2);
         snprintf(payload, sizeof(payload), IPSTR, IP2STR(&ip));
         PUBLISH_STR("status/ip_address", payload);
+        snprintf(payload, sizeof(payload), IPSTR, IP2STR(&nm));
+        PUBLISH_STR("status/netmask", payload);
         snprintf(payload, sizeof(payload), IPSTR, IP2STR(&gw));
         PUBLISH_STR("status/gateway", payload);
+        snprintf(payload, sizeof(payload), IPSTR, IP2STR(&dns1));
+        PUBLISH_STR("status/dns1", payload);
+        snprintf(payload, sizeof(payload), IPSTR, IP2STR(&dns2));
+        PUBLISH_STR("status/dns2", payload);
+
+        // IPv6 addresses (comma-separated; empty string when none assigned)
+        char ipv6_addrs[4][48];
+        int ipv6_count = eth->getIPv6AddressStrings(ipv6_addrs, 4);
+        if (ipv6_count > 0) {
+            char ipv6_buf[200];
+            size_t off = 0;
+            for (int i = 0; i < ipv6_count; i++) {
+                if (i > 0 && off < sizeof(ipv6_buf) - 1) {
+                    ipv6_buf[off++] = ',';
+                }
+                off += snprintf(ipv6_buf + off, sizeof(ipv6_buf) - off,
+                                "%s", ipv6_addrs[i]);
+            }
+            PUBLISH_STR("status/ipv6_addresses", ipv6_buf);
+        } else {
+            PUBLISH_STR("status/ipv6_addresses", "");
+        }
     }
 
     // ---- Radio module -----------------------------------------------------
@@ -525,12 +549,20 @@ void mqtt_handler_publish_ha_discovery(void)
     const char* update_payload   = current_mqtt_config.command_token[0] ? current_mqtt_config.command_token : "update";
     const char* chkupd_payload   = current_mqtt_config.command_token[0] ? current_mqtt_config.command_token : "check_update";
 
-    // Device Info
+    // Device Info — use the configurable hostname as the HA device name so
+    // multiple HB-RF-ETH boards can be told apart in the UI. Fall back to a
+    // generic label if the hostname is unavailable.
+    Ethernet* eth = monitoring_get_ethernet();
+    const char* hostname = eth ? eth->getHostname() : "";
+    if (!hostname || !hostname[0]) {
+        hostname = "HB-RF-ETH";
+    }
+
     cJSON *device = cJSON_CreateObject();
     char identifiers[64];
     snprintf(identifiers, sizeof(identifiers), "hb-rf-eth-%s", sysInfo->getSerialNumber());
     cJSON_AddStringToObject(device, "identifiers", identifiers);
-    cJSON_AddStringToObject(device, "name", "HB-RF-ETH-ng");
+    cJSON_AddStringToObject(device, "name", hostname);
     cJSON_AddStringToObject(device, "model", "HB-RF-ETH-ng");
     cJSON_AddStringToObject(device, "manufacturer", "Xerolux");
     cJSON_AddStringToObject(device, "sw_version", sysInfo->getCurrentVersion());
@@ -600,6 +632,11 @@ void mqtt_handler_publish_ha_discovery(void)
                    "{{ value_json }}", "diagnostic", "mdi:ethernet");
     publish_config("sensor", "eth_link_speed", "Ethernet Speed", "data_rate", "measurement", "Mbit/s", NULL, "diagnostic", "mdi:speedometer");
     publish_config("sensor", "ip_address", "IP Address", NULL, NULL, NULL, NULL, "diagnostic", "mdi:ip");
+    publish_config("sensor", "netmask", "Subnet Mask", NULL, NULL, NULL, NULL, "diagnostic", "mdi:ip-network");
+    publish_config("sensor", "gateway", "Gateway", NULL, NULL, NULL, NULL, "diagnostic", "mdi:router-network");
+    publish_config("sensor", "dns1", "Primary DNS", NULL, NULL, NULL, NULL, "diagnostic", "mdi:dns");
+    publish_config("sensor", "dns2", "Secondary DNS", NULL, NULL, NULL, NULL, "diagnostic", "mdi:dns");
+    publish_config("sensor", "ipv6_addresses", "IPv6 Addresses", NULL, NULL, NULL, NULL, "diagnostic", "mdi:ip-outline");
 
     // ---- Sensors: radio module ------------------------------------------
     publish_config("sensor", "radio_module_type", "Radio Module", NULL, NULL, NULL, NULL, "diagnostic", "mdi:radio-tower");

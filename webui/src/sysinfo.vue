@@ -175,6 +175,39 @@
                 {{ ethernetStatus }}
               </span>
             </div>
+            <div v-if="sysInfoStore.localIP" class="kv-row">
+              <span class="kv-label">{{ t('sysinfo.localIP') }}</span>
+              <button class="copy-value" @click="copyValue(sysInfoStore.localIP, t('sysinfo.localIP'))">
+                <span class="kv-value mono">{{ sysInfoStore.localIP }}</span>
+                <AppIcon name="copy" />
+              </button>
+            </div>
+            <div v-if="sysInfoStore.netmask" class="kv-row">
+              <span class="kv-label">{{ t('sysinfo.netmask') }}</span>
+              <span class="kv-value mono">{{ sysInfoStore.netmask }}</span>
+            </div>
+            <div v-if="sysInfoStore.gateway" class="kv-row">
+              <span class="kv-label">{{ t('sysinfo.gateway') }}</span>
+              <button class="copy-value" @click="copyValue(sysInfoStore.gateway, t('sysinfo.gateway'))">
+                <span class="kv-value mono">{{ sysInfoStore.gateway }}</span>
+                <AppIcon name="copy" />
+              </button>
+            </div>
+            <div v-if="sysInfoStore.dns1 || sysInfoStore.dns2" class="kv-row">
+              <span class="kv-label">{{ t('sysinfo.dns') }}</span>
+              <span class="kv-value mono">
+                {{ sysInfoStore.dns1 || '-' }}<span v-if="sysInfoStore.dns2"> · {{ sysInfoStore.dns2 }}</span>
+              </span>
+            </div>
+            <div v-if="sysInfoStore.ipv6Addresses && sysInfoStore.ipv6Addresses.length" class="kv-row ipv6-row">
+              <span class="kv-label">{{ t('sysinfo.ipv6Addresses') }}</span>
+              <div class="ipv6-list">
+                <button v-for="addr in sysInfoStore.ipv6Addresses" :key="addr" class="copy-value" @click="copyValue(addr, t('sysinfo.ipv6Addresses'))">
+                  <span class="kv-value mono">{{ addr }}</span>
+                  <AppIcon name="copy" />
+                </button>
+              </div>
+            </div>
             <div class="kv-row">
               <span class="kv-label">{{ t('sysinfo.rawUartRemoteAddress') }}</span>
               <button class="copy-value" :disabled="!sysInfoStore.rawUartRemoteAddress" @click="copyValue(sysInfoStore.rawUartRemoteAddress, t('sysinfo.rawUartRemoteAddress'))">
@@ -396,6 +429,18 @@ onBeforeUnmount(() => {
 
 .copy-value:disabled {
   opacity: 0.6;
+}
+
+.ipv6-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.ipv6-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .radio-card {

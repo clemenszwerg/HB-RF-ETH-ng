@@ -258,6 +258,30 @@ void Ethernet::getNetworkSettings(ip4_addr_t *ip, ip4_addr_t *netmask, ip4_addr_
     }
 }
 
+int Ethernet::getIPv6AddressStrings(char out[][48], int max_count)
+{
+    int count = 0;
+    if (!max_count || !_isConnected.load() || _eth_netif == NULL)
+        return 0;
+
+    esp_ip6_addr_t ip6[ESP_NETIF_IPV6_ADDRS_MAX];
+    memset(ip6, 0, sizeof(ip6));
+    if (esp_netif_get_all_ip6(_eth_netif, ip6) != ESP_OK)
+        return 0;
+
+    for (int i = 0; i < ESP_NETIF_IPV6_ADDRS_MAX && count < max_count; i++)
+    {
+        // Skip unassigned (all-zero) slots
+        if (ip6[i].addr[0] == 0 && ip6[i].addr[1] == 0 &&
+            ip6[i].addr[2] == 0 && ip6[i].addr[3] == 0)
+            continue;
+        ip6addr_ntoa_r(&ip6[i], out[count], 48);
+        out[count][47] = '\0';
+        count++;
+    }
+    return count;
+}
+
 void Ethernet::_handleETHEvent(esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     esp_eth_handle_t eth_handle = *(esp_eth_handle_t *)event_data;

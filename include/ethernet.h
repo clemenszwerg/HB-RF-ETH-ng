@@ -76,6 +76,12 @@ public:
   bool isConnected() { return _isConnected.load(); }
   int getLinkSpeedMbps();
   const char* getDuplexMode();
+  const char* getHostname() { return _settings ? _settings->getHostname() : ""; }
+
+  // Fills out[0..max_count-1] with the textual IPv6 addresses currently
+  // assigned to the Ethernet interface (link-local + global / SLAAC / static).
+  // Returns the number of addresses written.
+  int getIPv6AddressStrings(char out[][48], int max_count);
 
   // DNS Cache Funktionen
   static void dnsCacheInit();

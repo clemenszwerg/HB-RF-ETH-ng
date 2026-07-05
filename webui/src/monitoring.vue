@@ -464,8 +464,34 @@ const saveConfig = async () => {
     mqttPayload.commandTokenClear = tlsClearFlags.value.commandTokenClear
 
     await monitoringStore.save({ checkmk: checkmkConfig.value, mqtt: mqttPayload })
-    await monitoringStore.load()
+
+    // The backend applies config changes asynchronously (MQTT stop/restart
+    // can take several seconds). Calling load() here would read stale data
+    // and silently revert the just-saved values — this was the root cause of
+    // the "must save twice" bug. Instead, update the *Set sentinel flags and
+    // clear the sensitive text fields locally.
+    if (mqttPayload.tlsCaCertsClear)   mqttConfig.value.tlsCaCertsSet  = false
+    else if (mqttPayload.tlsCaCerts)   mqttConfig.value.tlsCaCertsSet  = true
+
+    if (mqttPayload.tlsCertfileClear)  mqttConfig.value.tlsCertfileSet = false
+    else if (mqttPayload.tlsCertfile)  mqttConfig.value.tlsCertfileSet = true
+
+    if (mqttPayload.tlsKeyfileClear)   mqttConfig.value.tlsKeyfileSet  = false
+    else if (mqttPayload.tlsKeyfile)   mqttConfig.value.tlsKeyfileSet  = true
+
+    if (mqttPayload.commandTokenClear) mqttConfig.value.commandTokenSet = false
+    else if (mqttPayload.commandToken) mqttConfig.value.commandTokenSet = true
+
+    // Sensitive fields are never echoed back by the backend — clear them
+    // from the UI so they do not linger in browser memory.
+    mqttConfig.value.tlsCaCerts  = ''
+    mqttConfig.value.tlsCertfile = ''
+    mqttConfig.value.tlsKeyfile  = ''
+    mqttConfig.value.commandToken = ''
+    mqttConfig.value.password    = ''
+
     tlsClearFlags.value = { tlsCaCertsClear: false, tlsCertfileClear: false, tlsKeyfileClear: false, commandTokenClear: false }
+    pemFeedback.value = { tlsCaCerts: null, tlsCertfile: null, tlsKeyfile: null }
 
     uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('monitoring.saveSuccess') })
     hasChanges.value = false

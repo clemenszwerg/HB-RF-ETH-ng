@@ -148,6 +148,12 @@ export const useSysInfoStore = defineStore('sysInfo', {
     ethernetConnected: false,
     ethernetSpeed: 0,
     ethernetDuplex: "",
+    localIP: "",
+    netmask: "",
+    gateway: "",
+    dns1: "",
+    dns2: "",
+    ipv6Addresses: [],
     radioModuleType: "",
     radioModuleSerial: "",
     radioModuleFirmwareVersion: "",
@@ -416,7 +422,7 @@ export const useMonitoringStore = defineStore('monitoring', {
       port: 1883,
       user: '',
       password: '',
-      topicPrefix: 'hb-rf-eth',
+      topicPrefix: 'hb-rf-eth-ng',
       haDiscoveryEnabled: false,
       haDiscoveryPrefix: 'homeassistant',
       tlsEnable: false,
@@ -450,7 +456,12 @@ export const useMonitoringStore = defineStore('monitoring', {
     async save(config) {
       try {
         await axios.post("/api/monitoring", config)
-        Object.assign(this.$state, config)
+        // Do NOT Object.assign the payload into $state here:
+        // 1) The mqtt payload strips the *Set sentinel flags and adds *Clear
+        //    flags — replacing the whole mqtt object would lose them.
+        // 2) The backend applies the config asynchronously, so an immediate
+        //    GET would return stale data. The caller is responsible for
+        //    updating *Set flags / clearing sensitive text fields after save.
       } catch (error) {
         console.error('Failed to save monitoring config:', error.response?.status || error.message)
         throw error
