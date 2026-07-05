@@ -206,8 +206,8 @@ esp_err_t log_stream_handler(httpd_req_t *req)
     s_server.store(req->handle);
     log_stream_init();
 
-    int fd = -1;
-    if (httpd_ws_get_fd(req, &fd) != ESP_OK || fd < 0) {
+    int fd = httpd_req_to_sockfd(req);
+    if (fd < 0) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "no fd");
         return ESP_OK;
     }
@@ -245,7 +245,7 @@ esp_err_t log_stream_handler(httpd_req_t *req)
     memset(&frame, 0, sizeof(frame));
     frame.payload = buf;
     frame.len = sizeof(buf);
-    esp_err_t r = httpd_ws_recv_frame(req, &frame);
+    esp_err_t r = httpd_ws_recv_frame(req, &frame, sizeof(buf));
     if (r != ESP_OK) {
         unregister_subscriber(fd);
         return ESP_OK;
@@ -290,4 +290,6 @@ httpd_uri_t log_stream_ws_uri = {
     .handler   = log_stream_handler,
     .user_ctx  = NULL,
     .is_websocket = true,
+    .handle_ws_control_frames = false,
+    .supported_subprotocol = NULL,
 };

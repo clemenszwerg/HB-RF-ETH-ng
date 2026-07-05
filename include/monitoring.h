@@ -29,6 +29,7 @@
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "prometheus.h"
 
 // Forward declarations
 class Settings;
@@ -70,14 +71,6 @@ typedef struct {
     // "no token required" - in that case rely on broker-side ACL + TLS/mTLS.
     char command_token[65];
 } mqtt_config_t;
-
-// Prometheus exporter configuration (Phase A). Pull model — Prometheus
-// scrapes /metrics, so we cannot rely on a token; restrict by source IP.
-typedef struct {
-    bool enabled;
-    uint16_t port;            // default 9100
-    char allowed_hosts[256];  // comma-separated list of IPs, "*" = allow all
-} prometheus_config_t;
 
 // Syslog forwarding configuration (Phase B). When enabled, every line written
 // to the LogManager ring buffer is also forwarded to the configured remote
