@@ -290,7 +290,7 @@ static bool send_tls(const char *host, uint16_t port, const char *buf, size_t le
                                         MBEDTLS_SSL_TRANSPORT_STREAM,
                                         MBEDTLS_SSL_PRESET_DEFAULT) != 0) goto teardown;
         mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
-        mbedtls_ssl_conf_ca_chain(&conf, esp_crt_bundle_get_bundle(NULL), NULL);
+        esp_crt_bundle_attach(&conf);
         mbedtls_ssl_setup(&ssl, &conf);
         mbedtls_ssl_set_bio(&ssl, &server_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
 

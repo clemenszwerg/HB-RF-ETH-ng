@@ -34,6 +34,7 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "lwip/sockets.h"
+#include "lwip/netdb.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/base64.h"
 #include "mbedtls/net_sockets.h"
@@ -345,7 +346,7 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
                 close(sock); goto release_mutex;
             }
             mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
-            mbedtls_ssl_conf_ca_chain(&conf, esp_crt_bundle_get_bundle(NULL), NULL);
+            esp_crt_bundle_attach(&conf);
             mbedtls_ssl_setup(&ssl, &conf);
             mbedtls_ssl_set_bio(&ssl, &net_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
             snprintf(hostbuf, sizeof(hostbuf), "%s", s_cfg.smtp_server);
@@ -416,7 +417,7 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
                                             MBEDTLS_SSL_TRANSPORT_STREAM,
                                             MBEDTLS_SSL_PRESET_DEFAULT) != 0) goto smtp_fail;
             mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
-            mbedtls_ssl_conf_ca_chain(&conf, esp_crt_bundle_get_bundle(NULL), NULL);
+            esp_crt_bundle_attach(&conf);
             mbedtls_ssl_setup(&ssl, &conf);
             mbedtls_ssl_set_bio(&ssl, &net_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
             snprintf(hostbuf, sizeof(hostbuf), "%s", s_cfg.smtp_server);
