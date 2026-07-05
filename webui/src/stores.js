@@ -75,22 +75,22 @@ export const useExperimentalStore = defineStore('experimental', {
 
 export const useLoginStore = defineStore('login', {
   state: () => ({
-    isLoggedIn: localStorage.getItem("hb-rf-eth-ng-pw") != null,
-    token: localStorage.getItem("hb-rf-eth-ng-pw") || "",
+    isLoggedIn: sessionStorage.getItem("hb-rf-eth-ng-pw") != null,
+    token: sessionStorage.getItem("hb-rf-eth-ng-pw") || "",
     passwordChanged: true, // Default to true to avoid blocking if unknown
     lastActivity: Date.now()
   }),
   actions: {
     login(token) {
-      localStorage.setItem("hb-rf-eth-ng-pw", token)
+      sessionStorage.setItem("hb-rf-eth-ng-pw", token)
       this.token = token
       this.isLoggedIn = true
       this.updateActivity()
     },
     logout() {
       this.isLoggedIn = false
-      localStorage.removeItem("hb-rf-eth-ng-pw")
-      localStorage.removeItem("hb-rf-eth-ng-last-activity")
+      sessionStorage.removeItem("hb-rf-eth-ng-pw")
+      sessionStorage.removeItem("hb-rf-eth-ng-last-activity")
       this.token = ""
     },
     setPasswordChanged(status) {
@@ -99,7 +99,7 @@ export const useLoginStore = defineStore('login', {
     updateActivity() {
       if (this.isLoggedIn) {
         this.lastActivity = Date.now()
-        localStorage.setItem("hb-rf-eth-ng-last-activity", this.lastActivity)
+        sessionStorage.setItem("hb-rf-eth-ng-last-activity", this.lastActivity)
       }
     },
     checkActivity() {
