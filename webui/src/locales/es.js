@@ -193,7 +193,7 @@ export default {
     cpuUsage: 'Uso de CPU',
     memoryUsage: 'Uso de memoria',
     ethernetStatus: 'Conexión Ethernet',
-    rawUartRemoteAddress: 'Conectado con',
+    rawUartRemoteAddress: 'Conectado con CCU',
     localIP: 'Dirección IPv4',
     netmask: 'Máscara de red',
     gateway: 'Puerta de enlace',
@@ -260,7 +260,7 @@ export default {
     otaSuccess: 'Descarga exitosa. Instalando...',
     currentVersion: 'Versión actual',
     installedVersion: 'Versión instalada',
-    versionInfo: 'Fork modernizado v2.2.3-Beta.7 por Xerolux (2025) - Basado en el trabajo original de Alexander Reinert.',
+    versionInfo: 'Fork modernizado v2.2.3-Beta.8 por Xerolux (2025) - Basado en el trabajo original de Alexander Reinert.',
     updateAvailable: '¡Actualización disponible!',
     updateAvailableMessage: 'Hay una actualización disponible para la versión {latestVersion}.',
     upToDate: 'El firmware está actualizado',
@@ -400,7 +400,7 @@ export default {
   // About Page
   about: {
     title: 'Acerca de',
-    version: 'Versión 2.2.3-Beta.7',
+    version: 'Versión 2.2.3-Beta.8',
     fork: 'Fork Modernizado',
     forkDescription: 'Esta versión es un fork modernizado por Xerolux (2025), basado en el firmware original HB-RF-ETH. Actualizado a ESP-IDF 6.0, cadenas de herramientas modernas y tecnologías WebUI actuales (Vue 3, Vite, Pinia).',
     original: 'Autor original',
