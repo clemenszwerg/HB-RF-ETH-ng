@@ -359,6 +359,9 @@ export default {
     diagnosticFailed: 'Diagnostický požadavek selhal',
     chipLabelCheckmk: 'CheckMK',
     chipLabelMqtt: 'MQTT',
+    chipLabelPrometheus: 'Prometheus',
+    chipLabelSyslog: 'Syslog',
+    chipLabelNotify: 'Oznámení',
     title: 'Monitorování',
     description: 'Nakonfigurujte monitorování CheckMK a MQTT pro bránu HB-RF-ETH.',
     save: 'Uložit',
@@ -431,6 +434,52 @@ export default {
     },
     enable: 'Povolit',
     allowedHosts: 'Povolené hostitelé',
+    prometheus: {
+      title: 'Exportér Prometheus',
+      port: 'Port',
+      portHelp: 'Výchozí: 9100',
+      allowedHosts: 'Povolené IP klientů',
+      allowedHostsHelp: 'IP adresy oddělené čárkami nebo "*" pro všechny'
+    },
+    syslog: {
+      title: 'Přesměrování Syslog',
+      server: 'Server',
+      serverHelp: 'Hostitelské jméno nebo IP Syslog serveru',
+      port: 'Port',
+      portHelp: 'Výchozí: 514',
+      transport: 'Transport',
+      minSeverity: 'Min. závažnost',
+      minSeverityHelp: 'Přesměrovávat pouze zprávy od této závažnosti výše',
+      hostname: 'Přepsání hostitele',
+      hostnameHelp: 'Prázdné = použít hostitele zařízení'
+    },
+    notify: {
+      title: 'Oznámení o událostech',
+      channels: 'Aktivní kanály',
+      channelWebhook: 'Webhook',
+      channelTelegram: 'Telegram',
+      channelEmail: 'E-mail',
+      cooldown: 'Cooldown (sekundy)',
+      cooldownHelp: 'Pro každý typ události bude oznámeno pouze jednou v rámci tohoto okna',
+      webhookSection: 'Webhook',
+      webhookUrl: 'URL',
+      webhookSecret: 'Secret',
+      telegramSection: 'Telegram',
+      telegramToken: 'Bot-Token',
+      telegramChatId: 'Chat-ID',
+      smtpSection: 'E-mail (SMTP)',
+      smtpServer: 'Server',
+      smtpPort: 'Port',
+      smtpTls: 'Šifrování',
+      smtpTlsNone: 'Žádné',
+      smtpTlsStarttls: 'STARTTLS',
+      smtpTlsImplicit: 'TLS (implicitní)',
+      smtpUser: 'Uživatel',
+      smtpPassword: 'Heslo',
+      smtpFrom: 'Odesílatel',
+      smtpTo: 'Příjemce',
+      secretPresent: '✓ Uloženo – zadejte novou hodnotu pro nahrazení'
+    },
     diag: {
       unsupported: 'Neznámý cíl diagnostiky',
       checkmk: {
@@ -443,6 +492,20 @@ export default {
         tcp_ok: 'TCP připojení k {host}:{port} úspěšné',
         tcp_failed: 'TCP připojení k {host}:{port} selhalo',
         tls_note: ' (TLS povoleno, ověřování certifikátů není testováno)'
+      },
+      prometheus: {
+        disabled: 'Prometheus je zakázán',
+        listening: 'Exportér Prometheus naslouchá na TCP portu {port}',
+        not_ready: 'Prometheus je povolen, ale naslouchač není připraven'
+      },
+      syslog: {
+        disabled: 'Přesměrování Syslog je zakázáno',
+        tcp_ok: 'TCP připojení k {host}:{port} úspěšné',
+        tcp_failed: 'TCP připojení k {host}:{port} selhalo'
+      },
+      notify: {
+        disabled: 'Oznámení jsou zakázána',
+        queued: 'Testovací oznámení pro kanály 0x{mask} zařazeno do fronty'
       }
     }
   },

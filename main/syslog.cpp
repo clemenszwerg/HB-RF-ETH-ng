@@ -364,7 +364,14 @@ static void syslog_task(void *pv)
             // TLS — fresh handshake per message under the net-fetch mutex.
             // Syslog volumes are modest; a persistent TLS session is not
             // worth the heap on this device.
-            send_tls(s_cfg.server, s_cfg.port, e.buf, e.len);
+            //
+            // Skip while an OTA firmware download is in progress: the OTA
+            // owns g_net_fetch_mutex for the whole download, and contending
+            // for it (or opening a second TLS context) risks starving the
+            // OTA of heap. The log line is dropped; the queue keeps moving.
+            if (!net_fetch_ota_active()) {
+                send_tls(s_cfg.server, s_cfg.port, e.buf, e.len);
+            }
         }
     }
 

@@ -254,6 +254,18 @@ jobs:
             python3 - <<'PY'
           import json
           import os
+          import re
+
+          def excerpt(text, limit=300):
+              """Collapse whitespace and truncate to a single-line preview.
+              Full notes are fetched on demand from notesUrl so the archive
+              manifest stays small enough to stream through the ESP32 proxy."""
+              if not text:
+                  return ""
+              flat = re.sub(r"\s+", " ", text).strip()
+              if len(flat) <= limit:
+                  return flat
+              return flat[:limit].rstrip() + "…"
 
           version = os.environ["VERSION"]
           version_tag = os.environ["VERSION_TAG"]
@@ -293,7 +305,7 @@ jobs:
               "name": f"HB-RF-ETH-ng {version_tag}",
               "prerelease": is_prerelease,
               "assetName": firmware_file,
-              "notes": notes,
+              "notesExcerpt": excerpt(notes),
           }
 
           archive_path = "archive.json"

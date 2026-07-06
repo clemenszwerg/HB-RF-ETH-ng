@@ -501,6 +501,27 @@ static void events_task(void *)
         EventEntry e;
         if (xQueueReceive(s_queue, &e, pdMS_TO_TICKS(500)) != pdTRUE) continue;
 
+        // Defer notification delivery while a firmware OTA download is in
+        // progress. The OTA path holds g_net_fetch_mutex for the whole TLS
+        // download; if we tried to send (webhook/telegram/email) at the same
+        // time we would either block on that mutex for tens of seconds or,
+        // worse, starve the OTA of heap by opening a second TLS context.
+        // We poll up to ~3 minutes; if OTA still isn't done, the event is
+        // dropped (acceptable for non-critical notifications, and the cooldown
+        // logic will suppress duplicates once delivery resumes).
+        if (net_fetch_ota_active()) {
+            int waited = 0;
+            while (s_running.load() && net_fetch_ota_active() && waited < 180000) {
+                vTaskDelay(pdMS_TO_TICKS(500));
+                waited += 500;
+            }
+            if (net_fetch_ota_active()) {
+                ESP_LOGW(TAG, "dropping event %d: OTA still active after wait",
+                         (int)e.id);
+                continue;
+            }
+        }
+
         if ((int)e.id >= 0 && (int)e.id < MAX_EVENT_ID) {
             int64_t now = esp_timer_get_time();
             int64_t cooldown_us = (int64_t)s_cfg.cooldown_seconds * 1000000LL;

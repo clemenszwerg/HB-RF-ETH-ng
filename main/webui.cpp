@@ -1424,7 +1424,7 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
 
         esp_http_client_config_t config = {};
         configure_ota_http_client(config, a->url);
-        config.timeout_ms = 30000;
+        config.timeout_ms = 60000;
         config.buffer_size = 4096;
 
         esp_https_ota_config_t ota_config = {};
@@ -1432,15 +1432,36 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
 
         a->statusLED->setState(LED_STATE_BLINK_FAST);
 
-        // Use advanced OTA API for progress tracking
+        // Signal lower-priority TLS consumers (event notifications, syslog
+        // forwarding) to stand down for the duration of the download so they
+        // don't contend for g_net_fetch_mutex or the limited TLS heap.
+        net_fetch_set_ota_active(true);
+
+        // Use advanced OTA API for progress tracking. Retry the begin+download
+        // a couple of times — the GitHub asset redirect forces a second TLS
+        // handshake to objects.githubusercontent.com which can transiently OOM
+        // on the WROOM-32. A single transient failure should not force the
+        // user to click "Update" repeatedly.
         esp_https_ota_handle_t ota_handle = NULL;
-        esp_err_t ret = esp_https_ota_begin(&ota_config, &ota_handle);
+        esp_err_t ret = ESP_FAIL;
+        for (int attempt = 1; attempt <= 3; ++attempt) {
+            ret = esp_https_ota_begin(&ota_config, &ota_handle);
+            if (ret == ESP_OK) {
+                break;
+            }
+            ESP_LOGW(TAG, "OTA begin attempt %d/3 failed: %s",
+                     attempt, esp_err_to_name(ret));
+            if (attempt < 3) {
+                vTaskDelay(pdMS_TO_TICKS(2000));
+            }
+        }
 
         if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "OTA begin failed: %s", esp_err_to_name(ret));
+            ESP_LOGE(TAG, "OTA begin failed after retries: %s", esp_err_to_name(ret));
             set_ota_error("OTA begin failed: %s", esp_err_to_name(ret));
             _ota_status = OTA_FAILED;
             a->statusLED->setState(LED_STATE_ON);
+            net_fetch_set_ota_active(false);
             if (net_locked) xSemaphoreGive(g_net_fetch_mutex);
             free(a->url);
             delete a;
@@ -1452,6 +1473,10 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         int image_size = esp_https_ota_get_image_size(ota_handle);
         ESP_LOGI(TAG, "OTA image size: %d bytes", image_size);
 
+        // Yield periodically (every 8th chunk) rather than every chunk so the
+        // total artificial delay over a ~1.5 MB image stays modest. This
+        // matches the MQTT-triggered OTA path in updatecheck.cpp.
+        int otaChunk = 0;
         while (true) {
             ret = esp_https_ota_perform(ota_handle);
             if (ret != ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
@@ -1462,7 +1487,9 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
                 int downloaded = esp_https_ota_get_image_len_read(ota_handle);
                 _ota_progress = (int)((int64_t)downloaded * 100 / image_size);
             }
-            vTaskDelay(pdMS_TO_TICKS(10));
+            if ((++otaChunk & 0x07) == 0) {
+                vTaskDelay(pdMS_TO_TICKS(10));
+            }
         }
 
         bool complete = esp_https_ota_is_complete_data_received(ota_handle);
@@ -1482,6 +1509,7 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
             _ota_status = OTA_SUCCESS;
             ResetInfo::storeResetReason(RESET_REASON_FIRMWARE_UPDATE);
             a->statusLED->setState(LED_STATE_OFF);
+            net_fetch_set_ota_active(false);
             if (net_locked) xSemaphoreGive(g_net_fetch_mutex);
             free(a->url);
             delete a;
@@ -1494,6 +1522,7 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
             _ota_status = OTA_FAILED;
             ResetInfo::storeResetReason(RESET_REASON_UPDATE_FAILED);
             a->statusLED->setState(LED_STATE_ON);
+            net_fetch_set_ota_active(false);
             if (net_locked) xSemaphoreGive(g_net_fetch_mutex);
             free(a->url);
             delete a;
@@ -1659,9 +1688,12 @@ static void _async_proxy_task(void *arg)
 
     // Serialize with UpdateCheck background fetch so two TLS handshakes never
     // exhaust the heap at once. Never continue unlocked after a timeout.
+    // The 45 s budget tolerates a long-lived mutex holder (e.g. an in-flight
+    // SMTP notification) without prematurely failing the firmware archive /
+    // changelog fetch.
     bool net_locked = false;
     if (g_net_fetch_mutex) {
-        if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(15000)) != pdTRUE) {
+        if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(45000)) != pdTRUE) {
             ESP_LOGW(TAG, "External proxy rejected: HTTPS subsystem busy");
             httpd_resp_set_status(job->req, "503 Service Unavailable");
             httpd_resp_set_type(job->req, "text/plain");
@@ -1679,7 +1711,7 @@ static void _async_proxy_task(void *arg)
     configure_ota_http_client(config, job->url);
     config.event_handler = _proxy_http_event_handler;
     config.user_data = job;
-    config.timeout_ms = 10000;
+    config.timeout_ms = 30000;
     config.buffer_size = 4096;
 
     httpd_resp_set_type(job->req, job->content_type);

@@ -56,6 +56,19 @@ static const char *TAG = "MONITORING";
 SemaphoreHandle_t g_net_fetch_mutex = NULL;
 static StaticSemaphore_t net_fetch_mutex_buffer;
 
+// True while an OTA firmware download is streaming. See net_fetch_set_ota_active().
+static std::atomic<bool> g_ota_active{false};
+
+void net_fetch_set_ota_active(bool active)
+{
+    g_ota_active.store(active);
+}
+
+bool net_fetch_ota_active(void)
+{
+    return g_ota_active.load();
+}
+
 static monitoring_config_t current_config = {};
 static SemaphoreHandle_t config_mutex = NULL;
 static std::atomic<bool> checkmk_running{false};

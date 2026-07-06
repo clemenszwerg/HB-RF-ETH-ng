@@ -359,6 +359,9 @@ export default {
     diagnosticFailed: 'Diagnostikbegäran misslyckades',
     chipLabelCheckmk: 'CheckMK',
     chipLabelMqtt: 'MQTT',
+    chipLabelPrometheus: 'Prometheus',
+    chipLabelSyslog: 'Syslog',
+    chipLabelNotify: 'Aviseringar',
     title: 'Övervakning',
     description: 'Konfigurera CheckMK och MQTT-övervakning för HB-RF-ETH-gatewayen.',
     save: 'Spara',
@@ -431,6 +434,52 @@ export default {
     },
     enable: 'Aktivera',
     allowedHosts: 'Tillåtna Värdar',
+    prometheus: {
+      title: 'Prometheus Exporter',
+      port: 'Port',
+      portHelp: 'Standard: 9100',
+      allowedHosts: 'Tillåtna klient-IP:er',
+      allowedHostsHelp: 'Kommaseparerade IP-adresser eller "*" för alla'
+    },
+    syslog: {
+      title: 'Syslog-vidarebefordran',
+      server: 'Server',
+      serverHelp: 'Värdnamn eller IP för Syslog-servern',
+      port: 'Port',
+      portHelp: 'Standard: 514',
+      transport: 'Transport',
+      minSeverity: 'Min. allvarlighetsgrad',
+      minSeverityHelp: 'Vidarebefordra endast meddelanden från denna allvarlighetsgrad och uppåt',
+      hostname: 'Värdnamn-överskrivning',
+      hostnameHelp: 'Tomt = använd enhetens värdnamn'
+    },
+    notify: {
+      title: 'Händelseaviseringar',
+      channels: 'Aktiva kanaler',
+      channelWebhook: 'Webhook',
+      channelTelegram: 'Telegram',
+      channelEmail: 'E-post',
+      cooldown: 'Cooldown (sekunder)',
+      cooldownHelp: 'Per händelsetyp aviseras endast en gång inom detta fönster',
+      webhookSection: 'Webhook',
+      webhookUrl: 'URL',
+      webhookSecret: 'Secret',
+      telegramSection: 'Telegram',
+      telegramToken: 'Bot-token',
+      telegramChatId: 'Chat-ID',
+      smtpSection: 'E-post (SMTP)',
+      smtpServer: 'Server',
+      smtpPort: 'Port',
+      smtpTls: 'Kryptering',
+      smtpTlsNone: 'Ingen',
+      smtpTlsStarttls: 'STARTTLS',
+      smtpTlsImplicit: 'TLS (implicit)',
+      smtpUser: 'Användare',
+      smtpPassword: 'Lösenord',
+      smtpFrom: 'Avsändare',
+      smtpTo: 'Mottagare',
+      secretPresent: '✓ Sparat – ange nytt värde för att ersätta'
+    },
     diag: {
       unsupported: 'Okänt diagnostikmål',
       checkmk: {
@@ -443,6 +492,20 @@ export default {
         tcp_ok: 'TCP-anslutning till {host}:{port} lyckades',
         tcp_failed: 'TCP-anslutning till {host}:{port} misslyckades',
         tls_note: ' (TLS aktiverat, certifikatvalidering inte testad)'
+      },
+      prometheus: {
+        disabled: 'Prometheus är inaktiverat',
+        listening: 'Prometheus-exporter lyssnar på TCP-port {port}',
+        not_ready: 'Prometheus är aktiverat, men lyssnaren är inte redo'
+      },
+      syslog: {
+        disabled: 'Syslog-vidarebefordran är inaktiverad',
+        tcp_ok: 'TCP-anslutning till {host}:{port} lyckades',
+        tcp_failed: 'TCP-anslutning till {host}:{port} misslyckades'
+      },
+      notify: {
+        disabled: 'Aviseringar är inaktiverade',
+        queued: 'Testavisering för kanaler 0x{mask} köad'
       }
     }
   },
