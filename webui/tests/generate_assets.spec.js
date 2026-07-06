@@ -4,6 +4,8 @@ import fs from 'fs';
 import path from 'path';
 
 const screenshotsDir = path.resolve(__dirname, '../../screenshots');
+const BASE_URL = 'http://127.0.0.1:1234';
+const gotoApp = (page, pathName) => page.goto(`${BASE_URL}${pathName}`, { waitUntil: 'domcontentloaded' });
 
 test.use({
   viewport: { width: 1280, height: 800 },
@@ -17,6 +19,7 @@ test.use({
 test.describe('Generate Assets', () => {
 
   test('capture screenshots and video', async ({ page }, testInfo) => {
+    test.setTimeout(90000);
     // --- Mocks ---
 
     // SysInfo (Dashboard data)
@@ -146,7 +149,7 @@ test.describe('Generate Assets', () => {
 
     // 1. Login Page
     // Navigate to login explicitly
-    await page.goto('http://localhost:5173/login');
+    await gotoApp(page, '/login');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(screenshotsDir, '01_Login.png') });
@@ -156,12 +159,12 @@ test.describe('Generate Assets', () => {
     // Button might not be type="submit", target by class or text
     await page.click('.login-btn');
     // Wait for navigation to home
-    await page.waitForURL('http://localhost:5173/');
+    await page.waitForURL(`${BASE_URL}/`);
 
     // 3. Dashboard (Home)
     // Wait for either sysinfo page or grid
     try {
-        await page.waitForSelector('.sysinfo-page, .dashboard-grid', { state: 'visible', timeout: 5000 });
+        await page.waitForSelector('.page-shell.dashboard, .dashboard-grid', { state: 'visible', timeout: 5000 });
     } catch (e) {
         console.log("Dashboard selector not found, taking screenshot anyway");
     }
@@ -169,38 +172,38 @@ test.describe('Generate Assets', () => {
     await page.screenshot({ path: path.join(screenshotsDir, '02_Dashboard.png') });
 
     // 4. Settings (General)
-    await page.goto('http://localhost:5173/settings');
+    await gotoApp(page, '/settings');
     await page.waitForSelector('.settings-form', { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(screenshotsDir, '04_Settings.png') });
 
     // 5. Monitoring
-    await page.goto('http://localhost:5173/monitoring');
+    await gotoApp(page, '/monitoring');
     await page.waitForSelector('.monitoring-page', { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(screenshotsDir, '05_Monitoring.png') });
 
     // 6. Firmware
-    await page.goto('http://localhost:5173/firmware');
+    await gotoApp(page, '/firmware');
     await page.waitForSelector('.firmware-page', { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(screenshotsDir, '06_FirmwareUpdate.png') });
 
     // 7. System Log
-    await page.goto('http://localhost:5173/systemlog');
+    await gotoApp(page, '/systemlog');
     await page.waitForSelector('.log-container', { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(1500); // Wait for log poll
     await page.screenshot({ path: path.join(screenshotsDir, '07_SystemLog.png') });
 
     // 8. About
-    await page.goto('http://localhost:5173/about');
+    await gotoApp(page, '/about');
     await page.waitForSelector('.about-page', { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(screenshotsDir, '08_About.png') });
 
     // 9. Changelog Modal
     // Go to firmware page where the button exists
-    await page.goto('http://localhost:5173/firmware');
+    await gotoApp(page, '/firmware');
     await page.waitForSelector('.firmware-page', { timeout: 5000 }).catch(() => {});
 
     const changelogBtn = page.locator('.changelog-btn').first();

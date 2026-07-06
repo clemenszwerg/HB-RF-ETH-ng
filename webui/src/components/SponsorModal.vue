@@ -43,11 +43,6 @@
           <AppIcon name="xSocial" />
           <span class="label">X</span>
         </a>
-
-        <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" class="sponsor-option social">
-          <AppIcon name="whatsapp" />
-          <span class="label">WhatsApp</span>
-        </a>
       </div>
 
       <div class="footer-text">

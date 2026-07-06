@@ -2,6 +2,10 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000
+const getStoredLastActivity = () => {
+  const stored = Number(sessionStorage.getItem("hb-rf-eth-ng-last-activity"))
+  return Number.isFinite(stored) && stored > 0 ? stored : Date.now()
+}
 
 export const useThemeStore = defineStore('theme', {
   state: () => ({
@@ -74,12 +78,23 @@ export const useExperimentalStore = defineStore('experimental', {
 })
 
 export const useLoginStore = defineStore('login', {
-  state: () => ({
-    isLoggedIn: sessionStorage.getItem("hb-rf-eth-ng-pw") != null,
-    token: sessionStorage.getItem("hb-rf-eth-ng-pw") || "",
-    passwordChanged: true, // Default to true to avoid blocking if unknown
-    lastActivity: Date.now()
-  }),
+  state: () => {
+    const token = sessionStorage.getItem("hb-rf-eth-ng-pw") || ""
+    const lastActivity = getStoredLastActivity()
+    const sessionExpired = token && Date.now() - lastActivity > IDLE_TIMEOUT_MS
+
+    if (sessionExpired) {
+      sessionStorage.removeItem("hb-rf-eth-ng-pw")
+      sessionStorage.removeItem("hb-rf-eth-ng-last-activity")
+    }
+
+    return {
+      isLoggedIn: !!token && !sessionExpired,
+      token: sessionExpired ? "" : token,
+      passwordChanged: true, // Default to true to avoid blocking if unknown
+      lastActivity: sessionExpired ? Date.now() : lastActivity
+    }
+  },
   actions: {
     login(token) {
       sessionStorage.setItem("hb-rf-eth-ng-pw", token)
