@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.15] - 2026-07-06
+
+### Changes
+- feat: show supporter status on the dashboard system-status page
+- chore: update manifests for v2.2.3-Beta.14
+
 ## [2.2.3-Beta.14] - 2026-07-06
 
 ### Changes
