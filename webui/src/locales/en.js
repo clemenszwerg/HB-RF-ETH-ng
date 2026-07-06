@@ -662,6 +662,7 @@ export default {
   supporter: {
     title: 'Supporter Key',
     active: 'Supporter',
+    badgeLabel: 'Support Licence',
     intro: 'Support this project with a small contribution (e.g. a coffee) and receive a personal supporter key. The badge is purely cosmetic — no functionality is ever locked.',
     thanksTitle: 'Thank you for your support!',
     thanksBody: 'Your supporter status is valid until {date}.',
@@ -671,6 +672,8 @@ export default {
     activated: 'Supporter key activated — thank you for your support!',
     activateFailed: 'Could not activate the supporter key.',
     removed: 'Supporter key removed.',
+    revokedTitle: 'This key has been revoked',
+    revokedBody: 'The key was added to my revocation list and is no longer valid. If this is a mistake, please contact me.',
     invalid: 'Invalid key — please check your input.',
     expired: 'This key expired on {date}.',
     validHint: 'Valid — expires on {date}.',

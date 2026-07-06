@@ -662,6 +662,7 @@ export default {
   supporter: {
     title: 'Chiave sostenitore',
     active: 'Sostenitore',
+    badgeLabel: 'Licenza di sostegno',
     intro: 'Sostieni questo progetto con un piccolo contributo (es. un caffè) e ricevi una chiave personale. Il badge è puramente estetico — nessuna funzione viene bloccata.',
     thanksTitle: 'Grazie per il tuo supporto!',
     thanksBody: 'Il tuo stato di sostenitore è valido fino al {date}.',
@@ -671,6 +672,8 @@ export default {
     activated: 'Chiave sostenitore attivata — grazie per il supporto!',
     activateFailed: 'Impossibile attivare la chiave sostenitore.',
     removed: 'Chiave sostenitore rimossa.',
+    revokedTitle: 'Questa chiave è stata revocata',
+    revokedBody: 'La chiave è stata aggiunta alla mia lista di revoca e non è più valida. Se è un errore, contattami.',
     invalid: 'Chiave non valida — controlla l’inserimento.',
     expired: 'Questa chiave è scaduta il {date}.',
     validHint: 'Valida — scade il {date}.',

@@ -662,6 +662,7 @@ export default {
   supporter: {
     title: 'Klucz wspierającego',
     active: 'Wspierający',
+    badgeLabel: 'Licencja wsparcia',
     intro: 'Wesprzyj ten projekt małym wkładem (np. kawą) i otrzymaj osobisty klucz wspierającego. Odznaka jest czysto kosmetyczna — żadna funkcja nie jest blokowana.',
     thanksTitle: 'Dziękujemy za wsparcie!',
     thanksBody: 'Twój status wspierającego jest ważny do {date}.',
@@ -671,6 +672,8 @@ export default {
     activated: 'Klucz wspierającego aktywowany — dziękujemy za wsparcie!',
     activateFailed: 'Nie udało się aktywować klucza wspierającego.',
     removed: 'Klucz wspierającego usunięty.',
+    revokedTitle: 'Ten klucz został unieważniony',
+    revokedBody: 'Klucz został dodany do mojej listy unieważnień i nie jest już ważny. Jeśli to błąd, skontaktuj się ze mną.',
     invalid: 'Nieprawidłowy klucz — sprawdź wpis.',
     expired: 'Ten klucz wygasł dnia {date}.',
     validHint: 'Ważny — wygasa {date}.',

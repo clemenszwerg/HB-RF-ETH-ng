@@ -662,6 +662,7 @@ export default {
   supporter: {
     title: 'Supporternyckel',
     active: 'Supporter',
+    badgeLabel: 'Supportlicens',
     intro: 'Stöd detta projekt med ett litet bidrag (t.ex. en kaffe) och få en personlig supporternyckel. Märket är bara kosmetiskt — inga funktioner låses.',
     thanksTitle: 'Tack för ditt stöd!',
     thanksBody: 'Din supporter-status är giltig till {date}.',
@@ -671,6 +672,8 @@ export default {
     activated: 'Supporternyckel aktiverad — tack för stödet!',
     activateFailed: 'Kunde inte aktivera supporternyckeln.',
     removed: 'Supporternyckel borttagen.',
+    revokedTitle: 'Den här nyckeln har återkallats',
+    revokedBody: 'Nyckeln har lagts till på min återkallningslista och är inte längre giltig. Om detta är ett fel, kontakta mig.',
     invalid: 'Ogiltig nyckel — kontrollera inmatningen.',
     expired: 'Denna nyckel gick ut {date}.',
     validHint: 'Giltig — löper ut {date}.',

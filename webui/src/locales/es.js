@@ -662,6 +662,7 @@ export default {
   supporter: {
     title: 'Clave de apoyo',
     active: 'Patrocinador',
+    badgeLabel: 'Licencia de apoyo',
     intro: 'Apoya este proyecto con una pequeña aportación (p. ej. un café) y recibe una clave personal. La insignia es puramente estética — nunca bloquea funciones.',
     thanksTitle: '¡Gracias por tu apoyo!',
     thanksBody: 'Tu estado de patrocinador es válido hasta el {date}.',
@@ -671,6 +672,8 @@ export default {
     activated: 'Clave de apoyo activada — ¡gracias por tu apoyo!',
     activateFailed: 'No se pudo activar la clave de apoyo.',
     removed: 'Clave de apoyo eliminada.',
+    revokedTitle: 'Esta clave ha sido revocada',
+    revokedBody: 'La clave se añadió a mi lista de revocación y ya no es válida. Si es un error, contáctame.',
     invalid: 'Clave no válida — revisa la entrada.',
     expired: 'Esta clave expiró el {date}.',
     validHint: 'Válida — expira el {date}.',

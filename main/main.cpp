@@ -51,6 +51,7 @@
 #include "updatecheck.h"
 #include "monitoring.h"
 #include "log_manager.h"
+#include "supporter_crl.h"
 #include "metrics.h"
 #include "events.h"
 #include "reset_info.h"
@@ -129,6 +130,7 @@ void app_main()
     // subscribers (syslog forwarder, WebSocket log stream) to receive lines
     // without each having to install their own hook.
     LogManager::init();
+    supporter_crl_init();
 
     // Initialise the metrics registry so counters can be registered by any
     // subsystem from this point on. The Prometheus exporter (Phase A) reads

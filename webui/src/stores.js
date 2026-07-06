@@ -181,6 +181,7 @@ export const useSysInfoStore = defineStore('sysInfo', {
     supporterActive: false,
     supporterValid: false,
     supporterExpired: false,
+    supporterRevoked: false,
     supporterExpiresAt: ""
   }),
   actions: {
@@ -198,11 +199,13 @@ export const useSysInfoStore = defineStore('sysInfo', {
             this.supporterActive = !!supporter.active
             this.supporterValid = !!supporter.valid
             this.supporterExpired = !!supporter.expired
+            this.supporterRevoked = !!supporter.revoked
             this.supporterExpiresAt = supporter.expiresAt || ""
           } else {
             this.supporterActive = false
             this.supporterValid = false
             this.supporterExpired = false
+            this.supporterRevoked = false
             this.supporterExpiresAt = ""
           }
         } else {

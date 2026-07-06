@@ -662,6 +662,7 @@ export default {
   supporter: {
     title: 'Supporter-sleutel',
     active: 'Supporter',
+    badgeLabel: 'Support-licentie',
     intro: 'Steun dit project met een kleine bijdrage (bijv. een koffie) en ontvang een persoonlijke supporter-sleutel. De badge is puur cosmetisch — geen functie wordt geblokkeerd.',
     thanksTitle: 'Bedankt voor je steun!',
     thanksBody: 'Je supporter-status is geldig tot {date}.',
@@ -671,6 +672,8 @@ export default {
     activated: 'Supporter-sleutel geactiveerd — bedankt voor je steun!',
     activateFailed: 'Kon de supporter-sleutel niet activeren.',
     removed: 'Supporter-sleutel verwijderd.',
+    revokedTitle: 'Deze sleutel is ingetrokken',
+    revokedBody: 'De sleutel is toegevoegd aan mijn intrekkingslijst en is niet meer geldig. Als dit een fout is, neem contact met me op.',
     invalid: 'Ongeldige sleutel — controleer je invoer.',
     expired: 'Deze sleutel is verlopen op {date}.',
     validHint: 'Geldig — verloopt op {date}.',

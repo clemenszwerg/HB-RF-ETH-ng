@@ -42,6 +42,9 @@ struct SupporterKeyStatus
     bool valid;
     // True if the checksum is valid but the key is past its expiry date.
     bool expired;
+    // True if the key was revoked by the maintainer (its fingerprint is on the
+    // fetched revocation list). Set by the caller after supporter_crl_is_revoked().
+    bool revoked;
     // True if the system clock is not yet set (before 2025-01-01 UTC), so the
     // expiry could not be evaluated. active falls back to "valid" in that case.
     bool clockUnknown;

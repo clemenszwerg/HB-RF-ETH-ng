@@ -27,7 +27,7 @@
             ? t('supporter.chipTooltip', { date: sysInfoStore.supporterExpiresAt || '—' })
             : t('supporter.chipInactiveTooltip')"
         >
-          <AppIcon name="support" />
+          <AppIcon :name="sysInfoStore.supporterActive ? 'heart' : 'coffee'" />
           {{ sysInfoStore.supporterActive ? t('supporter.chipActive') : t('supporter.chipInactive') }}
         </router-link>
       </div>
@@ -540,13 +540,14 @@ onBeforeUnmount(() => {
 }
 
 .supporter-hero-chip.is-active {
-  color: var(--color-primary-strong);
-  background: var(--color-primary-soft);
-  border-color: rgba(242, 106, 61, 0.32);
+  color: #fff;
+  background: linear-gradient(135deg, #f26a3d 0%, #f59e0b 100%);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(242, 106, 61, 0.35);
 }
 
 .supporter-hero-chip.is-active .app-icon {
-  color: var(--color-primary-strong);
+  color: #fff;
 }
 
 .supporter-hero-chip:hover {

@@ -52,6 +52,7 @@
 #include "validation.h"
 #include "log_stream.h"
 #include "supporter_key.h"
+#include "supporter_crl.h"
 
 static const char *TAG = "WebUI";
 
@@ -380,10 +381,18 @@ esp_err_t get_sysinfo_json_handler_func(httpd_req_t *req)
     {
         SupporterKeyStatus sk;
         bool skValid = supporter_key_validate(_settings->getSupporterKey(), sk);
+        // A structurally valid key may still have been revoked by the
+        // maintainer (its fingerprint is on the fetched CRL). The CRL check
+        // is RAM-only and instant — the fetch happens in the background.
+        if (skValid && supporter_crl_is_revoked(_settings->getSupporterKey())) {
+            sk.revoked = true;
+            sk.active = false;
+        }
         cJSON *sup = cJSON_AddObjectToObject(sysInfo, "supporter");
         cJSON_AddBoolToObject(sup, "active", skValid && sk.active);
         cJSON_AddBoolToObject(sup, "valid", skValid);
         cJSON_AddBoolToObject(sup, "expired", skValid && sk.expired);
+        cJSON_AddBoolToObject(sup, "revoked", skValid && sk.revoked);
         cJSON_AddStringToObject(sup, "expiresAt", skValid ? sk.expiresAt : "");
     }
 

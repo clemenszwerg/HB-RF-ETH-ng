@@ -662,6 +662,7 @@ export default {
   supporter: {
     title: 'Klíč příznivce',
     active: 'Příznivce',
+    badgeLabel: 'Licence příznivce',
     intro: 'Podpořte tento projekt malým příspěvkem (např. kávou) a získejte osobní klíč příznivce. Odznak je čistě kosmetický — žádná funkce se neuzamkne.',
     thanksTitle: 'Děkujeme za podporu!',
     thanksBody: 'Váš status příznivce je platný do {date}.',
@@ -671,6 +672,8 @@ export default {
     activated: 'Klíč příznivce aktivován — děkujeme za podporu!',
     activateFailed: 'Klíč příznivce se nepodařilo aktivovat.',
     removed: 'Klíč příznivce odstraněn.',
+    revokedTitle: 'Tento klíč byl zneplatněn',
+    revokedBody: 'Klíč byl přidán na můj seznam zneplatnění a již není platný. Pokud je to chyba, kontaktujte mě.',
     invalid: 'Neplatný klíč — zkontrolujte zadání.',
     expired: 'Tento klíč vypršel {date}.',
     validHint: 'Platný — vyprší {date}.',

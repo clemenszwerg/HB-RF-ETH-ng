@@ -151,7 +151,7 @@
           <div class="settings-card supporter-card" :class="{ 'is-active': sysInfoStore.supporterActive }">
             <div class="card-header">
               <div class="header-content">
-                <div class="header-icon supporter-icon"><AppIcon name="support" /></div>
+                <div class="header-icon supporter-icon"><AppIcon :name="sysInfoStore.supporterActive ? 'heart' : 'coffee'" /></div>
                 <h3>{{ t('supporter.title') }}</h3>
               </div>
               <span v-if="sysInfoStore.supporterActive" class="supporter-badge-active">
@@ -159,19 +159,35 @@
               </span>
             </div>
             <div class="card-body">
-              <p class="supporter-intro">{{ t('supporter.intro') }}</p>
+              <p v-if="!sysInfoStore.supporterActive && !sysInfoStore.supporterRevoked" class="supporter-intro">{{ t('supporter.intro') }}</p>
 
-              <div v-if="sysInfoStore.supporterActive" class="supporter-active-state">
-                <div class="supporter-thanks">
-                  <span class="supporter-heart"><AppIcon name="support" /></span>
-                  <div>
-                    <strong>{{ t('supporter.thanksTitle') }}</strong>
-                    <p>{{ t('supporter.thanksBody', { date: sysInfoStore.supporterExpiresAt || '—' }) }}</p>
-                  </div>
+              <div v-if="sysInfoStore.supporterRevoked" class="supporter-revoked-panel">
+                <div class="revoked-icon-wrap"><AppIcon name="alert" /></div>
+                <div class="revoked-text">
+                  <strong>{{ t('supporter.revokedTitle') }}</strong>
+                  <p>{{ t('supporter.revokedBody') }}</p>
+                  <button type="button" class="btn-link-danger" @click="removeSupporterKey">
+                    {{ t('supporter.remove') }}
+                  </button>
                 </div>
-                <button type="button" class="btn-link-danger supporter-remove" @click="removeSupporterKey">
-                  {{ t('supporter.remove') }}
-                </button>
+              </div>
+
+              <div v-else-if="sysInfoStore.supporterActive" class="supporter-thanks-panel">
+                <div class="medallion">
+                  <span class="medallion-shine"></span>
+                  <span class="medallion-core"><AppIcon name="heart" /></span>
+                  <span class="medallion-spark spark-a"><AppIcon name="star" /></span>
+                  <span class="medallion-spark spark-b"><AppIcon name="star" /></span>
+                  <span class="medallion-spark spark-c"><AppIcon name="star" /></span>
+                </div>
+                <div class="medallion-text">
+                  <span class="medallion-label">{{ t('supporter.badgeLabel') }}</span>
+                  <strong class="medallion-title">{{ t('supporter.thanksTitle') }}</strong>
+                  <p class="medallion-body">{{ t('supporter.thanksBody', { date: sysInfoStore.supporterExpiresAt || '—' }) }}</p>
+                  <button type="button" class="btn-link-danger supporter-remove" @click="removeSupporterKey">
+                    {{ t('supporter.remove') }}
+                  </button>
+                </div>
               </div>
 
               <div v-else class="supporter-input-row">
@@ -1641,11 +1657,11 @@ hr {
 
 .supporter-card.is-active {
   border-color: rgba(242, 106, 61, 0.4);
-  box-shadow: 0 0 0 1px rgba(242, 106, 61, 0.12);
+  box-shadow: 0 0 0 1px rgba(242, 106, 61, 0.12), 0 8px 24px rgba(242, 106, 61, 0.08);
 }
 
 .supporter-icon {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  background: linear-gradient(135deg, var(--color-primary), #f59e0b);
   color: #fff;
 }
 
@@ -1655,8 +1671,8 @@ hr {
   gap: 6px;
   padding: 6px 12px;
   border-radius: var(--radius-full);
-  background: var(--color-success-soft);
-  color: var(--color-success);
+  background: linear-gradient(135deg, var(--color-primary-soft), rgba(245, 158, 11, 0.18));
+  color: var(--color-primary-strong);
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -1668,41 +1684,117 @@ hr {
   line-height: 1.5;
 }
 
-.supporter-active-state {
+/* ---- "Thank you" medallion shown when a key is active ---- */
+.supporter-thanks-panel {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 22px;
+  padding: 6px 2px 2px;
   flex-wrap: wrap;
 }
 
-.supporter-thanks {
+.medallion {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex: 0 0 auto;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 14px;
-}
-
-.supporter-heart {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  background: var(--color-primary-soft);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.45), transparent 55%),
+    linear-gradient(135deg, #f26a3d 0%, #f59e0b 50%, #ec4899 100%);
+  box-shadow:
+    0 10px 26px rgba(242, 106, 61, 0.38),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.2),
+    inset 0 -8px 14px rgba(0, 0, 0, 0.12);
+  animation: medallion-float 3.2s ease-in-out infinite;
+}
+
+/* Rotating conic shine sweeping around the rim */
+.medallion-shine {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 65%, rgba(255, 255, 255, 0.6) 82%, transparent 95%);
+  animation: medallion-spin 4.5s linear infinite;
+  pointer-events: none;
+}
+
+.medallion-core {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+}
+
+.medallion-core .app-icon {
+  width: 46px;
+  height: 46px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+
+/* Twinkling stars orbiting the badge */
+.medallion-spark {
+  position: absolute;
+  color: #f59e0b;
+  z-index: 2;
+  animation: spark-twinkle 2.4s ease-in-out infinite;
+}
+
+.medallion-spark .app-icon { width: 14px; height: 14px; }
+.spark-a { top: -4px; right: 8px; animation-delay: 0s; }
+.spark-b { bottom: 2px; left: -2px; width: 18px; animation-delay: 0.8s; }
+.spark-b .app-icon { width: 18px; height: 18px; }
+.spark-c { top: 26px; right: -6px; animation-delay: 1.6s; }
+
+.medallion-text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.medallion-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--color-primary-strong);
-  flex: 0 0 auto;
+  background: var(--color-primary-soft);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  margin-bottom: 8px;
 }
 
-.supporter-thanks strong {
+.medallion-title {
   display: block;
-  font-size: 1rem;
+  font-size: 1.15rem;
+  line-height: 1.25;
 }
 
-.supporter-thanks p {
-  margin: 2px 0 0;
+.medallion-body {
+  margin: 6px 0 10px;
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.supporter-remove {
+  font-size: 0.82rem;
+}
+
+@keyframes medallion-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes medallion-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spark-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 .supporter-input-row {
@@ -1735,6 +1827,42 @@ hr {
 
 .supporter-remove {
   font-size: 0.82rem;
+}
+
+/* ---- revoked state ---- */
+.supporter-revoked-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-danger-soft);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.revoked-icon-wrap {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.revoked-text strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--color-danger);
+}
+
+.revoked-text p {
+  margin: 4px 0 8px;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .supporter-footnote {

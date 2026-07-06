@@ -103,7 +103,7 @@
           class="supporter-chip active"
           :title="t('supporter.chipTooltip', { date: sysInfoStore.supporterExpiresAt || '—' })"
         >
-          <AppIcon name="support" />
+          <AppIcon name="heart" />
           <span>{{ t('supporter.chipActive') }}</span>
         </router-link>
         <router-link
@@ -112,7 +112,7 @@
           class="supporter-chip inactive"
           :title="t('supporter.chipInactiveTooltip')"
         >
-          <AppIcon name="support" />
+          <AppIcon name="coffee" />
           <span>{{ t('supporter.chipInactive') }}</span>
         </router-link>
         <span class="clock-chip"><AppIcon name="clock" /> {{ currentTime }}</span>
@@ -736,14 +736,15 @@ onUnmounted(() => {
 }
 
 .supporter-chip.active {
-  color: var(--color-primary-strong);
-  background: var(--color-primary-soft);
-  border-color: rgba(242, 106, 61, 0.32);
+  color: #fff;
+  background: linear-gradient(135deg, #f26a3d 0%, #f59e0b 100%);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(242, 106, 61, 0.32);
 }
 
 .supporter-chip.active:hover {
   transform: translateY(-1px);
-  border-color: rgba(242, 106, 61, 0.55);
+  box-shadow: 0 6px 16px rgba(242, 106, 61, 0.42);
 }
 
 .supporter-chip.inactive {
