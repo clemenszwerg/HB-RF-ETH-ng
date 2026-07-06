@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Kjør en rask selvtest for å verifisere gjeldende konfigurasjon.',
+    selfTestTitle: 'Selvtest',
     testButton: 'Test',
     checkFinished: 'Sjekk fullført',
     diagnosticFailed: 'Diagnoseforespørselen mislyktes',
@@ -655,5 +656,28 @@ export default {
     retry: 'Prøv igjen',
     close: 'Lukk',
     viewOnGithub: 'Vis på GitHub'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Supporter-nøkkel',
+    active: 'Supporter',
+    intro: 'Støtt dette prosjektet med et lite bidrag (f.eks. en kaffe) og få en personlig supporter-nøkkel. Merket er kun kosmetisk — ingen funksjoner låses.',
+    thanksTitle: 'Takk for støtten!',
+    thanksBody: 'Din supporter-status er gyldig til {date}.',
+    remove: 'Fjern nøkkel',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Aktiver',
+    activated: 'Supporter-nøkkel aktivert — takk for støtten!',
+    activateFailed: 'Kunne ikke aktivere supporter-nøkkelen.',
+    removed: 'Supporter-nøkkel fjernet.',
+    invalid: 'Ugyldig nøkkel — sjekk inntastingen.',
+    expired: 'Denne nøkkelen utløp {date}.',
+    validHint: 'Gyldig — utløper {date}.',
+    footnote: 'Hver nøkkel er unik og gyldig i begrenset tid. Den lagres på denne enheten.',
+    chipActive: 'Supporter',
+    chipInactive: 'Støtt',
+    chipTooltip: 'Supporter — gyldig til {date}',
+    chipInactiveTooltip: 'Bli supporter'
   }
 }

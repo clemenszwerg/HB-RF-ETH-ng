@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Spusťte rychlý autotest pro ověření aktuální konfigurace.',
+    selfTestTitle: 'Autotest',
     testButton: 'Test',
     checkFinished: 'Kontrola dokončena',
     diagnosticFailed: 'Diagnostický požadavek selhal',
@@ -655,5 +656,28 @@ export default {
     retry: 'Zkusit znovu',
     close: 'Zavřít',
     viewOnGithub: 'Zobrazit na GitHubu'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Klíč příznivce',
+    active: 'Příznivce',
+    intro: 'Podpořte tento projekt malým příspěvkem (např. kávou) a získejte osobní klíč příznivce. Odznak je čistě kosmetický — žádná funkce se neuzamkne.',
+    thanksTitle: 'Děkujeme za podporu!',
+    thanksBody: 'Váš status příznivce je platný do {date}.',
+    remove: 'Odstranit klíč',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Aktivovat',
+    activated: 'Klíč příznivce aktivován — děkujeme za podporu!',
+    activateFailed: 'Klíč příznivce se nepodařilo aktivovat.',
+    removed: 'Klíč příznivce odstraněn.',
+    invalid: 'Neplatný klíč — zkontrolujte zadání.',
+    expired: 'Tento klíč vypršel {date}.',
+    validHint: 'Platný — vyprší {date}.',
+    footnote: 'Každý klíč je jedinečný a platný po omezenou dobu. Ukládá se v tomto zařízení.',
+    chipActive: 'Příznivce',
+    chipInactive: 'Podpořit',
+    chipTooltip: 'Příznivce — platný do {date}',
+    chipInactiveTooltip: 'Staňte se příznivcem'
   }
 }

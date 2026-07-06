@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Uruchom szybki autotest, aby zweryfikować bieżącą konfigurację.',
+    selfTestTitle: 'Autotest',
     testButton: 'Test',
     checkFinished: 'Sprawdzanie zakończone',
     diagnosticFailed: 'Żądanie diagnostyczne nie powiodło się',
@@ -655,5 +656,28 @@ export default {
     retry: 'Ponów',
     close: 'Zamknij',
     viewOnGithub: 'Zobacz na GitHub'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Klucz wspierającego',
+    active: 'Wspierający',
+    intro: 'Wesprzyj ten projekt małym wkładem (np. kawą) i otrzymaj osobisty klucz wspierającego. Odznaka jest czysto kosmetyczna — żadna funkcja nie jest blokowana.',
+    thanksTitle: 'Dziękujemy za wsparcie!',
+    thanksBody: 'Twój status wspierającego jest ważny do {date}.',
+    remove: 'Usuń klucz',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Aktywuj',
+    activated: 'Klucz wspierającego aktywowany — dziękujemy za wsparcie!',
+    activateFailed: 'Nie udało się aktywować klucza wspierającego.',
+    removed: 'Klucz wspierającego usunięty.',
+    invalid: 'Nieprawidłowy klucz — sprawdź wpis.',
+    expired: 'Ten klucz wygasł dnia {date}.',
+    validHint: 'Ważny — wygasa {date}.',
+    footnote: 'Każdy klucz jest unikalny i ważny przez ograniczony czas. Jest przechowywany na tym urządzeniu.',
+    chipActive: 'Wspierający',
+    chipInactive: 'Wesprzyj',
+    chipTooltip: 'Wspierający — ważny do {date}',
+    chipInactiveTooltip: 'Zostań wspierającym'
   }
 }

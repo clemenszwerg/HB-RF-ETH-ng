@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Ejecuta una autocomprobación rápida para verificar la configuración actual.',
+    selfTestTitle: 'Autocomprobación',
     testButton: 'Test',
     checkFinished: 'Comprobación finalizada',
     diagnosticFailed: 'La solicitud de diagnóstico falló',
@@ -655,5 +656,28 @@ export default {
     retry: 'Reintentar',
     close: 'Cerrar',
     viewOnGithub: 'Ver en GitHub'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Clave de apoyo',
+    active: 'Patrocinador',
+    intro: 'Apoya este proyecto con una pequeña aportación (p. ej. un café) y recibe una clave personal. La insignia es puramente estética — nunca bloquea funciones.',
+    thanksTitle: '¡Gracias por tu apoyo!',
+    thanksBody: 'Tu estado de patrocinador es válido hasta el {date}.',
+    remove: 'Quitar clave',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Activar',
+    activated: 'Clave de apoyo activada — ¡gracias por tu apoyo!',
+    activateFailed: 'No se pudo activar la clave de apoyo.',
+    removed: 'Clave de apoyo eliminada.',
+    invalid: 'Clave no válida — revisa la entrada.',
+    expired: 'Esta clave expiró el {date}.',
+    validHint: 'Válida — expira el {date}.',
+    footnote: 'Cada clave es única y válida por tiempo limitado. Se guarda en este dispositivo.',
+    chipActive: 'Patrocinador',
+    chipInactive: 'Apoyar',
+    chipTooltip: 'Patrocinador — válido hasta {date}',
+    chipInactiveTooltip: 'Hazte patrocinador'
   }
 }

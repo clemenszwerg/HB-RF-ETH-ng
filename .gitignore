@@ -62,3 +62,8 @@ Thumbs.db
 *.bak
 webui/test-results/
 webui/playwright-report/
+
+# Supporter key generator — MUST stay private. If this is pushed, anyone can
+# mint their own supporter keys and the whole point of the badge is gone.
+# Only the maintainer keeps a local copy to issue keys to supporters.
+tools/generate_supporter_key.py

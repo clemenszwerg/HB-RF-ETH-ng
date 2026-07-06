@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Führe einen kurzen Selbsttest aus, um die aktuelle Konfiguration zu prüfen.',
+    selfTestTitle: 'Selbsttest',
     testButton: 'Test',
     checkFinished: 'Prüfung abgeschlossen',
     diagnosticFailed: 'Diagnoseanfrage fehlgeschlagen',
@@ -655,5 +656,28 @@ export default {
     retry: 'Wiederholen',
     close: 'Schließen',
     viewOnGithub: 'Auf GitHub anzeigen'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Supporter-Key',
+    active: 'Supporter',
+    intro: 'Unterstütze dieses Projekt mit einem kleinen Beitrag (z. B. einem Kaffee) und erhalte einen persönlichen Supporter-Key. Das Badge ist rein kosmetisch — keine Funktion wird gesperrt.',
+    thanksTitle: 'Danke für deine Unterstützung!',
+    thanksBody: 'Dein Supporter-Status ist gültig bis zum {date}.',
+    remove: 'Key entfernen',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Aktivieren',
+    activated: 'Supporter-Key aktiviert — danke für die Unterstützung!',
+    activateFailed: 'Supporter-Key konnte nicht aktiviert werden.',
+    removed: 'Supporter-Key entfernt.',
+    invalid: 'Ungültiger Key — bitte prüfe die Eingabe.',
+    expired: 'Dieser Key ist am {date} abgelaufen.',
+    validHint: 'Gültig — läuft am {date} ab.',
+    footnote: 'Jeder Key ist einzigartig und zeitlich begrenzt gültig. Er wird auf diesem Gerät gespeichert.',
+    chipActive: 'Supporter',
+    chipInactive: 'Supporten',
+    chipTooltip: 'Supporter — gültig bis {date}',
+    chipInactiveTooltip: 'Werde Supporter'
   }
 }

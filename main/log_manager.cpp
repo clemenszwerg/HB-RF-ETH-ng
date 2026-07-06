@@ -181,10 +181,26 @@ void LogManager::_begin(size_t size) {
 
     if (log_buffer) {
         free(log_buffer);
+        log_buffer = nullptr;
     }
-    log_buffer_size = size;
-    log_buffer = (char *)malloc(log_buffer_size);
     total_written = 0;
+
+    // Try the requested size first, then fall back to progressively smaller
+    // buffers. The ESP32-WROOM-32 has no PSRAM and only ~250 KB internal
+    // heap; a single TLS handshake (UpdateCheck / changelog proxy / OTA) can
+    // drop free heap by 30-50 KB, so an 8 KB contiguous allocation can fail
+    // even though a 4 KB or 2 KB one still fits. A smaller log is strictly
+    // better than no log — and the user's "not enough memory" error goes
+    // away because begin() now succeeds with whatever fits.
+    static const size_t MIN_LOG_BUFFER = 2048;
+    size_t want = size;
+    if (want < MIN_LOG_BUFFER) want = MIN_LOG_BUFFER;
+    while (want >= MIN_LOG_BUFFER) {
+        log_buffer = (char *)malloc(want);
+        if (log_buffer) break;
+        want >>= 1;
+    }
+    log_buffer_size = log_buffer ? want : 0;
 
     if (log_buffer) {
         // Zero out for cleanliness, though not strictly required for ring buffer
@@ -195,9 +211,13 @@ void LogManager::_begin(size_t size) {
     xSemaphoreGive(_mutex);
 
     if (enabled) {
-        ESP_LOGI(TAG, "Log buffering enabled (%d bytes, RingBuffer)", size);
+        if (log_buffer_size == size) {
+            ESP_LOGI(TAG, "Log buffering enabled (%d bytes)", (int)log_buffer_size);
+        } else {
+            ESP_LOGW(TAG, "Log buffering enabled with reduced buffer (%d bytes; %d requested) — free heap was low", (int)log_buffer_size, (int)size);
+        }
     } else {
-        ESP_LOGE(TAG, "Failed to allocate log buffer");
+        ESP_LOGE(TAG, "Failed to allocate log buffer (even %d bytes unavailable) — heap exhausted", (int)MIN_LOG_BUFFER);
     }
 }
 

@@ -146,6 +146,66 @@
               </div>
             </div>
           </div>
+
+          <!-- Supporter key (cosmetic badge) -->
+          <div class="settings-card supporter-card" :class="{ 'is-active': sysInfoStore.supporterActive }">
+            <div class="card-header">
+              <div class="header-content">
+                <div class="header-icon supporter-icon"><AppIcon name="support" /></div>
+                <h3>{{ t('supporter.title') }}</h3>
+              </div>
+              <span v-if="sysInfoStore.supporterActive" class="supporter-badge-active">
+                <AppIcon name="check" /> {{ t('supporter.active') }}
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="supporter-intro">{{ t('supporter.intro') }}</p>
+
+              <div v-if="sysInfoStore.supporterActive" class="supporter-active-state">
+                <div class="supporter-thanks">
+                  <span class="supporter-heart"><AppIcon name="support" /></span>
+                  <div>
+                    <strong>{{ t('supporter.thanksTitle') }}</strong>
+                    <p>{{ t('supporter.thanksBody', { date: sysInfoStore.supporterExpiresAt || '—' }) }}</p>
+                  </div>
+                </div>
+                <button type="button" class="btn-link-danger supporter-remove" @click="removeSupporterKey">
+                  {{ t('supporter.remove') }}
+                </button>
+              </div>
+
+              <div v-else class="supporter-input-row">
+                <BFormInput
+                  v-model="supporterKeyInput"
+                  class="supporter-input"
+                  :placeholder="t('supporter.placeholder')"
+                  :state="supporterFeedback === 'invalid' ? false : (supporterFeedback === 'valid' ? true : null)"
+                  spellcheck="false"
+                  autocapitalize="characters"
+                  autocomplete="off"
+                  @input="onSupporterKeyInput"
+                  @keyup.enter="activateSupporterKey"
+                />
+                <BButton
+                  variant="primary"
+                  class="supporter-activate-btn"
+                  :disabled="!canActivateSupporterKey || activatingSupporter"
+                  @click="activateSupporterKey"
+                >
+                  <span v-if="activatingSupporter" class="spinner-border spinner-border-sm me-1"></span>
+                  {{ t('supporter.activate') }}
+                </BButton>
+              </div>
+
+              <div v-if="supporterFeedbackText" class="supporter-feedback" :class="supporterFeedback">
+                {{ supporterFeedbackText }}
+              </div>
+
+              <div class="form-text supporter-footnote">
+                {{ t('supporter.footnote') }}
+              </div>
+            </div>
+          </div>
         </div>
       </Transition>
 
@@ -529,8 +589,9 @@ import {
   requiredIf,
   requiredUnless
 } from '@vuelidate/validators'
-import { useExperimentalStore, useSettingsStore, useLoginStore, useUiStore } from './stores.js'
+import { useExperimentalStore, useSettingsStore, useLoginStore, useUiStore, useSysInfoStore } from './stores.js'
 import PasswordChangeModal from './components/PasswordChangeModal.vue'
+import { validateSupporterKey, normalizeSupporterKey } from './composables/supporterKey.js'
 
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 
@@ -539,6 +600,7 @@ const settingsStore = useSettingsStore()
 const loginStore = useLoginStore()
 const uiStore = useUiStore()
 const experimentalStore = useExperimentalStore()
+const sysInfoStore = useSysInfoStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -602,6 +664,68 @@ const gpsBaudrate = ref(9600)
 const ntpServer = ref('')
 const ledBrightness = ref(100)
 const flashPause = ref(false)
+
+// ---- Supporter key (cosmetic badge) ----
+// The key is stored on the device and validated by the firmware. We do a
+// client-side pre-check for instant feedback, then POST to /settings.json
+// (the backend re-validates and only persists checksum-valid keys).
+const supporterKeyInput = ref('')
+const supporterFeedback = ref('')            // '' | 'valid' | 'invalid' | 'expired'
+const activatingSupporter = ref(false)
+
+const canActivateSupporterKey = computed(() => {
+  const r = validateSupporterKey(supporterKeyInput.value)
+  return r.valid && !r.expired
+})
+
+const supporterFeedbackText = computed(() => {
+  if (!supporterKeyInput.value) return ''
+  const r = validateSupporterKey(supporterKeyInput.value)
+  if (!r.valid) return t('supporter.invalid')
+  if (r.expired) return t('supporter.expired', { date: r.expiresAt })
+  return t('supporter.validHint', { date: r.expiresAt })
+})
+
+function onSupporterKeyInput() {
+  // Re-format as the user types: strip junk, group into XXXX-XXXX-XXXX-XXXX.
+  const normalized = normalizeSupporterKey(supporterKeyInput.value)
+  if (normalized !== supporterKeyInput.value) {
+    supporterKeyInput.value = normalized
+  }
+  const r = validateSupporterKey(supporterKeyInput.value)
+  supporterFeedback.value = !supporterKeyInput.value ? '' : (!r.valid ? 'invalid' : (r.expired ? 'expired' : 'valid'))
+}
+
+async function activateSupporterKey() {
+  const r = validateSupporterKey(supporterKeyInput.value)
+  if (!r.valid || r.expired) {
+    supporterFeedback.value = r.expired ? 'expired' : 'invalid'
+    return
+  }
+  activatingSupporter.value = true
+  try {
+    await axios.post('/settings.json', { supporterKey: supporterKeyInput.value }, { timeout: 10000 })
+    // Refresh sysInfo so the badge in the header updates immediately.
+    await sysInfoStore.update()
+    uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('supporter.activated') })
+  } catch (e) {
+    uiStore.pushToast({ type: 'error', title: t('common.error'), message: e.response?.data?.error || t('supporter.activateFailed') })
+  } finally {
+    activatingSupporter.value = false
+  }
+}
+
+async function removeSupporterKey() {
+  try {
+    await axios.post('/settings.json', { supporterKey: '' }, { timeout: 10000 })
+    await sysInfoStore.update()
+    supporterKeyInput.value = ''
+    supporterFeedback.value = ''
+    uiStore.pushToast({ type: 'info', title: t('common.success'), message: t('supporter.removed') })
+  } catch (e) {
+    uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('supporter.activateFailed') })
+  }
+}
 
 // LED Programs
 const ledPrograms = computed(() => [
@@ -841,6 +965,12 @@ const loadSettings = () => {
   if (settingsStore.flashPause !== undefined) {
     flashPause.value = settingsStore.flashPause
   }
+
+  // Pre-fill the supporter key input from the stored value (formatted), and
+  // make sure the header badge reflects the current device state.
+  supporterKeyInput.value = settingsStore.supporterKey ? normalizeSupporterKey(settingsStore.supporterKey) : ''
+  supporterFeedback.value = ''
+  sysInfoStore.update().catch(() => {})
 
   loadedSnapshot.value = serializeSettings()
   serializedCurrent.value = loadedSnapshot.value
@@ -1500,6 +1630,125 @@ hr {
   .segment-btn {
     padding: 8px 14px;
     font-size: 0.8125rem;
+  }
+}
+
+/* ---- Supporter key card ---- */
+.supporter-card {
+  border: 1px solid var(--color-border-light);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.supporter-card.is-active {
+  border-color: rgba(242, 106, 61, 0.4);
+  box-shadow: 0 0 0 1px rgba(242, 106, 61, 0.12);
+}
+
+.supporter-icon {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  color: #fff;
+}
+
+.supporter-badge-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.supporter-intro {
+  margin: 0 0 14px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.supporter-active-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.supporter-thanks {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.supporter-heart {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  flex: 0 0 auto;
+}
+
+.supporter-thanks strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.supporter-thanks p {
+  margin: 2px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.supporter-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.supporter-input {
+  flex: 1 1 auto;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.supporter-activate-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.supporter-feedback {
+  margin-top: 8px;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.supporter-feedback.valid { color: var(--color-success); }
+.supporter-feedback.invalid { color: var(--color-danger); }
+.supporter-feedback.expired { color: var(--color-warning); }
+
+.supporter-remove {
+  font-size: 0.82rem;
+}
+
+.supporter-footnote {
+  margin-top: 12px;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 576px) {
+  .supporter-input-row {
+    flex-direction: column;
+  }
+
+  .supporter-activate-btn {
+    width: 100%;
   }
 }
 </style>

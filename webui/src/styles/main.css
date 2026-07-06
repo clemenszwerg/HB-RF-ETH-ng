@@ -659,6 +659,13 @@ button {
   box-shadow: var(--shadow-xl);
 }
 
+/* Hide the header close button (×) on every modal. Closing happens via the
+   footer buttons (OK / Cancel / Close) — the X next to the title was just a
+   redundant third way out and made dialogs look cluttered. */
+.modal-header .btn-close {
+  display: none !important;
+}
+
 .skeleton {
   position: relative;
   overflow: hidden;

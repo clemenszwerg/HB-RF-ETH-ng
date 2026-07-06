@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Voer een snelle zelftest uit om de huidige configuratie te controleren.',
+    selfTestTitle: 'Zelftest',
     testButton: 'Test',
     checkFinished: 'Controle voltooid',
     diagnosticFailed: 'Diagnoseverzoek mislukt',
@@ -655,5 +656,28 @@ export default {
     retry: 'Opnieuw proberen',
     close: 'Sluiten',
     viewOnGithub: 'Bekijken op GitHub'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Supporter-sleutel',
+    active: 'Supporter',
+    intro: 'Steun dit project met een kleine bijdrage (bijv. een koffie) en ontvang een persoonlijke supporter-sleutel. De badge is puur cosmetisch — geen functie wordt geblokkeerd.',
+    thanksTitle: 'Bedankt voor je steun!',
+    thanksBody: 'Je supporter-status is geldig tot {date}.',
+    remove: 'Sleutel verwijderen',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Activeren',
+    activated: 'Supporter-sleutel geactiveerd — bedankt voor je steun!',
+    activateFailed: 'Kon de supporter-sleutel niet activeren.',
+    removed: 'Supporter-sleutel verwijderd.',
+    invalid: 'Ongeldige sleutel — controleer je invoer.',
+    expired: 'Deze sleutel is verlopen op {date}.',
+    validHint: 'Geldig — verloopt op {date}.',
+    footnote: 'Elke sleutel is uniek en beperkt geldig. Hij wordt op dit apparaat opgeslagen.',
+    chipActive: 'Supporter',
+    chipInactive: 'Steun',
+    chipTooltip: 'Supporter — geldig tot {date}',
+    chipInactiveTooltip: 'Word supporter'
   }
 }

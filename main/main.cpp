@@ -308,6 +308,25 @@ void app_main()
     static WebUI webUI(&settings, &statusLED, &sysInfo, &updateCheck, &ethernet, &rawUartUdpLister, &radioModuleConnector, &radioModuleDetector);
     webUI.start();
 
+    // If system logging was enabled in settings but the ring buffer could not
+    // be allocated during early boot (heap was too tight — typically because
+    // the first background UpdateCheck / TLS fetch was running), retry once
+    // after all subsystems have finished initialising. By then free heap has
+    // usually recovered enough for at least the reduced buffer to fit, so the
+    // "not enough memory" state after a restart resolves itself.
+    if (settings.getSystemLogEnabled() && !LogManager::instance().isEnabled())
+    {
+        xTaskCreate([](void *) {
+            vTaskDelay(pdMS_TO_TICKS(10000));
+            LogManager::begin(8192);
+            if (LogManager::instance().isEnabled())
+                ESP_LOGI(TAG, "System log capture restored in deferred retry");
+            else
+                ESP_LOGE(TAG, "Deferred log-buffer retry also failed — heap still too low");
+            vTaskDelete(NULL);
+        }, "log_retry", 2048, NULL, 2, NULL);
+    }
+
     powerLED.setState(LED_STATE_ON);
     statusLED.setState(LED_STATE_OFF);
 

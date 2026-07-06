@@ -10,12 +10,6 @@
     body-class="changelog-body"
     footer-class="changelog-footer"
   >
-    <template #header-close>
-      <button type="button" class="close-icon" :aria-label="t('common.close')">
-        ×
-      </button>
-    </template>
-
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">{{ t('changelog.loading') }}</span>

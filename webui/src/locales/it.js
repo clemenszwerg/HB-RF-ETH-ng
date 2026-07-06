@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Esegui un rapido autotest per verificare la configurazione attuale.',
+    selfTestTitle: 'Autotest',
     testButton: 'Test',
     checkFinished: 'Controllo completato',
     diagnosticFailed: 'Richiesta di diagnostica non riuscita',
@@ -655,5 +656,28 @@ export default {
     retry: 'Riprova',
     close: 'Chiudi',
     viewOnGithub: 'Vedi su GitHub'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Chiave sostenitore',
+    active: 'Sostenitore',
+    intro: 'Sostieni questo progetto con un piccolo contributo (es. un caffè) e ricevi una chiave personale. Il badge è puramente estetico — nessuna funzione viene bloccata.',
+    thanksTitle: 'Grazie per il tuo supporto!',
+    thanksBody: 'Il tuo stato di sostenitore è valido fino al {date}.',
+    remove: 'Rimuovi chiave',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Attiva',
+    activated: 'Chiave sostenitore attivata — grazie per il supporto!',
+    activateFailed: 'Impossibile attivare la chiave sostenitore.',
+    removed: 'Chiave sostenitore rimossa.',
+    invalid: 'Chiave non valida — controlla l’inserimento.',
+    expired: 'Questa chiave è scaduta il {date}.',
+    validHint: 'Valida — scade il {date}.',
+    footnote: 'Ogni chiave è unica e valida per un periodo limitato. Viene salvata su questo dispositivo.',
+    chipActive: 'Sostenitore',
+    chipInactive: 'Sostieni',
+    chipTooltip: 'Sostenitore — valido fino al {date}',
+    chipInactiveTooltip: 'Diventa sostenitore'
   }
 }

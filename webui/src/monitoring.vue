@@ -15,21 +15,34 @@
       </div>
     </section>
 
-    <section class="diagnostics-grid">
-      <article v-for="item in diagnosticCards" :key="item.key" class="diagnostic-card card-glass">
-        <div class="diagnostic-copy">
-          <span class="icon-badge" :class="item.tone"><AppIcon :name="item.icon" /></span>
+    <section class="diagnostics-panel settings-card card-glass">
+      <div class="card-header">
+        <div class="header-content">
+          <div class="header-icon bg-primary-light text-primary"><AppIcon name="activity" /></div>
           <div>
-            <h3>{{ item.title }}</h3>
-            <p>{{ diagnosticState(item.key).message }}</p>
+            <h3>{{ t('monitoring.selfTestTitle') }}</h3>
+            <p class="diagnostics-subtitle">{{ t('monitoring.selfTestHint') }}</p>
           </div>
         </div>
-        <button class="tool-btn" type="button" :disabled="diagnosticBusy[item.key]" @click="runDiagnostic(item.key)">
-          <span v-if="diagnosticBusy[item.key]" class="spinner-border spinner-border-sm me-2"></span>
-          <AppIcon v-else name="refresh" />
-          {{ t('monitoring.testButton') }}
-        </button>
-      </article>
+      </div>
+      <div class="card-body">
+        <ul class="diag-list">
+          <li v-for="item in diagnosticCards" :key="item.key" class="diag-row" :class="diagStatusClass(item.key)">
+            <div class="diag-row-head">
+              <span class="diag-name">
+                <span class="diag-dot" :class="diagStatusClass(item.key)"></span>
+                {{ item.title }}
+              </span>
+              <button class="diag-test-btn" type="button" :disabled="diagnosticBusy[item.key]" @click="runDiagnostic(item.key)">
+                <span v-if="diagnosticBusy[item.key]" class="spinner-border spinner-border-sm"></span>
+                <AppIcon v-else name="refresh" />
+                {{ t('monitoring.testButton') }}
+              </button>
+            </div>
+            <p v-if="diagMessage(item.key)" class="diag-message">{{ diagMessage(item.key) }}</p>
+          </li>
+        </ul>
+      </div>
     </section>
 
     <div class="settings-card card-glass">
@@ -635,10 +648,17 @@ const diagnosticCards = computed(() => [
   { key: 'notify', title: t('monitoring.chipLabelNotify'), icon: 'activity', tone: 'info' }
 ])
 
-const diagnosticState = (target) => {
-  const result = monitoringStore.diagnostics[target]
-  if (!result) return { ok: null, message: t('monitoring.selfTestHint') }
-  return { ok: !!result.ok, message: formatDiagnosticMessage(result) }
+const diagStatusClass = (target) => {
+  if (diagnosticBusy.value[target]) return 'running'
+  const r = monitoringStore.diagnostics[target]
+  if (!r) return 'pending'
+  return r.ok ? 'ok' : 'failed'
+}
+
+const diagMessage = (target) => {
+  const r = monitoringStore.diagnostics[target]
+  if (!r) return ''
+  return formatDiagnosticMessage(r)
 }
 
 // Maps a backend diagnostic response to a translated message.
@@ -824,47 +844,131 @@ const runDiagnostic = async (target) => {
   margin: 0 auto;
 }
 
-.diagnostics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--spacing-md);
+.diagnostics-panel {
   margin-bottom: var(--spacing-lg);
 }
 
-.diagnostic-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 18px;
-}
-
-.diagnostic-copy {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.diagnostic-copy h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.diagnostic-copy p {
+.diagnostics-subtitle {
   margin: 4px 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
 }
 
-.tool-btn {
+.diag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.diag-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.diag-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.diag-row:first-child {
+  padding-top: 0;
+}
+
+.diag-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.diag-name {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-width: 0;
+}
+
+.diag-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  background: var(--color-border-strong, #cbd2dd);
+  box-shadow: 0 0 0 3px transparent;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.diag-dot.ok {
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px var(--color-success-soft);
+}
+
+.diag-dot.failed {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-soft);
+}
+
+.diag-dot.running {
+  background: var(--color-warning);
+  box-shadow: 0 0 0 3px var(--color-warning-soft);
+  animation: diag-pulse 1s ease-in-out infinite;
+}
+
+.diag-dot.pending {
+  background: var(--color-border-strong, #cbd2dd);
+}
+
+@keyframes diag-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.diag-test-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--color-border-light);
   background: rgba(255, 255, 255, 0.68);
-  border-radius: var(--radius-full);
-  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--color-text);
+  white-space: nowrap;
+  flex: 0 0 auto;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.diag-test-btn:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: rgba(242, 106, 61, 0.32);
+  color: var(--color-primary-strong);
+  transform: translateY(-1px);
+}
+
+.diag-test-btn .app-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.diag-message {
+  margin: 6px 0 0 20px;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.diag-row.failed .diag-message {
+  color: var(--color-danger);
+}
+
+.diag-row.ok .diag-message {
+  color: var(--color-success);
 }
 
 .settings-card {
@@ -1089,21 +1193,11 @@ const runDiagnostic = async (target) => {
     margin-bottom: var(--spacing-md);
   }
 
-  .diagnostics-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .diagnostic-card,
   .card-header,
   .tls-section > .d-flex,
   .command-section > .d-flex {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .tool-btn {
-    justify-content: center;
-    width: 100%;
   }
 
   .card-header .form-check,
@@ -1159,11 +1253,16 @@ const runDiagnostic = async (target) => {
     padding-right: 0;
   }
 
-  .diagnostic-copy {
-    align-items: flex-start;
+  .diag-row-head {
+    flex-wrap: wrap;
   }
 
-  .diagnostic-copy p,
+  .diag-test-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .diag-message,
   .form-text,
   .alert-warning-soft {
     overflow-wrap: anywhere;

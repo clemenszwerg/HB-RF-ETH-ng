@@ -68,10 +68,6 @@
             </button>
           </div>
         </Transition>
-        <button class="utility-row" type="button" @click="themeStore.toggleTheme">
-          <AppIcon :name="themeStore.theme === 'light' ? 'moon' : 'sun'" />
-          <span>{{ t('nav.toggleTheme') }}</span>
-        </button>
         <router-link v-if="!loginStore.isLoggedIn" to="/login" class="utility-row">{{ t('nav.login') }}</router-link>
         <template v-else>
           <button class="utility-row restart-row" type="button" :disabled="isRestarting" @click="showRestartModal = true">
@@ -101,6 +97,24 @@
         </span>
         <span class="top-separator"></span>
         <span>{{ t('sysinfo.uptime') }}: <strong>{{ uptimeShort }}</strong></span>
+        <router-link
+          v-if="sysInfoStore.supporterActive"
+          to="/settings"
+          class="supporter-chip active"
+          :title="t('supporter.chipTooltip', { date: sysInfoStore.supporterExpiresAt || '—' })"
+        >
+          <AppIcon name="support" />
+          <span>{{ t('supporter.chipActive') }}</span>
+        </router-link>
+        <router-link
+          v-else
+          to="/settings"
+          class="supporter-chip inactive"
+          :title="t('supporter.chipInactiveTooltip')"
+        >
+          <AppIcon name="support" />
+          <span>{{ t('supporter.chipInactive') }}</span>
+        </router-link>
         <span class="clock-chip"><AppIcon name="clock" /> {{ currentTime }}</span>
       </div>
 
@@ -699,6 +713,48 @@ onUnmounted(() => {
 
 .clock-chip .app-icon {
   color: var(--color-success);
+}
+
+/* Supporter badge chip in the top status bar. Two states: active (warm,
+ * filled) when a valid key is stored, and a subtle outline CTA otherwise. */
+.supporter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.supporter-chip .app-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.supporter-chip.active {
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
+  border-color: rgba(242, 106, 61, 0.32);
+}
+
+.supporter-chip.active:hover {
+  transform: translateY(-1px);
+  border-color: rgba(242, 106, 61, 0.55);
+}
+
+.supporter-chip.inactive {
+  color: var(--color-text-secondary);
+  background: transparent;
+}
+
+.supporter-chip.inactive:hover {
+  color: var(--color-primary-strong);
+  border-color: rgba(242, 106, 61, 0.32);
+  background: var(--color-primary-soft);
 }
 
 .header-actions {

@@ -243,6 +243,14 @@ void Settings::load()
   GET_BOOL(handle, "sysLogEnabled", _systemLogEnabled, false);
   GET_BOOL(handle, "flashPause", _flashPause, false);
 
+  // Supporter key (optional, cosmetic). Stored verbatim — validation happens
+  // on read so an expired or malformed key is harmless.
+  {
+    size_t skLen = sizeof(_supporterKey);
+    if (nvs_get_str(handle, "supporterKey", _supporterKey, &skLen) != ESP_OK)
+      _supporterKey[0] = 0;
+  }
+
   nvs_close(handle);
 
   if (_mutex) xSemaphoreGive(_mutex);
@@ -305,6 +313,8 @@ void Settings::save()
   SET_BOOL(handle, "betaChannel", _betaChannel);
   SET_BOOL(handle, "sysLogEnabled", _systemLogEnabled);
   SET_BOOL(handle, "flashPause", _flashPause);
+
+  SET_STR(handle, "supporterKey", _supporterKey);
 
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_commit(handle));
   nvs_close(handle);
@@ -843,6 +853,30 @@ void Settings::setFlashPause(bool enabled)
 {
   if (_mutex) xSemaphoreTake(_mutex, portMAX_DELAY);
   _flashPause = enabled;
+  if (_mutex) xSemaphoreGive(_mutex);
+}
+
+char *Settings::getSupporterKey()
+{
+  if (_mutex) xSemaphoreTake(_mutex, portMAX_DELAY);
+  char *result = _supporterKey;
+  if (_mutex) xSemaphoreGive(_mutex);
+  return result;
+}
+
+void Settings::setSupporterKey(const char *key)
+{
+  if (_mutex) xSemaphoreTake(_mutex, portMAX_DELAY);
+  if (!key || key[0] == '\0')
+  {
+    _supporterKey[0] = 0;
+  }
+  else
+  {
+    // Copy raw input; validation/normalisation is the caller's responsibility
+    // (webui.cpp validates via supporter_key_validate before storing).
+    snprintf(_supporterKey, sizeof(_supporterKey), "%s", key);
+  }
   if (_mutex) xSemaphoreGive(_mutex);
 }
 

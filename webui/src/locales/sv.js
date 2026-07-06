@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Kör ett snabbt självtest för att verifiera den aktuella konfigurationen.',
+    selfTestTitle: 'Självtest',
     testButton: 'Test',
     checkFinished: 'Kontroll slutförd',
     diagnosticFailed: 'Diagnostikbegäran misslyckades',
@@ -655,5 +656,28 @@ export default {
     retry: 'Försök igen',
     close: 'Stäng',
     viewOnGithub: 'Visa på GitHub'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Supporternyckel',
+    active: 'Supporter',
+    intro: 'Stöd detta projekt med ett litet bidrag (t.ex. en kaffe) och få en personlig supporternyckel. Märket är bara kosmetiskt — inga funktioner låses.',
+    thanksTitle: 'Tack för ditt stöd!',
+    thanksBody: 'Din supporter-status är giltig till {date}.',
+    remove: 'Ta bort nyckel',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Aktivera',
+    activated: 'Supporternyckel aktiverad — tack för stödet!',
+    activateFailed: 'Kunde inte aktivera supporternyckeln.',
+    removed: 'Supporternyckel borttagen.',
+    invalid: 'Ogiltig nyckel — kontrollera inmatningen.',
+    expired: 'Denna nyckel gick ut {date}.',
+    validHint: 'Giltig — löper ut {date}.',
+    footnote: 'Varje nyckel är unik och giltig i begränsad tid. Den sparas på denna enhet.',
+    chipActive: 'Supporter',
+    chipInactive: 'Stöd',
+    chipTooltip: 'Supporter — giltig till {date}',
+    chipInactiveTooltip: 'Bli supporter'
   }
 }

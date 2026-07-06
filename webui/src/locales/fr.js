@@ -354,6 +354,7 @@ export default {
   // Monitoring
   monitoring: {
     selfTestHint: 'Lancez un autotest rapide pour vérifier la configuration actuelle.',
+    selfTestTitle: 'Auto-test',
     testButton: 'Test',
     checkFinished: 'Vérification terminée',
     diagnosticFailed: 'Échec de la demande de diagnostic',
@@ -655,5 +656,28 @@ export default {
     retry: 'Réessayer',
     close: 'Fermer',
     viewOnGithub: 'Voir sur GitHub'
+  },
+
+  // Supporter
+  supporter: {
+    title: 'Clé de soutien',
+    active: 'Soutien',
+    intro: 'Soutenez ce projet avec une petite contribution (par ex. un café) et recevez une clé de soutien personnelle. Le badge est purement cosmétique — aucune fonctionnalité n’est verrouillée.',
+    thanksTitle: 'Merci pour votre soutien !',
+    thanksBody: 'Votre statut de soutien est valide jusqu’au {date}.',
+    remove: 'Retirer la clé',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    activate: 'Activer',
+    activated: 'Clé de soutien activée — merci pour votre soutien !',
+    activateFailed: 'Impossible d’activer la clé de soutien.',
+    removed: 'Clé de soutien supprimée.',
+    invalid: 'Clé invalide — vérifiez votre saisie.',
+    expired: 'Cette clé a expiré le {date}.',
+    validHint: 'Valide — expire le {date}.',
+    footnote: 'Chaque clé est unique et valable pour une durée limitée. Elle est stockée sur cet appareil.',
+    chipActive: 'Soutien',
+    chipInactive: 'Soutenir',
+    chipTooltip: 'Soutien — valide jusqu’au {date}',
+    chipInactiveTooltip: 'Devenir soutien'
   }
 }

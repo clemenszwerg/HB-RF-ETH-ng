@@ -1,5 +1,5 @@
 <template>
-  <div class="firmware-page">
+  <div class="firmware-page page-shell">
     <!-- Countdown Overlay -->
     <Transition name="fade">
       <div v-if="showCountdown" class="countdown-overlay">
@@ -302,12 +302,16 @@
                 </button>
               </div>
             </div>
-            <details v-if="selectedArchiveRelease.notes" class="archive-notes">
-              <summary>
+            <div class="archive-notes-row">
+              <button
+                type="button"
+                class="archive-changelog-btn"
+                :disabled="!selectedArchiveRelease.notesUrl"
+                @click="showChangelogModal = true"
+              >
                 <AppIcon name="logs" />
                 {{ t('firmware.archiveReleaseNotes') }}
-              </summary>
-              <pre>{{ selectedArchiveRelease.notes }}</pre>
+              </button>
               <a
                 v-if="selectedArchiveRelease.notesUrl"
                 class="archive-notes-link"
@@ -318,7 +322,7 @@
                 <AppIcon name="externalLink" />
                 {{ t('firmware.viewOnGithub') }}
               </a>
-            </details>
+            </div>
           </div>
         </div>
       </div>
@@ -833,8 +837,6 @@ onUnmounted(() => {
 <style scoped>
 .firmware-page {
   padding-bottom: 60px;
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 /* Page Header */
@@ -1400,13 +1402,18 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-.archive-notes {
+.archive-notes-row {
   margin-top: var(--spacing-sm);
   border-top: 1px solid var(--color-border-light);
   padding-top: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.archive-notes summary {
+.archive-changelog-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1414,28 +1421,26 @@ onUnmounted(() => {
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
   font-weight: 800;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color 0.2s;
 }
 
-.archive-notes pre {
-  margin: var(--spacing-sm) 0 0;
-  padding: var(--spacing-sm);
-  max-height: 220px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-light);
-  font-family: inherit;
-  font-size: 0.8125rem;
+.archive-changelog-btn:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.archive-changelog-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .archive-notes-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: var(--spacing-sm);
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
   font-weight: 600;

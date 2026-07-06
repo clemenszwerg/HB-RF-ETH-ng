@@ -51,6 +51,7 @@
 #include "semver.h"
 #include "validation.h"
 #include "log_stream.h"
+#include "supporter_key.h"
 
 static const char *TAG = "WebUI";
 
@@ -374,6 +375,18 @@ esp_err_t get_sysinfo_json_handler_func(httpd_req_t *req)
     cJSON_AddStringToObject(sysInfo, "radioModuleHmIPRadioMAC", hmIPMAC);
     cJSON_AddStringToObject(sysInfo, "radioModuleSGTIN", _radioModuleDetector->getSGTIN());
 
+    // Supporter badge status (computed from the stored key on every poll, so
+    // expiry is re-evaluated as the clock advances without a restart).
+    {
+        SupporterKeyStatus sk;
+        bool skValid = supporter_key_validate(_settings->getSupporterKey(), sk);
+        cJSON *sup = cJSON_AddObjectToObject(sysInfo, "supporter");
+        cJSON_AddBoolToObject(sup, "active", skValid && sk.active);
+        cJSON_AddBoolToObject(sup, "valid", skValid);
+        cJSON_AddBoolToObject(sup, "expired", skValid && sk.expired);
+        cJSON_AddStringToObject(sup, "expiresAt", skValid ? sk.expiresAt : "");
+    }
+
     const char *json = cJSON_PrintUnformatted(root);
     if (json) {
         httpd_resp_sendstr(req, json);
@@ -442,6 +455,7 @@ void add_settings(cJSON *root)
     cJSON_AddBoolToObject(settings, "betaChannel", _settings->getBetaChannel());
     cJSON_AddBoolToObject(settings, "systemLogEnabled", _settings->getSystemLogEnabled());
     cJSON_AddBoolToObject(settings, "flashPause", _settings->getFlashPause());
+    cJSON_AddStringToObject(settings, "supporterKey", _settings->getSupporterKey());
 }
 
 esp_err_t get_settings_json_handler_func(httpd_req_t *req)
@@ -700,6 +714,23 @@ esp_err_t post_settings_json_handler_func(httpd_req_t *req)
         set_flash_pause_enabled(cJSON_IsTrue(flashPauseItem));
     }
 
+    // Supporter key (cosmetic). Only a checksum-valid key is stored; an
+    // invalid one is silently ignored so the rest of the settings payload
+    // still saves successfully. The frontend validates for instant feedback,
+    // this is the defensive backend check.
+    cJSON *supporterKeyItem = cJSON_GetObjectItem(root, "supporterKey");
+    if (supporterKeyItem && cJSON_IsString(supporterKeyItem)) {
+        const char *sk = cJSON_GetStringValue(supporterKeyItem);
+        if (sk == NULL || sk[0] == '\0') {
+            _settings->setSupporterKey("");
+        } else {
+            SupporterKeyStatus skStatus;
+            if (supporter_key_validate(sk, skStatus)) {
+                _settings->setSupporterKey(sk);
+            }
+        }
+    }
+
     _settings->save();
 
     cJSON_Delete(root);
@@ -938,6 +969,20 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
     if (flashPauseItem && cJSON_IsBool(flashPauseItem)) {
         _settings->setFlashPause(cJSON_IsTrue(flashPauseItem));
         set_flash_pause_enabled(cJSON_IsTrue(flashPauseItem));
+    }
+
+    // Restore supporter key if present in the backup payload.
+    cJSON *supporterKeyItem = cJSON_GetObjectItem(root, "supporterKey");
+    if (supporterKeyItem && cJSON_IsString(supporterKeyItem)) {
+        const char *sk = cJSON_GetStringValue(supporterKeyItem);
+        if (sk == NULL || sk[0] == '\0') {
+            _settings->setSupporterKey("");
+        } else {
+            SupporterKeyStatus skStatus;
+            if (supporter_key_validate(sk, skStatus)) {
+                _settings->setSupporterKey(sk);
+            }
+        }
     }
 
     _settings->save();
