@@ -367,6 +367,24 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 28px;
   pointer-events: auto;
+  /* Allow the sidebar to scroll vertically when the viewport is too short to
+     show every nav item plus the pinned footer (restart / logout). Without
+     this, items silently overflow below the fold and become unreachable —
+     which was the "Vollbildmodus" bug. min-height:0 lets the flex column
+     shrink so overflow actually engages. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+
+.desktop-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.desktop-sidebar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
 }
 
 .header-nav {

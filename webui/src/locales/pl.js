@@ -359,6 +359,9 @@ export default {
     diagnosticFailed: 'Żądanie diagnostyczne nie powiodło się',
     chipLabelCheckmk: 'CheckMK',
     chipLabelMqtt: 'MQTT',
+    chipLabelPrometheus: 'Prometheus',
+    chipLabelSyslog: 'Syslog',
+    chipLabelNotify: 'Powiadomienia',
     title: 'Monitoring',
     description: 'Skonfiguruj monitoring CheckMK i MQTT dla bramki HB-RF-ETH.',
     save: 'Zapisz',
@@ -431,6 +434,52 @@ export default {
     },
     enable: 'Włącz',
     allowedHosts: 'Dozwolone Hosty',
+    prometheus: {
+      title: 'Eksporter Prometheus',
+      port: 'Port',
+      portHelp: 'Domyślnie: 9100',
+      allowedHosts: 'Dozwolone IP klienta',
+      allowedHostsHelp: 'Adresy IP oddzielone przecinkami lub "*" dla wszystkich'
+    },
+    syslog: {
+      title: 'Przekazywanie Syslog',
+      server: 'Serwer',
+      serverHelp: 'Nazwa hosta lub IP serwera Syslog',
+      port: 'Port',
+      portHelp: 'Domyślnie: 514',
+      transport: 'Transport',
+      minSeverity: 'Min. ważność',
+      minSeverityHelp: 'Przekazuj tylko komunikaty od tego poziomu ważności',
+      hostname: 'Nadpisanie nazwy hosta',
+      hostnameHelp: 'Puste = użyj nazwy hosta urządzenia'
+    },
+    notify: {
+      title: 'Powiadomienia o zdarzeniach',
+      channels: 'Aktywne kanały',
+      channelWebhook: 'Webhook',
+      channelTelegram: 'Telegram',
+      channelEmail: 'E-mail',
+      cooldown: 'Czas powstrzymania (sekundy)',
+      cooldownHelp: 'Dla każdego typu zdarzenia powiadomienie wysyłane jest raz w tym oknie',
+      webhookSection: 'Webhook',
+      webhookUrl: 'URL',
+      webhookSecret: 'Secret',
+      telegramSection: 'Telegram',
+      telegramToken: 'Token bota',
+      telegramChatId: 'ID czatu',
+      smtpSection: 'E-mail (SMTP)',
+      smtpServer: 'Serwer',
+      smtpPort: 'Port',
+      smtpTls: 'Szyfrowanie',
+      smtpTlsNone: 'Brak',
+      smtpTlsStarttls: 'STARTTLS',
+      smtpTlsImplicit: 'TLS (implicite)',
+      smtpUser: 'Użytkownik',
+      smtpPassword: 'Hasło',
+      smtpFrom: 'Nadawca',
+      smtpTo: 'Odbiorca',
+      secretPresent: '✓ Zapisano – wpisz nowe, aby zastąpić'
+    },
     diag: {
       unsupported: 'Nieznany cel diagnostyki',
       checkmk: {
@@ -443,6 +492,20 @@ export default {
         tcp_ok: 'Połączenie TCP z {host}:{port} powiodło się',
         tcp_failed: 'Połączenie TCP z {host}:{port} nie powiodło się',
         tls_note: ' (TLS włączony, walidacja certyfikatów nie jest testowana)'
+      },
+      prometheus: {
+        disabled: 'Prometheus jest wyłączony',
+        listening: 'Eksporter Prometheus nasłuchuje na porcie TCP {port}',
+        not_ready: 'Prometheus jest włączony, ale nasłuchiwacz nie jest gotowy'
+      },
+      syslog: {
+        disabled: 'Przekazywanie Syslog jest wyłączone',
+        tcp_ok: 'Połączenie TCP z {host}:{port} powiodło się',
+        tcp_failed: 'Połączenie TCP z {host}:{port} nie powiodło się'
+      },
+      notify: {
+        disabled: 'Powiadomienia są wyłączone',
+        queued: 'Testowe powiadomienie dla kanałów 0x{mask} dodane do kolejki'
       }
     }
   },

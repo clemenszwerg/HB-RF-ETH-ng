@@ -359,6 +359,9 @@ export default {
     diagnosticFailed: 'Diagnoseforespørselen mislyktes',
     chipLabelCheckmk: 'CheckMK',
     chipLabelMqtt: 'MQTT',
+    chipLabelPrometheus: 'Prometheus',
+    chipLabelSyslog: 'Syslog',
+    chipLabelNotify: 'Varsler',
     title: 'Overvåking',
     description: 'Konfigurer CheckMK og MQTT-overvåking for HB-RF-ETH-gatewayen.',
     save: 'Lagre',
@@ -431,6 +434,52 @@ export default {
     },
     enable: 'Aktiver',
     allowedHosts: 'Tillatte verter',
+    prometheus: {
+      title: 'Prometheus Eksporter',
+      port: 'Port',
+      portHelp: 'Standard: 9100',
+      allowedHosts: 'Tillatte klient-IP-er',
+      allowedHostsHelp: 'Kommaseparerte IP-adresser eller "*" for alle'
+    },
+    syslog: {
+      title: 'Syslog-videresending',
+      server: 'Server',
+      serverHelp: 'Vertsnavn eller IP for Syslog-serveren',
+      port: 'Port',
+      portHelp: 'Standard: 514',
+      transport: 'Transport',
+      minSeverity: 'Min. alvorlighetsgrad',
+      minSeverityHelp: 'Videresend kun meldinger fra denne alvorlighetsgraden og opp',
+      hostname: 'Vertsnavn-overskriving',
+      hostnameHelp: 'Tom = bruk enhetens vertsnavn'
+    },
+    notify: {
+      title: 'Hendelsesvarsler',
+      channels: 'Aktive kanaler',
+      channelWebhook: 'Webhook',
+      channelTelegram: 'Telegram',
+      channelEmail: 'E-post',
+      cooldown: 'Nedkjøling (sekunder)',
+      cooldownHelp: 'Per hendelsestype varsles det kun én gang innenfor dette vinduet',
+      webhookSection: 'Webhook',
+      webhookUrl: 'URL',
+      webhookSecret: 'Secret',
+      telegramSection: 'Telegram',
+      telegramToken: 'Bot-token',
+      telegramChatId: 'Chat-ID',
+      smtpSection: 'E-post (SMTP)',
+      smtpServer: 'Server',
+      smtpPort: 'Port',
+      smtpTls: 'Kryptering',
+      smtpTlsNone: 'Ingen',
+      smtpTlsStarttls: 'STARTTLS',
+      smtpTlsImplicit: 'TLS (implisitt)',
+      smtpUser: 'Bruker',
+      smtpPassword: 'Passord',
+      smtpFrom: 'Avsender',
+      smtpTo: 'Mottaker',
+      secretPresent: '✓ Lagret – skriv inn ny verdi for å erstatte'
+    },
     diag: {
       unsupported: 'Ukjent diagnosemål',
       checkmk: {
@@ -443,6 +492,20 @@ export default {
         tcp_ok: 'TCP-tilkobling til {host}:{port} lyktes',
         tcp_failed: 'TCP-tilkobling til {host}:{port} mislyktes',
         tls_note: ' (TLS aktivert, sertifikatvalidering ikke testet)'
+      },
+      prometheus: {
+        disabled: 'Prometheus er deaktivert',
+        listening: 'Prometheus-eksporter lytter på TCP-port {port}',
+        not_ready: 'Prometheus er aktivert, men lytteren er ikke klar'
+      },
+      syslog: {
+        disabled: 'Syslog-videresending er deaktivert',
+        tcp_ok: 'TCP-tilkobling til {host}:{port} lyktes',
+        tcp_failed: 'TCP-tilkobling til {host}:{port} mislyktes'
+      },
+      notify: {
+        disabled: 'Varsler er deaktivert',
+        queued: 'Test-varsling for kanaler 0x{mask} satt i kø'
       }
     }
   },

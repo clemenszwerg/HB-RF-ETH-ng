@@ -359,6 +359,9 @@ export default {
     diagnosticFailed: 'Diagnoseverzoek mislukt',
     chipLabelCheckmk: 'CheckMK',
     chipLabelMqtt: 'MQTT',
+    chipLabelPrometheus: 'Prometheus',
+    chipLabelSyslog: 'Syslog',
+    chipLabelNotify: 'Notificaties',
     title: 'Monitoring',
     description: 'Configureer CheckMK en MQTT monitoring voor de HB-RF-ETH gateway.',
     save: 'Opslaan',
@@ -431,6 +434,52 @@ export default {
     },
     enable: 'Inschakelen',
     allowedHosts: 'Toegestane Hosts',
+    prometheus: {
+      title: 'Prometheus Exporter',
+      port: 'Poort',
+      portHelp: 'Standaard: 9100',
+      allowedHosts: 'Toegestane Client IP\'s',
+      allowedHostsHelp: 'Komma-gescheiden IP-adressen of "*" voor alles'
+    },
+    syslog: {
+      title: 'Syslog Doorsturen',
+      server: 'Server',
+      serverHelp: 'Hostnaam of IP van de Syslog-server',
+      port: 'Poort',
+      portHelp: 'Standaard: 514',
+      transport: 'Transport',
+      minSeverity: 'Min. ernst',
+      minSeverityHelp: 'Alleen berichten vanaf dit ernstniveau doorsturen',
+      hostname: 'Hostnaam overschrijven',
+      hostnameHelp: 'Leeg = hostnaam van apparaat gebruiken'
+    },
+    notify: {
+      title: 'Gebeurtenisnotificaties',
+      channels: 'Actieve kanalen',
+      channelWebhook: 'Webhook',
+      channelTelegram: 'Telegram',
+      channelEmail: 'E-mail',
+      cooldown: 'Cooldown (seconden)',
+      cooldownHelp: 'Per gebeurtenistype wordt binnen dit venster slechts één keer gemeld',
+      webhookSection: 'Webhook',
+      webhookUrl: 'URL',
+      webhookSecret: 'Secret',
+      telegramSection: 'Telegram',
+      telegramToken: 'Bot-token',
+      telegramChatId: 'Chat-ID',
+      smtpSection: 'E-mail (SMTP)',
+      smtpServer: 'Server',
+      smtpPort: 'Poort',
+      smtpTls: 'Versleuteling',
+      smtpTlsNone: 'Geen',
+      smtpTlsStarttls: 'STARTTLS',
+      smtpTlsImplicit: 'TLS (impliciet)',
+      smtpUser: 'Gebruiker',
+      smtpPassword: 'Wachtwoord',
+      smtpFrom: 'Afzender',
+      smtpTo: 'Ontvanger',
+      secretPresent: '✓ Opgeslagen – voer nieuwe in om te vervangen'
+    },
     diag: {
       unsupported: 'Onbekend diagnose-doel',
       checkmk: {
@@ -443,6 +492,20 @@ export default {
         tcp_ok: 'TCP-verbinding naar {host}:{port} geslaagd',
         tcp_failed: 'TCP-verbinding naar {host}:{port} mislukt',
         tls_note: ' (TLS ingeschakeld, certificaatverificatie niet getest)'
+      },
+      prometheus: {
+        disabled: 'Prometheus is uitgeschakeld',
+        listening: 'Prometheus-exporter luistert op TCP-poort {port}',
+        not_ready: 'Prometheus is ingeschakeld, maar listener is niet klaar'
+      },
+      syslog: {
+        disabled: 'Syslog-doorsturen is uitgeschakeld',
+        tcp_ok: 'TCP-verbinding naar {host}:{port} geslaagd',
+        tcp_failed: 'TCP-verbinding naar {host}:{port} mislukt'
+      },
+      notify: {
+        disabled: 'Notificaties zijn uitgeschakeld',
+        queued: 'Testnotificatie voor kanalen 0x{mask} in de wachtrij geplaatst'
       }
     }
   },

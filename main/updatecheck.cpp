@@ -698,6 +698,7 @@ void UpdateCheck::performOnlineUpdate()
     }
 
     auto releaseOperation = [&]() {
+        net_fetch_set_ota_active(false);
         if (net_locked) {
             xSemaphoreGive(g_net_fetch_mutex);
             net_locked = false;
@@ -708,13 +709,33 @@ void UpdateCheck::performOnlineUpdate()
     esp_https_ota_config_t ota_config = {};
     ota_config.http_config = &config;
 
+    // Signal lower-priority TLS consumers (event notifications, syslog
+    // forwarding) to stand down for the duration of the download so they
+    // don't contend for g_net_fetch_mutex or the limited TLS heap.
+    net_fetch_set_ota_active(true);
+
     // Use the advanced esp_https_ota API so we can report real progress to
     // MQTT / WebUI. The simple esp_https_ota(&ota_config) call is a thin
     // wrapper around these steps but hides all intermediate state.
+    //
+    // Retry the begin a couple of times: the GitHub asset redirect forces a
+    // second TLS handshake to objects.githubusercontent.com which can
+    // transiently OOM on the WROOM-32. Mirrors the WebUI OTA path.
     esp_https_ota_handle_t ota_handle = NULL;
-    esp_err_t ret = esp_https_ota_begin(&ota_config, &ota_handle);
+    esp_err_t ret = ESP_FAIL;
+    for (int attempt = 1; attempt <= 3; ++attempt) {
+        ret = esp_https_ota_begin(&ota_config, &ota_handle);
+        if (ret == ESP_OK) {
+            break;
+        }
+        ESP_LOGW(TAG, "esp_https_ota_begin attempt %d/3 failed: %s",
+                 attempt, esp_err_to_name(ret));
+        if (attempt < 3) {
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        }
+    }
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "esp_https_ota_begin failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "esp_https_ota_begin failed after retries: %s", esp_err_to_name(ret));
         if (_stateMutex && xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
             _setOtaStateLocked(OTA_STATE_FAILED);
             _setOtaErrorLocked(ret, esp_err_to_name(ret));

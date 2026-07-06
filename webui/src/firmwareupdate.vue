@@ -302,12 +302,22 @@
                 </button>
               </div>
             </div>
-            <details v-if="selectedArchiveRelease.notes" class="archive-notes" open>
+            <details v-if="selectedArchiveRelease.notes" class="archive-notes">
               <summary>
                 <AppIcon name="logs" />
                 {{ t('firmware.archiveReleaseNotes') }}
               </summary>
               <pre>{{ selectedArchiveRelease.notes }}</pre>
+              <a
+                v-if="selectedArchiveRelease.notesUrl"
+                class="archive-notes-link"
+                :href="selectedArchiveRelease.notesUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <AppIcon name="externalLink" />
+                {{ t('firmware.viewOnGithub') }}
+              </a>
             </details>
           </div>
         </div>
@@ -491,7 +501,8 @@ const normalizeArchiveEntry = (entry, index = 0) => {
     downloadUrl,
     assetName: entry.assetName || entry.asset_name || (downloadUrl ? downloadUrl.split('/').pop() : ''),
     assetSize: entry.assetSize || entry.asset_size || entry.size || 0,
-    notes: entry.notes || entry.body || '',
+    notes: entry.notesExcerpt || entry.notes || entry.body || '',
+    notesUrl: entry.notesUrl || entry.releaseUrl || entry.html_url || '',
     isCurrent: currentVersion && normalizeVersion(version) === currentVersion
   }
 }
@@ -1418,6 +1429,21 @@ onUnmounted(() => {
   border: 1px solid var(--color-border-light);
   font-family: inherit;
   font-size: 0.8125rem;
+}
+
+.archive-notes-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.archive-notes-link:hover {
+  color: var(--color-primary);
 }
 
 /* System Actions */

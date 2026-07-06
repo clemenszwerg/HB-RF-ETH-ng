@@ -167,4 +167,13 @@ esp_err_t checkmk_stop(void);
 // TLS connections never occupy the heap at once on memory-constrained devices.
 extern SemaphoreHandle_t g_net_fetch_mutex;
 
+// OTA download activity flag. Set by both OTA paths (WebUI URL download and
+// MQTT-triggered update) around their TLS download so that lower-priority
+// outbound TLS consumers (event notifications, syslog forwarding) can defer
+// and leave the mutex uncontested for the duration of a firmware download.
+// Without this, an SMTP notification fired by ota_started can hold
+// g_net_fetch_mutex for 20-40s and starve the OTA itself.
+void net_fetch_set_ota_active(bool active);
+bool net_fetch_ota_active(void);
+
 #endif // MONITORING_H

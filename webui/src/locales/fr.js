@@ -359,6 +359,9 @@ export default {
     diagnosticFailed: 'Échec de la demande de diagnostic',
     chipLabelCheckmk: 'CheckMK',
     chipLabelMqtt: 'MQTT',
+    chipLabelPrometheus: 'Prometheus',
+    chipLabelSyslog: 'Syslog',
+    chipLabelNotify: 'Notifications',
     title: 'Surveillance',
     description: 'Configurer la surveillance CheckMK et MQTT pour la passerelle HB-RF-ETH.',
     save: 'Enregistrer',
@@ -431,6 +434,52 @@ export default {
     },
     enable: 'Activer',
     allowedHosts: 'Hôtes autorisés',
+    prometheus: {
+      title: 'Exporteur Prometheus',
+      port: 'Port',
+      portHelp: 'Par défaut : 9100',
+      allowedHosts: 'IPs clientes autorisées',
+      allowedHostsHelp: 'Adresses IP séparées par des virgules ou "*" pour tous'
+    },
+    syslog: {
+      title: 'Transfert Syslog',
+      server: 'Serveur',
+      serverHelp: 'Nom d\'hôte ou IP du serveur Syslog',
+      port: 'Port',
+      portHelp: 'Par défaut : 514',
+      transport: 'Transport',
+      minSeverity: 'Sévérité min.',
+      minSeverityHelp: 'Transférer uniquement les messages à partir de cette sévérité',
+      hostname: 'Remplacement du nom d\'hôte',
+      hostnameHelp: 'Vide = utiliser le nom d\'hôte de l\'appareil'
+    },
+    notify: {
+      title: 'Notifications d\'événements',
+      channels: 'Canaux actifs',
+      channelWebhook: 'Webhook',
+      channelTelegram: 'Telegram',
+      channelEmail: 'E-mail',
+      cooldown: 'Intervalle (secondes)',
+      cooldownHelp: 'Pour chaque type d\'événement, une seule notification est envoyée pendant cette fenêtre',
+      webhookSection: 'Webhook',
+      webhookUrl: 'URL',
+      webhookSecret: 'Secret',
+      telegramSection: 'Telegram',
+      telegramToken: 'Jeton du bot',
+      telegramChatId: 'ID de chat',
+      smtpSection: 'E-mail (SMTP)',
+      smtpServer: 'Serveur',
+      smtpPort: 'Port',
+      smtpTls: 'Chiffrement',
+      smtpTlsNone: 'Aucun',
+      smtpTlsStarttls: 'STARTTLS',
+      smtpTlsImplicit: 'TLS (implicite)',
+      smtpUser: 'Utilisateur',
+      smtpPassword: 'Mot de passe',
+      smtpFrom: 'Expéditeur',
+      smtpTo: 'Destinataire',
+      secretPresent: '✓ Enregistré – saisir une nouvelle valeur pour remplacer'
+    },
     diag: {
       unsupported: 'Cible de diagnostic inconnue',
       checkmk: {
@@ -443,6 +492,20 @@ export default {
         tcp_ok: 'Connexion TCP à {host}:{port} réussie',
         tcp_failed: 'Échec de la connexion TCP à {host}:{port}',
         tls_note: ' (TLS activé, validation des certificats non testée)'
+      },
+      prometheus: {
+        disabled: 'Prometheus est désactivé',
+        listening: 'L\'exporteur Prometheus écoute sur le port TCP {port}',
+        not_ready: 'Prometheus est activé, mais le listener n\'est pas prêt'
+      },
+      syslog: {
+        disabled: 'Le transfert Syslog est désactivé',
+        tcp_ok: 'Connexion TCP à {host}:{port} réussie',
+        tcp_failed: 'Échec de la connexion TCP à {host}:{port}'
+      },
+      notify: {
+        disabled: 'Les notifications sont désactivées',
+        queued: 'Notification de test mise en file pour les canaux 0x{mask}'
       }
     }
   },

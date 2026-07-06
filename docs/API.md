@@ -212,7 +212,9 @@ Retrieve current device settings.
     "ntpServer": "string",
     "ledBrightness": 100,
     "updateLedBlink": true,
-    "betaChannel": false
+    "betaChannel": false,
+    "flashPause": false,
+    "systemLogEnabled": false
   }
 }
 ```
@@ -248,6 +250,8 @@ Retrieve current device settings.
 - `ledBrightness`: LED brightness (0-100)
 - `updateLedBlink`: Enable/disable LED blinking for update notifications
 - `betaChannel`: When `true`, the firmware update check considers pre-release versions published on GitHub (see [Firmware Management](#firmware-management)). Stable channel (default) only reports the latest stable release.
+- `flashPause`: When `true`, a system restart holds the Ethernet PHY in hardware reset for ~35 seconds before the ESP32 actually reboots. This lets a connected CCU's link-loss watchdog trigger a clean CCU restart so no stale radio-mod connections survive a firmware update. Optional, defaults to `false`. Set via the Settings page; persisted in NVS alongside the other settings.
+- `systemLogEnabled`: When `true`, the in-device ring-buffer system log is active and can be read via `/api/log`. Managed from the System Log page rather than the Settings page, but returned here for visibility.
 
 **Example:**
 ```bash
@@ -328,7 +332,7 @@ curl -X POST http://192.168.1.100/settings.json \
 
 ### GET /api/monitoring
 
-Retrieve monitoring configuration for MQTT and CheckMK.
+Retrieve monitoring configuration for MQTT, CheckMK, Prometheus, Syslog forwarding, and event notifications.
 
 **Authentication:** Required
 
@@ -356,6 +360,35 @@ Retrieve monitoring configuration for MQTT and CheckMK.
     "enabled": false,
     "port": 6556,
     "allowedHosts": ""
+  },
+  "prometheus": {
+    "enabled": false,
+    "port": 9100,
+    "allowedHosts": ""
+  },
+  "syslog": {
+    "enabled": false,
+    "server": "",
+    "port": 514,
+    "transport": 0,
+    "minSeverity": 5,
+    "hostname": ""
+  },
+  "notify": {
+    "enabled": false,
+    "channels": 0,
+    "cooldownSeconds": 300,
+    "webhookUrl": "",
+    "webhookSecretSet": false,
+    "telegramTokenSet": false,
+    "telegramChatId": "",
+    "smtpServer": "",
+    "smtpPort": 587,
+    "smtpTls": 1,
+    "smtpUser": "",
+    "smtpPasswordSet": false,
+    "smtpFrom": "",
+    "smtpTo": ""
   }
 }
 ```
@@ -383,6 +416,27 @@ Retrieve monitoring configuration for MQTT and CheckMK.
 - `enabled`: Enable/disable CheckMK agent
 - `port`: CheckMK agent port (default: 6556, range: 1-65535)
 - `allowedHosts`: Comma-separated list of allowed IP addresses/ranges (validated for IPv4/IPv6 format)
+
+**Prometheus:**
+- `enabled`: Enable/disable the Prometheus metrics exporter
+- `port`: HTTP port the `/metrics` endpoint listens on (default: 9100, range: 1-65535)
+- `allowedHosts`: Comma-separated source-IP allowlist (Prometheus scrapes carry no auth; the IP filter is the gate)
+
+**Syslog:**
+- `enabled`: Enable/disable Syslog forwarding
+- `server`: Syslog server hostname or IP
+- `port`: Syslog server port (default: 514)
+- `transport`: `0` = UDP, `1` = TCP, `2` = TLS-over-TCP. The TLS transport takes the shared net-fetch mutex, so it is briefly deferred while a firmware OTA download is in progress.
+- `minSeverity`: Minimum severity to forward (`0` = EMERG … `7` = DEBUG)
+- `hostname`: Override the hostname tag in forwarded messages; empty = device hostname
+
+**Event Notifications:**
+- `enabled`: Master switch for the notification subsystem
+- `channels`: Bitmask of active channels (`1` = webhook, `2` = Telegram, `4` = email)
+- `cooldownSeconds`: Per-event-type dedupe window; only one notification per event type is sent within this window
+- `webhookUrl` / `webhookSecret` (`webhookSecretSet`): HTTP POST target and shared secret (sent as `X-HB-RF-ETH-Secret` header). Secret write-only.
+- `telegramToken` (`telegramTokenSet`) / `telegramChatId`: Telegram bot token and target chat ID. Token write-only.
+- `smtpServer` / `smtpPort` / `smtpTls` (`0` = none, `1` = STARTTLS, `2` = implicit TLS) / `smtpUser` / `smtpPassword` (`smtpPasswordSet`) / `smtpFrom` / `smtpTo`: SMTP relay configuration. Password write-only. Note: an SMTP send holds the net-fetch mutex for the duration of the SMTP session; the OTA path defers event delivery until the OTA completes.
 
 **Example:**
 ```bash
@@ -624,6 +678,46 @@ curl -X POST http://192.168.1.100/ota_update \
   -H "Authorization: Token YOUR_TOKEN_HERE" \
   -F "file=@firmware_2_1_0.bin"
 ```
+
+### GET /api/firmware_archive
+
+Retrieve the list of previously released firmware versions. Proxied from the project's `archive.json` manifest on GitHub.
+
+**Authentication:** Required
+
+**Response (200 OK):**
+```json
+{
+  "schema": 1,
+  "updatedAt": "2026-07-05T19:06:15Z",
+  "releases": [
+    {
+      "version": "2.2.3-Beta.12",
+      "channel": "beta",
+      "isPrerelease": true,
+      "publishedAt": "2026-07-05T19:06:15Z",
+      "downloadUrl": "https://github.com/.../firmware_2.2.3-Beta.12.bin",
+      "releaseUrl": "https://github.com/.../releases/tag/v2.2.3-Beta.12",
+      "notesUrl": "https://github.com/.../releases/tag/v2.2.3-Beta.12",
+      "tagName": "v2.2.3-Beta.12",
+      "name": "HB-RF-ETH-ng v2.2.3-Beta.12",
+      "assetName": "firmware_2.2.3-Beta.12.bin",
+      "assetSize": 1234567,
+      "notesExcerpt": "Short single-line preview of the release notes…"
+    }
+  ]
+}
+```
+
+**Fields:**
+- `version`: Semantic version string.
+- `channel`: `"stable"` or `"beta"`.
+- `downloadUrl`: Direct asset URL on GitHub (used to trigger an archive install via `POST /api/ota_url`).
+- `notesExcerpt`: A short (~300 char) collapsed-whitespace preview of the release notes. The full release notes are not embedded in the manifest to keep it small enough to stream through the device; follow `notesUrl` to read them on GitHub.
+- `notesUrl` / `releaseUrl`: GitHub URL for the release (full notes, assets, etc.).
+- `assetSize`: Firmware binary size in bytes (absent on legacy manifest entries).
+
+**Note:** The response is generated by the GitHub Actions `rebuild-archive.yml` / `release.yml` workflows. Older manifest entries may carry a `notes` field with the full markdown; the API and WebUI accept both shapes. The device streams the manifest via an async HTTPS proxy, so a request can return `503` if the HTTPS subsystem is busy (e.g. another fetch or OTA is in progress) — retry shortly afterwards.
 
 ---
 

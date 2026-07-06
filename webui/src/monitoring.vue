@@ -1067,6 +1067,18 @@ const runDiagnostic = async (target) => {
   font-weight: 600;
 }
 
+/* Tablet range and the experimental sidebar ("fullscreen") layout.
+   In the sidebar layout the available content width is the viewport minus
+   the 384px left padding, so 2- and 3-column Bootstrap grids (col-md-*)
+   that look fine on a full-width desktop get cramped between ~768px and
+   ~1100px. Stack them earlier in that band so the inputs stay readable. */
+@media (max-width: 1100px) {
+  .monitoring-page .row > [class*="col-md-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .monitoring-page {
     padding-bottom: 100px;

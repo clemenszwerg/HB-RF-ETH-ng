@@ -27,8 +27,21 @@ jobs:
           python3 - <<'PY'
           import json
           import os
+          import re
           import urllib.request
           from datetime import datetime, timezone
+
+          def excerpt(text, limit=300):
+              """Collapse whitespace and truncate to a single-line preview.
+              The full release notes are fetched on demand from GitHub (notesUrl)
+              so the firmware archive manifest stays small enough to stream
+              through the ESP32 async proxy without exhausting its TLS heap."""
+              if not text:
+                  return ""
+              flat = re.sub(r"\s+", " ", text).strip()
+              if len(flat) <= limit:
+                  return flat
+              return flat[:limit].rstrip() + "…"
 
           repo = "Xerolux/HB-RF-ETH-ng"
           token = os.environ.get("GITHUB_TOKEN", "")
@@ -84,7 +97,7 @@ jobs:
                   "prerelease": bool(release.get("prerelease")),
                   "assetName": asset.get("name") or "",
                   "assetSize": asset.get("size") or 0,
-                  "notes": release.get("body") or "",
+                  "notesExcerpt": excerpt(release.get("body") or ""),
               })
 
           archive_releases.sort(key=lambda item: item.get("publishedAt") or "", reverse=True)

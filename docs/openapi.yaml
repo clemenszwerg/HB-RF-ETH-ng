@@ -37,7 +37,7 @@ tags:
   - name: Settings
     description: Device configuration management
   - name: Monitoring
-    description: MQTT and CheckMK monitoring configuration
+    description: MQTT, CheckMK, Prometheus, Syslog and notification configuration
   - name: Firmware
     description: Firmware update management
 
@@ -158,7 +158,7 @@ paths:
       tags:
         - Monitoring
       summary: Get monitoring configuration
-      description: Retrieve MQTT and CheckMK monitoring configuration
+      description: Retrieve MQTT, CheckMK, Prometheus, Syslog and notification configuration
       responses:
         '200':
           description: Monitoring configuration retrieved successfully
@@ -173,7 +173,7 @@ paths:
       tags:
         - Monitoring
       summary: Update monitoring configuration
-      description: Update MQTT and CheckMK monitoring settings
+      description: Update MQTT, CheckMK, Prometheus, Syslog and notification settings
       requestBody:
         required: true
         content:
@@ -385,6 +385,24 @@ components:
           minimum: 0
           maximum: 100
           example: 100
+        betaChannel:
+          type: boolean
+          description: When true, the update check considers GitHub pre-releases
+          example: false
+        flashPause:
+          type: boolean
+          description: >-
+            When true, a system restart holds the Ethernet PHY in hardware reset
+            for ~35 seconds so a connected CCU's link-loss watchdog can trigger
+            a clean CCU restart. Default false.
+          example: false
+        systemLogEnabled:
+          type: boolean
+          description: >-
+            Whether the in-device ring-buffer system log is active (managed from
+            the System Log page; returned here for visibility).
+          example: false
+          readOnly: true
 
     MonitoringConfig:
       type: object
@@ -508,6 +526,129 @@ components:
               type: string
               description: Comma-separated list of allowed IP addresses/ranges
               example: 192.168.1.0/24,10.0.0.5
+        prometheus:
+          type: object
+          description: Prometheus metrics exporter configuration
+          properties:
+            enabled:
+              type: boolean
+              description: Enable the Prometheus exporter
+              example: false
+            port:
+              type: integer
+              description: HTTP port for /metrics (default 9100)
+              minimum: 1
+              maximum: 65535
+              example: 9100
+            allowedHosts:
+              type: string
+              description: Comma-separated source-IP allowlist (Prometheus carries no auth)
+              example: 192.168.1.0/24
+        syslog:
+          type: object
+          description: Syslog forwarding configuration
+          properties:
+            enabled:
+              type: boolean
+              description: Enable Syslog forwarding
+              example: false
+            server:
+              type: string
+              description: Syslog server hostname or IP
+              example: syslog.local
+            port:
+              type: integer
+              description: Syslog server port (default 514)
+              minimum: 1
+              maximum: 65535
+              example: 514
+            transport:
+              type: integer
+              description: Transport mode
+              enum: [0, 1, 2]
+              example: 0
+              x-enum-descriptions:
+                - 0 = UDP
+                - 1 = TCP
+                - 2 = TLS-over-TCP (serialized on the net-fetch mutex; deferred during OTA)
+            minSeverity:
+              type: integer
+              description: Minimum severity to forward (0 = EMERG ... 7 = DEBUG)
+              minimum: 0
+              maximum: 7
+              example: 5
+            hostname:
+              type: string
+              description: Hostname tag override; empty = device hostname
+              example: ''
+        notify:
+          type: object
+          description: Event notification configuration (webhook / Telegram / email)
+          properties:
+            enabled:
+              type: boolean
+              description: Master switch for notifications
+              example: false
+            channels:
+              type: integer
+              description: Bitmask of active channels (1 = webhook, 2 = Telegram, 4 = email)
+              example: 0
+            cooldownSeconds:
+              type: integer
+              description: Per-event-type dedupe window in seconds
+              minimum: 0
+              example: 300
+            webhookUrl:
+              type: string
+              description: HTTP POST target for webhook notifications
+              example: ''
+            webhookSecretSet:
+              type: boolean
+              description: Read-only flag indicating a webhook secret is stored
+              readOnly: true
+            telegramTokenSet:
+              type: boolean
+              description: Read-only flag indicating a Telegram bot token is stored
+              readOnly: true
+            telegramChatId:
+              type: string
+              description: Telegram target chat ID
+              example: ''
+            smtpServer:
+              type: string
+              description: SMTP relay hostname or IP
+              example: ''
+            smtpPort:
+              type: integer
+              description: SMTP relay port
+              minimum: 1
+              maximum: 65535
+              example: 587
+            smtpTls:
+              type: integer
+              description: SMTP transport security
+              enum: [0, 1, 2]
+              example: 1
+              x-enum-descriptions:
+                - 0 = none (plaintext)
+                - 1 = STARTTLS
+                - 2 = implicit TLS
+            smtpUser:
+              type: string
+              description: SMTP authentication username (optional)
+              example: ''
+            smtpPasswordSet:
+              type: boolean
+              description: Read-only flag indicating an SMTP password is stored
+              readOnly: true
+            smtpFrom:
+              type: string
+              description: SMTP envelope sender
+              example: ''
+            smtpTo:
+              type: string
+              description: SMTP envelope recipient
+              example: ''
 
   responses:
     Unauthorized:
