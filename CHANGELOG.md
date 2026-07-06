@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.16] - 2026-07-06
+
+### Changes
+- feat: supporter revocation (CRL), badge redesign, key-tool email
+- chore: gitignore PyInstaller artifacts for the private supporter-key tool
+- chore: update manifests for v2.2.3-Beta.15
+
 ## [2.2.3-Beta.15] - 2026-07-06
 
 ### Changes
