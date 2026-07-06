@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.14] - 2026-07-06
+
+### Changes
+- feat: supporter key, on-demand changelog, log-buffer fallback, UI polish
+- chore: update manifests for v2.2.3-Beta.13
+
 ## [2.2.3-Beta.13] - 2026-07-06
 
 ### Changes
