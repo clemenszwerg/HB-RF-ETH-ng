@@ -1,5 +1,21 @@
 # CLAUDE.md — AI Assistant Guide for HB-RF-ETH-ng
 
+> ## 🔒 FEATURE FREEZE — bis zum Stable Release
+>
+> **Ab v2.2.3-Beta.17 gilt Feature-Freeze.** Es werden **nur noch Bugfixes**
+> akzeptiert, bis eine stabile (nicht-Beta) Version released wurde.
+>
+> - **KEINE** neuen Features, kein Refactoring, keine kosmetischen Umbauten.
+> - **NUR**: Crash-Fixes, Compile-Fehler, funktionsbeeinträchtigende Bugs,
+>   Übersetzungsfehler, Build-/CI-Brüche.
+> - Falls ein Wunsch eingeht: ins Backlog/Issue stellen, aber **nicht** vor
+>   Stable umsetzen.
+> - Stable-Release-Kriterium: alle bekannten Bugs behoben + mindestens eine
+>   Beta-Runde ohne neue Reports.
+>
+> (Diese Sperre wird mit dem ersten `v2.x.0` Stable-Tag wieder aufgehoben.)
+>
+
 ## Project Overview
 
 **HB-RF-ETH-ng** is a modernized ESP32 firmware for the HB-RF-ETH network interface board (version 2.x). It connects HomeMatic radio modules (HM-MOD-RPI-PCB, RPI-RF-MOD) to debmatic / piVCCU3 installations over Ethernet. This is a fork of the original HB-RF-ETH firmware by Alexander Reinert, ported to ESP-IDF by Xerolux (2025).
