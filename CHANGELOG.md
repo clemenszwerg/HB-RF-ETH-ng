@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.28] - 2026-07-07
+
+### Changes
+- fix: make firmware archive resilient to GitHub outages
+- feat: add activation server prototype
+- chore: update manifests for v2.2.3-Beta.27
+
 ## [2.2.3-Beta.27] - 2026-07-07
 
 ### Changes
