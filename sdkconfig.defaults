@@ -58,3 +58,16 @@ CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
 # during the GitHub update check on the WROOM-32 (no PSRAM).
 # CONFIG_ESP_WIFI_ENABLED is not set
 # CONFIG_ESP32_WIFI_ENABLED is not set
+
+# LwIP socket pool: 10 sockets is too tight for concurrent httpd (WebUI polling),
+# MQTT client, monitoring listeners and an OTA HTTPS download. With only 10
+# sockets the device hits EMFILE (errno 23) during OTA downloads — httpd can't
+# accept new connections and the OTA HTTPS client can't create a socket.
+# 16 gives enough headroom for all subsystems plus outbound TLS fetches.
+CONFIG_LWIP_MAX_SOCKETS=16
+
+# Reduce TCP TIME_WAIT from the default 60s to 15s. The 60s MSL meant that
+# after every outbound HTTPS fetch (update check, changelog proxy, CRL refresh,
+# OTA redirect handshake) the socket FD was unavailable for a full minute,
+# compounding the socket-exhaustion problem above.
+CONFIG_LWIP_TCP_MSL=15000

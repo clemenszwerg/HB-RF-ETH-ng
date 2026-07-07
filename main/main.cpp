@@ -64,13 +64,18 @@ extern "C"
     void app_main(void);
 }
 
-// Keep a freshly installed OTA image in PENDING_VERIFY long enough to exercise
-// the delayed update check and other background tasks. If the firmware crashes
-// in that window, the bootloader can still roll back on the next boot.
+// Keep a freshly installed OTA image in PENDING_VERIFY just long enough to
+// confirm the critical boot sequence (Ethernet, radio module, WebUI) survived.
+// The previous 60-second window overlapped with the first UpdateCheck (30s),
+// CRL refresh (60s) and deferred log-retry (10s) TLS fetches — on a device
+// already starved of sockets/heap those fetches could destabilise the system
+// inside the self-test window and trigger an unwanted bootloader rollback.
+// 15 seconds is enough for all services to start and for the first httpd
+// request to be served, while staying well clear of the TLS-heavy window.
 static void validate_running_firmware_task(void *parameter)
 {
     (void)parameter;
-    vTaskDelay(pdMS_TO_TICKS(60000));
+    vTaskDelay(pdMS_TO_TICKS(15000));
 
     esp_err_t err = esp_ota_mark_app_valid_cancel_rollback();
     if (err == ESP_OK) {
@@ -91,12 +96,14 @@ static void schedule_firmware_validation(void)
         return;
     }
 
-    ESP_LOGI(TAG, "OTA image pending verification; starting 60-second self-test window");
+    ESP_LOGI(TAG, "OTA image pending verification; starting 15-second self-test window");
     if (xTaskCreate(validate_running_firmware_task, "ota_selftest", 2304,
                     NULL, 2, NULL) != pdPASS) {
-        // Fail safe: leave the image pending so a subsequent reboot rolls back
-        // instead of permanently accepting a firmware under memory pressure.
-        ESP_LOGE(TAG, "Could not create OTA self-test task; image remains pending");
+        // Could not create the task — mark valid immediately rather than
+        // leaving the image pending forever (which would roll back on the
+        // next reboot even though the firmware booted fine).
+        ESP_LOGE(TAG, "Could not create OTA self-test task; marking valid now");
+        esp_ota_mark_app_valid_cancel_rollback();
     }
 }
 

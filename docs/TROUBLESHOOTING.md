@@ -368,9 +368,26 @@ raw CDN edges can temporarily serve stale manifest content.
 3. **Manual Flash**
    - Flash firmware via USB/serial
    - Use esptool.py or ESP-IDF (`idf.py`)
+   - **Important:** When the device has done any OTA update in the past, the
+     bootloader may be configured to boot from `ota_1` (the second OTA slot).
+     Flashing `ota_0` alone will not change the running firmware in that case.
+     Erase the `otadata` partition first so the bootloader falls back to
+     `ota_0`, then flash the new firmware there:
    ```bash
+   # 1. Erase otadata so the bootloader boots from ota_0 (0x10000)
+   esptool.py --chip esp32 --port /dev/ttyUSB0 erase_region 0xD000 0x2000
+
+   # 2. Flash the firmware binary to ota_0
    esptool.py --chip esp32 --port /dev/ttyUSB0 \
-     write_flash 0x10000 firmware_2_1_0.bin
+     write_flash 0x10000 firmware_2.2.3-Beta.18.bin
+   ```
+   - If the device still shows the old firmware after this, also erase
+     `ota_1` (the second OTA slot) and the `otadata` partition, then reflash:
+   ```bash
+   esptool.py --chip esp32 --port /dev/ttyUSB0 erase_region 0xD000 0x2000
+   esptool.py --chip esp32 --port /dev/ttyUSB0 erase_region 0x1E0000 0x1D0000
+   esptool.py --chip esp32 --port /dev/ttyUSB0 \
+     write_flash 0x10000 firmware_2.2.3-Beta.18.bin
    ```
 
 4. **Factory Reset**
