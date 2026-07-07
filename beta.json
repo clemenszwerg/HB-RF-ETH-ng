@@ -1,10 +1,10 @@
 {
-  "version": "2.2.3-Beta.23",
+  "version": "2.2.3-Beta.24",
   "channel": "beta",
   "isPrerelease": true,
-  "publishedAt": "2026-07-07T10:39:56Z",
-  "downloadUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/download/v2.2.3-Beta.23/firmware_2.2.3-Beta.23.bin",
-  "sha256": "50f8ed7cc5d894aae094cbcf2546e4b29bcbe047b909b42138f8dea7fa7a4419",
-  "releaseUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/v2.2.3-Beta.23",
-  "notesUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/v2.2.3-Beta.23"
+  "publishedAt": "2026-07-07T11:05:55Z",
+  "downloadUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/download/v2.2.3-Beta.24/firmware_2.2.3-Beta.24.bin",
+  "sha256": "f0ba0239e4bb81882fa9f39dad5cfe4f29bc6cfbad3a52f716d0c4315e774e10",
+  "releaseUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/v2.2.3-Beta.24",
+  "notesUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/v2.2.3-Beta.24"
 }
