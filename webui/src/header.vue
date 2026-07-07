@@ -751,7 +751,7 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 991px) {
   .desktop-nav,
   .desktop-only {
     display: none;
