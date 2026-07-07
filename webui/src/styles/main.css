@@ -160,6 +160,94 @@ button {
   min-height: 100vh;
 }
 
+/* App-wide layout guardrails: long hostnames, release names, MQTT topics,
+   IPv6 addresses and translated labels must never push cards or menus off
+   screen. Local component styles can still opt into truncation where useful. */
+#app,
+.page-shell,
+.page-hero,
+.hero-copy,
+.hero-actions,
+.hero-meta,
+.section-grid,
+.stats-grid,
+.info-grid,
+.card-glass,
+.glass-panel,
+.glass-card,
+.surface-card,
+.settings-card,
+.update-card,
+.metric-card,
+.diagnostic-card,
+.quick-action,
+.action-tile,
+.card-header,
+.card-body,
+.card-section-title,
+.kv-row,
+.modal-content,
+.modal-body {
+  min-width: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+label,
+legend,
+.hero-title,
+.hero-subtitle,
+.card-section-title,
+.card-section-title h2,
+.card-section-title h3,
+.card-section-title p,
+.status-chip,
+.meta-chip,
+.pill-chip,
+.kv-label,
+.kv-value,
+.metric-value,
+.metric-label,
+.metric-subtext,
+.alert,
+.modal-title,
+.modal-body {
+  overflow-wrap: anywhere;
+}
+
+.btn,
+button,
+.nav-link,
+.status-chip,
+.meta-chip,
+.pill-chip {
+  max-width: 100%;
+}
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-outline-primary,
+.btn-outline-secondary {
+  white-space: normal;
+}
+
+.form-control,
+.form-select,
+input,
+select,
+textarea {
+  max-width: 100%;
+  min-width: 0;
+}
+
 .glass-panel,
 .glass-card,
 .surface-card {
@@ -184,6 +272,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  min-width: 0;
 }
 
 .page-hero {
@@ -200,6 +289,7 @@ button {
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
+  min-width: 0;
 }
 
 [data-bs-theme="dark"] .page-hero {
@@ -213,6 +303,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
 .hero-eyebrow {
@@ -251,6 +342,7 @@ button {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .icon-badge {
@@ -305,6 +397,8 @@ button {
   font-weight: 600;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  min-width: 0;
+  white-space: normal;
 }
 
 [data-bs-theme="dark"] .status-chip,
@@ -355,17 +449,17 @@ button {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: var(--spacing-md);
 }
 
 .stats-grid.compact {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: var(--spacing-md);
 }
 
@@ -398,6 +492,7 @@ button {
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .card-section-title h3,
@@ -422,6 +517,7 @@ button {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .metric-value {
@@ -482,6 +578,7 @@ button {
   gap: 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(125, 139, 167, 0.14);
+  min-width: 0;
 }
 
 .kv-row:last-child {
@@ -492,12 +589,14 @@ button {
 .kv-label {
   color: var(--color-text-secondary);
   font-size: 0.9rem;
+  min-width: 0;
 }
 
 .kv-value {
   font-weight: 600;
   text-align: right;
   word-break: break-word;
+  min-width: 0;
 }
 
 .kv-value.mono {
@@ -553,6 +652,8 @@ button {
   font-weight: 700;
   letter-spacing: -0.01em;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .btn:hover:not(:disabled) {
@@ -657,6 +758,7 @@ button {
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-xl);
+  max-width: calc(100vw - 16px);
 }
 
 /* Hide the header close button (×) on every modal. Closing happens via the
@@ -764,6 +866,17 @@ button {
   form button[type="submit"] {
     width: 100%;
   }
+
+  .kv-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .kv-value {
+    width: 100%;
+    text-align: left;
+  }
 }
 
 @media (min-width: 1440px) {
@@ -808,6 +921,16 @@ body.newdesign-active .newdesign-shell {
   --newdesign-shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.14);
 }
 
+body.newdesign-active:has(.update-banner) .newdesign-shell .main-content {
+  padding-top: 168px !important;
+}
+
+@media (max-width: 991px) {
+  body.newdesign-active:has(.update-banner) .newdesign-shell .main-content {
+    padding-top: clamp(188px, 30vh, 260px) !important;
+  }
+}
+
 [data-bs-theme="dark"] body.newdesign-active .newdesign-shell,
 body.newdesign-active[data-bs-theme="dark"] .newdesign-shell {
   --newdesign-panel: #182131;
@@ -837,7 +960,6 @@ body.newdesign-active .newdesign-shell .stat-card,
 body.newdesign-active .newdesign-shell .change-password-card,
 body.newdesign-active .newdesign-shell .archive-card,
 body.newdesign-active .newdesign-shell .network-update-card,
-body.newdesign-active .newdesign-shell .countdown-card,
 body.newdesign-active .newdesign-shell .radio-card,
 body.newdesign-active .newdesign-shell .action-tile,
 body.newdesign-active .newdesign-shell .system-actions .action-tile {
@@ -1274,9 +1396,7 @@ body.newdesign-active .newdesign-shell .beta-toggle-hint,
 body.newdesign-active .newdesign-shell .update-text strong,
 body.newdesign-active .newdesign-shell .file-name,
 body.newdesign-active .newdesign-shell .progress-label,
-body.newdesign-active .newdesign-shell .progress-value,
-body.newdesign-active .newdesign-shell .countdown-text,
-body.newdesign-active .newdesign-shell .countdown-title {
+body.newdesign-active .newdesign-shell .progress-value {
   color: var(--color-text) !important;
 }
 
@@ -1298,6 +1418,20 @@ body.newdesign-active .newdesign-shell .archive-picker {
 body.newdesign-active .newdesign-shell .countdown-overlay {
   background: rgba(15, 23, 42, 0.82) !important;
   backdrop-filter: blur(6px) !important;
+}
+
+body.newdesign-active .newdesign-shell .countdown-card {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background: rgba(15, 23, 42, 0.62) !important;
+  box-shadow: var(--newdesign-shadow-lg) !important;
+}
+
+body.newdesign-active .newdesign-shell .countdown-card .countdown-title,
+body.newdesign-active .newdesign-shell .countdown-card .countdown-text,
+body.newdesign-active .newdesign-shell .countdown-card .countdown-value,
+body.newdesign-active .newdesign-shell .countdown-card .countdown-phase {
+  color: #ffffff !important;
 }
 
 /* ---- Monitoring specifics ---- */

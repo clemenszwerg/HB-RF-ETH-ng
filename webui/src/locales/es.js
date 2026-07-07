@@ -56,7 +56,7 @@ export default {
     title: 'Por favor inicie sesión',
     subtitle: 'Por favor ingrese su nombre de usuario y contraseña para continuar',
     username: 'Nombre de usuario',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Usuario',
     password: 'Contraseña',
     passwordPlaceholder: 'Contraseña',
     login: 'Acceder',

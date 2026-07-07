@@ -56,7 +56,7 @@ export default {
     title: 'Please log in',
     subtitle: 'Please enter username and password to continue',
     username: 'Username',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Username',
     password: 'Password',
     passwordPlaceholder: 'Password',
     login: 'Login',

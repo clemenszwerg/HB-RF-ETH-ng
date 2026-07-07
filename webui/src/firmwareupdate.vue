@@ -8,11 +8,14 @@
             <div class="spinner-ring"></div>
             <div class="spinner-icon"><AppIcon name="refresh" /></div>
           </div>
-          <h2 class="countdown-title">{{ t('firmware.restarting') }}</h2>
+          <div v-if="countdownPhaseTotal > 1" class="countdown-phase">
+            <span>{{ countdownPhaseIndex }}/{{ countdownPhaseTotal }}</span>
+          </div>
+          <h2 class="countdown-title">{{ countdownTitle }}</h2>
           <div class="countdown-value">{{ countdown }}</div>
-          <p class="countdown-text">{{ t('firmware.restartingText') }}</p>
+          <p class="countdown-text">{{ countdownText }}</p>
           <div class="progress-track">
-            <div class="progress-fill" :style="{ width: ((30 - countdown) / 30 * 100) + '%' }"></div>
+            <div class="progress-fill" :style="{ width: countdownProgress + '%' }"></div>
           </div>
         </div>
       </div>
@@ -356,7 +359,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSysInfoStore, useUpdateStore, useFirmwareUpdateStore, useUiStore } from './stores.js'
+import { useSysInfoStore, useUpdateStore, useFirmwareUpdateStore, useUiStore, useSettingsStore } from './stores.js'
 import axios from 'axios'
 import ChangelogModal from './components/ChangelogModal.vue'
 
@@ -365,6 +368,7 @@ const sysInfoStore = useSysInfoStore()
 const updateStore = useUpdateStore()
 const firmwareUpdateStore = useFirmwareUpdateStore()
 const uiStore = useUiStore()
+const settingsStore = useSettingsStore()
 
 // State
 const file = ref(null)
@@ -376,6 +380,10 @@ const otaUpdating = ref(false)
 const otaProgress = ref(0)
 const showCountdown = ref(false)
 const countdown = ref(30)
+const countdownPhase = ref('restart')
+const countdownPhaseIndex = ref(1)
+const countdownPhaseTotal = ref(1)
+const countdownPhaseDuration = ref(30)
 const showChangelogModal = ref(false)
 const betaToggleSaving = ref(false)
 const archiveFilter = ref('stable')
@@ -393,6 +401,23 @@ const archiveFilters = computed(() => [
   { value: 'beta', label: t('firmware.archiveBeta') },
   { value: 'all', label: t('firmware.archiveAll') }
 ])
+
+const countdownTitle = computed(() => (
+  countdownPhase.value === 'sync'
+    ? t('settings.flashPause')
+    : t('firmware.restarting')
+))
+
+const countdownText = computed(() => (
+  countdownPhase.value === 'sync'
+    ? t('firmware.restartFlashPauseHint')
+    : t('firmware.restartingText')
+))
+
+const countdownProgress = computed(() => {
+  const duration = Math.max(countdownPhaseDuration.value, 1)
+  return Math.min(100, Math.max(0, ((duration - countdown.value) / duration) * 100))
+})
 
 const normalizeVersion = (version) => String(version || '').replace(/^v/i, '')
 
@@ -652,9 +677,9 @@ const startOtaFromUrl = async (updateUrl, version) => {
     const response = await axios.post('/api/ota_url', { url: updateUrl })
 
     if (response.data.success) {
-      await pollOtaStatus()
+      const otaStatus = await pollOtaStatus()
       uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('firmware.otaSuccess'), duration: 2400 })
-      setTimeout(startCountdown, 1000)
+      setTimeout(() => startCountdown({ includeFlashPause: otaStatus?.flashPause }), 1000)
     } else {
       // Firmware returns HTTP 200 with { success: false, error } for several
       // legitimate conditions (already-in-progress, invalid URL, ...). Surface
@@ -699,7 +724,7 @@ const pollOtaStatus = () => {
           otaPollTimer = setTimeout(poll, 1000)
         } else if (status === 'success') {
           otaProgress.value = 100
-          resolve()
+          resolve(res.data)
         } else if (status === 'failed') {
           reject(new Error(otaError || t('firmware.otaFailed')))
         } else {
@@ -720,7 +745,18 @@ const pollOtaStatus = () => {
 
 let countdownTimer = null
 
-const startCountdown = () => {
+const RESTART_SECONDS = 30
+const RESTART_SYNC_SECONDS = 35
+
+const setCountdownPhase = (phase, seconds, index, total) => {
+  countdownPhase.value = phase
+  countdownPhaseDuration.value = seconds
+  countdown.value = seconds
+  countdownPhaseIndex.value = index
+  countdownPhaseTotal.value = total
+}
+
+const startCountdown = (options = {}) => {
   // Clear any previous countdown interval so repeated triggers (e.g. restart
   // clicked twice, or both try/catch branches firing on a network drop) cannot
   // stack two intervals racing to reload the page.
@@ -728,11 +764,20 @@ const startCountdown = () => {
     clearInterval(countdownTimer)
     countdownTimer = null
   }
+  const includeFlashPause = options.includeFlashPause ?? settingsStore.flashPause
   showCountdown.value = true
-  countdown.value = 30
+  if (includeFlashPause) {
+    setCountdownPhase('sync', RESTART_SYNC_SECONDS, 1, 2)
+  } else {
+    setCountdownPhase('restart', RESTART_SECONDS, 1, 1)
+  }
   countdownTimer = setInterval(() => {
     countdown.value--
       if (countdown.value <= 0) {
+        if (countdownPhase.value === 'sync') {
+          setCountdownPhase('restart', RESTART_SECONDS, 2, 2)
+          return
+        }
         clearInterval(countdownTimer)
         countdownTimer = null
         window.location.href = '/'
@@ -792,6 +837,12 @@ onMounted(async () => {
     await sysInfoStore.update()
   } catch (e) {
     console.warn('Failed to load system info:', e.response?.status || e.message)
+  }
+
+  try {
+    await settingsStore.load()
+  } catch (e) {
+    console.warn('Failed to load settings for restart sync state:', e.response?.status || e.message)
   }
 
   try {
@@ -873,7 +924,7 @@ onUnmounted(() => {
 /* Content Grid */
 .content-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
 }
@@ -885,6 +936,7 @@ onUnmounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .card-header {
@@ -908,12 +960,14 @@ onUnmounted(() => {
 .header-text h3 {
   font-size: 1.125rem;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .header-text p {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: 0.875rem;
+  overflow-wrap: anywhere;
 }
 
 .card-body {
@@ -992,6 +1046,9 @@ onUnmounted(() => {
 .quick-actions {
   margin-top: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
 }
 
 .chip-btn {
@@ -1007,6 +1064,9 @@ onUnmounted(() => {
   color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
 }
 
 .chip-btn:hover {
@@ -1043,6 +1103,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .update-text strong {
@@ -1142,6 +1203,7 @@ onUnmounted(() => {
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   font-size: 0.875rem;
+  overflow-wrap: anywhere;
 }
 
 .check-icon {
@@ -1242,13 +1304,16 @@ onUnmounted(() => {
 
 .archive-filters {
   display: inline-flex;
+  flex-wrap: wrap;
   padding: 4px;
   border-radius: var(--radius-full);
   background: var(--color-bg);
   border: 1px solid var(--color-border-light);
+  max-width: 100%;
 }
 
 .filter-btn {
+  flex: 1 1 auto;
   border: none;
   background: transparent;
   color: var(--color-text-secondary);
@@ -1257,6 +1322,9 @@ onUnmounted(() => {
   font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .filter-btn.active {
@@ -1346,6 +1414,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
 .archive-meta {
@@ -1383,6 +1452,8 @@ onUnmounted(() => {
   font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .archive-link {
@@ -1425,6 +1496,8 @@ onUnmounted(() => {
   border: none;
   padding: 0;
   transition: color 0.2s;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .archive-changelog-btn:hover:not(:disabled) {
@@ -1445,6 +1518,8 @@ onUnmounted(() => {
   font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: none;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .archive-notes-link:hover {
@@ -1454,7 +1529,7 @@ onUnmounted(() => {
 /* System Actions */
 .system-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
   gap: var(--spacing-lg);
 }
 
@@ -1497,6 +1572,10 @@ onUnmounted(() => {
 .countdown-card {
   text-align: center;
   color: white;
+  width: min(92vw, 420px);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  background: rgba(15, 23, 42, 0.42);
 }
 
 .spinner-container {
@@ -1530,6 +1609,26 @@ onUnmounted(() => {
   font-size: 4rem;
   font-weight: 700;
   margin: var(--spacing-md) 0;
+}
+
+.countdown-phase {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 30px;
+  margin-bottom: var(--spacing-sm);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255,255,255,0.32);
+  background: rgba(255,255,255,0.12);
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.countdown-text {
+  overflow-wrap: anywhere;
 }
 
 .progress-track {
@@ -1620,9 +1719,23 @@ onUnmounted(() => {
   }
 
   .quick-actions {
-    display: flex;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .archive-toolbar,
+  .archive-main-row,
+  .archive-actions,
+  .archive-notes-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .archive-actions > *,
+  .archive-notes-row > *,
+  .archive-refresh {
+    width: 100%;
+    justify-content: center;
   }
 
   /* Countdown */

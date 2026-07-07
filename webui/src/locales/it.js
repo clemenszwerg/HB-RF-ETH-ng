@@ -56,7 +56,7 @@ export default {
     title: 'Effettua l\'accesso',
     subtitle: 'Inserisci nome utente e password per continuare',
     username: 'Nome utente',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Utente',
     password: 'Password',
     passwordPlaceholder: 'Password',
     login: 'Accedi',

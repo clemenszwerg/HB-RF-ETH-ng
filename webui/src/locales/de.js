@@ -56,7 +56,7 @@ export default {
     title: 'Bitte anmelden',
     subtitle: 'Bitte geben Sie Benutzername und Passwort ein',
     username: 'Benutzername',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Benutzername',
     password: 'Passwort',
     passwordPlaceholder: 'Passwort',
     login: 'Anmelden',

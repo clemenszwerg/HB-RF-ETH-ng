@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
 
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
   gap: 14px;
 }
 
@@ -402,17 +402,20 @@ onBeforeUnmount(() => {
   text-decoration: none;
   color: inherit;
   padding: 16px 18px;
+  min-width: 0;
 }
 
 .quick-action strong {
   display: block;
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
 }
 
 .quick-action p {
   margin: 4px 0 0;
   color: var(--color-text-secondary);
   font-size: 0.82rem;
+  overflow-wrap: anywhere;
 }
 
 .metric-value.smaller {
@@ -428,6 +431,10 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--color-text);
   padding: 0;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
 }
 
 .copy-value:disabled {
@@ -444,6 +451,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .radio-card {
@@ -452,7 +461,7 @@ onBeforeUnmount(() => {
 
 .radio-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 12px;
 }
 
@@ -464,6 +473,7 @@ onBeforeUnmount(() => {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.44);
   border: 1px solid rgba(125, 139, 167, 0.12);
+  min-width: 0;
 }
 
 [data-bs-theme="dark"] .radio-stat {
@@ -476,6 +486,7 @@ onBeforeUnmount(() => {
 
 .radio-stat strong {
   font-size: 1rem;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 768px) {

@@ -56,7 +56,7 @@ export default {
     title: 'Gelieve in te loggen',
     subtitle: 'Voer uw gebruikersnaam en wachtwoord in om door te gaan',
     username: 'Gebruikersnaam',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Gebruiker',
     password: 'Wachtwoord',
     passwordPlaceholder: 'Wachtwoord',
     login: 'Inloggen',

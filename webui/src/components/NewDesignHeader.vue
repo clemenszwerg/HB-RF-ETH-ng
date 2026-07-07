@@ -290,8 +290,9 @@ const performRestart = async () => {
     await axios.post('/api/restart')
     showRestartModal.value = false
     closeMobileMenu()
-    uiStore.pushToast({ type: 'info', title: t('common.success'), message: t('firmware.restartingText'), duration: 18000 })
-    setTimeout(() => window.location.reload(), 20000)
+    const reloadDelay = settingsStore.flashPause ? 70000 : 20000
+    uiStore.pushToast({ type: 'info', title: t('common.success'), message: t('firmware.restartingText'), duration: Math.min(reloadDelay - 2000, 30000) })
+    setTimeout(() => window.location.reload(), reloadDelay)
   } catch (e) {
     console.error('Restart request failed', e)
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('settings.restartError') })
@@ -316,6 +317,14 @@ onMounted(async () => {
     }
   } catch (e) {
     console.error('Failed to load sys info for update check', e)
+  }
+
+  if (loginStore.isLoggedIn) {
+    try {
+      await settingsStore.load()
+    } catch (e) {
+      console.error('Failed to load settings for restart sync state', e)
+    }
   }
 
   if (localStorage.getItem('dismissedUpdate') === updateStore.latestVersion) {
@@ -354,10 +363,10 @@ onUnmounted(() => {
 
 .update-banner {
   position: fixed;
-  top: 12px;
+  top: 100px;
   left: 384px;
   right: 24px;
-  z-index: 1003;
+  z-index: 1002;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   display: flex;
@@ -374,6 +383,7 @@ onUnmounted(() => {
   position: fixed;
   inset: 0 auto 0 0;
   width: 360px;
+  z-index: 1001;
   padding: 24px 12px 20px;
   background: var(--color-sidebar);
   border-right: 1px solid var(--color-border);
@@ -407,6 +417,7 @@ onUnmounted(() => {
   left: 360px;
   right: 0;
   height: 88px;
+  z-index: 1001;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -416,6 +427,7 @@ onUnmounted(() => {
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
   pointer-events: auto;
+  min-width: 0;
 }
 
 .brand,
@@ -496,6 +508,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .nav-item {
@@ -509,6 +522,8 @@ onUnmounted(() => {
   text-decoration: none;
   font-weight: 650;
   transition: background var(--transition-fast), color var(--transition-fast);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .nav-item:hover,
@@ -529,6 +544,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .utility-row,
@@ -548,6 +564,9 @@ onUnmounted(() => {
   padding: 0 12px;
   text-decoration: none;
   font-weight: 650;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .utility-row:hover,
@@ -606,6 +625,10 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
+  width: 100%;
+  max-height: min(280px, calc(100vh - 220px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .locale-menu-item {
@@ -619,6 +642,8 @@ onUnmounted(() => {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   text-align: left;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .locale-menu-item.active,
@@ -631,6 +656,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .update-banner-copy strong {
@@ -645,6 +671,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .mobile-brand {
@@ -665,6 +692,8 @@ onUnmounted(() => {
   justify-content: flex-end;
   gap: 10px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
   color: var(--color-text-secondary);
   font-size: 0.95rem;
 }
@@ -728,6 +757,15 @@ onUnmounted(() => {
   text-decoration: none;
   border: 1px solid var(--color-border);
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  min-width: 0;
+  max-width: 180px;
+}
+
+.supporter-chip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .supporter-chip .app-icon {
@@ -762,6 +800,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .mobile-menu-toggle {
@@ -771,6 +810,7 @@ onUnmounted(() => {
 .mobile-overlay {
   position: fixed;
   inset: 0;
+  z-index: 1200;
   background: rgba(0, 0, 0, 0.36);
   display: flex;
   justify-content: flex-end;
@@ -781,6 +821,7 @@ onUnmounted(() => {
 .mobile-panel {
   width: min(340px, 100%);
   height: 100%;
+  max-height: calc(100vh - 24px);
   min-height: 0;
   border-radius: var(--radius-sm);
   padding: 16px;
@@ -788,6 +829,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   border: 1px solid var(--color-border);
   background: var(--color-sidebar);
@@ -831,6 +873,8 @@ onUnmounted(() => {
   color: var(--color-text);
   text-decoration: none;
   font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .mobile-link.router-link-active {
@@ -849,7 +893,7 @@ onUnmounted(() => {
 
 .mobile-locale-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -864,6 +908,8 @@ onUnmounted(() => {
   justify-content: center;
   gap: 4px;
   font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .mobile-locale.active {
@@ -926,16 +972,25 @@ onUnmounted(() => {
   .update-banner {
     left: 8px;
     right: 8px;
-    top: 78px;
-  }
-
-  .update-banner {
+    top: 84px;
+    left: 8px;
+    right: 8px;
     flex-direction: column;
     align-items: flex-start;
+    max-height: min(45vh, 320px);
+    overflow-y: auto;
   }
 
   .update-banner-actions {
     width: 100%;
+  }
+}
+
+@media (max-width: 1280px) {
+  .connection-label,
+  .top-separator,
+  .clock-chip {
+    display: none;
   }
 }
 </style>

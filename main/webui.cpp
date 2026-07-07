@@ -520,8 +520,16 @@ bool cJSON_GetBoolValue(const cJSON *item)
     return (item && cJSON_IsBool(item)) ? cJSON_IsTrue(item) : false;
 }
 
+static bool refresh_restart_sync_from_settings()
+{
+    const bool enabled = _settings && _settings->getFlashPause();
+    set_flash_pause_enabled(enabled);
+    return enabled;
+}
+
 void delayed_restart_task(void *pvParameter) {
     vTaskDelay(pdMS_TO_TICKS(3000));
+    refresh_restart_sync_from_settings();
     full_system_restart();
     vTaskDelete(NULL);
 }
@@ -1008,6 +1016,7 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
 
     // Restart
     vTaskDelay(pdMS_TO_TICKS(1000));
+    refresh_restart_sync_from_settings();
     full_system_restart();
 
     return ESP_OK;
@@ -1262,6 +1271,7 @@ esp_err_t post_restart_handler_func(httpd_req_t *req)
 
     // Restart after a short delay to allow response to be sent
     vTaskDelay(pdMS_TO_TICKS(1000));
+    refresh_restart_sync_from_settings();
     full_system_restart();
 
     return ESP_OK;
@@ -1294,6 +1304,7 @@ esp_err_t post_factory_reset_handler_func(httpd_req_t *req)
 
     // Restart after a short delay to allow response to be sent
     vTaskDelay(pdMS_TO_TICKS(1000));
+    refresh_restart_sync_from_settings();
     full_system_restart();
 
     return ESP_OK;
@@ -1327,6 +1338,7 @@ static esp_err_t get_ota_status_handler_func(httpd_req_t *req)
 
     cJSON_AddStringToObject(root, "status", status_str);
     cJSON_AddNumberToObject(root, "progress", _ota_progress.load());
+    cJSON_AddBoolToObject(root, "flashPause", _settings && _settings->getFlashPause());
     if (status == OTA_FAILED) {
         char error[sizeof(_ota_error)];
         copy_ota_error(error, sizeof(error));
@@ -1612,6 +1624,7 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
             delete a;
             _updateCheck->finishOtaOperation();
             vTaskDelay(pdMS_TO_TICKS(1000));
+            refresh_restart_sync_from_settings();
             full_system_restart();
         } else {
             ESP_LOGE(TAG, "OTA Update failed: %s", esp_err_to_name(ret));

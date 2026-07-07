@@ -568,6 +568,7 @@ onUnmounted(() => {
   border-radius: var(--radius-xl);
   margin-bottom: var(--spacing-lg);
   overflow: hidden;
+  min-width: 0;
 }
 
 .card-header {
@@ -578,18 +579,21 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: var(--spacing-md);
+  min-width: 0;
 }
 
 .header-content {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  min-width: 0;
 }
 
 .header-content p {
   margin: 4px 0 0;
   color: var(--color-text-secondary);
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
 }
 
 .header-icon {
@@ -605,6 +609,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .log-actions {
@@ -613,6 +618,7 @@ onUnmounted(() => {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
 }
 
 .toggle-chip {
@@ -623,6 +629,8 @@ onUnmounted(() => {
   border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.52);
   border: 1px solid var(--color-border-light);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .tool-btn {
@@ -634,6 +642,8 @@ onUnmounted(() => {
   border-radius: var(--radius-full);
   padding: 8px 12px;
   color: var(--color-text);
+  max-width: 100%;
+  white-space: normal;
 }
 
 .tool-btn:disabled {
@@ -645,11 +655,12 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .search-field {
   flex: 1 1 280px;
-  min-width: 240px;
+  min-width: min(240px, 100%);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -684,6 +695,7 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   margin: var(--spacing-sm);
+  min-width: 0;
 }
 
 .log-list {
@@ -698,6 +710,7 @@ onUnmounted(() => {
   padding: 8px 10px;
   border-radius: 12px;
   color: var(--color-text);
+  min-width: 0;
 }
 
 .log-line:hover {
@@ -708,8 +721,10 @@ onUnmounted(() => {
   color: inherit;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   font-family: "Cascadia Code", "Courier New", monospace;
   font-size: 0.86rem;
+  min-width: 0;
 }
 
 .log-line.info {
@@ -729,6 +744,7 @@ onUnmounted(() => {
   background: transparent;
   color: var(--color-text-secondary);
   padding: 2px;
+  flex: 0 0 auto;
 }
 
 .log-empty {
@@ -776,6 +792,13 @@ onUnmounted(() => {
 
   .log-actions {
     gap: 6px;
+  }
+
+  .log-actions > *,
+  .tool-btn,
+  .toggle-chip {
+    width: 100%;
+    justify-content: center;
   }
 
   .tool-btn {

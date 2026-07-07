@@ -842,6 +842,7 @@ const runDiagnostic = async (target) => {
   padding-bottom: 80px;
   width: min(100%, 1120px);
   margin: 0 auto;
+  min-width: 0;
 }
 
 .diagnostics-panel {
@@ -881,6 +882,7 @@ const runDiagnostic = async (target) => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .diag-name {
@@ -890,6 +892,7 @@ const runDiagnostic = async (target) => {
   font-weight: 600;
   font-size: 0.95rem;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .diag-dot {
@@ -938,9 +941,10 @@ const runDiagnostic = async (target) => {
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-text);
-  white-space: nowrap;
+  white-space: normal;
   flex: 0 0 auto;
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  max-width: 100%;
 }
 
 .diag-test-btn:hover:not(:disabled) {
@@ -976,6 +980,7 @@ const runDiagnostic = async (target) => {
   margin-bottom: var(--spacing-lg);
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
+  min-width: 0;
 }
 
 .card-header {
@@ -985,12 +990,15 @@ const runDiagnostic = async (target) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
 }
 
 .header-content {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  min-width: 0;
 }
 
 .header-icon {
@@ -1007,6 +1015,7 @@ const runDiagnostic = async (target) => {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .card-body {
@@ -1014,6 +1023,7 @@ const runDiagnostic = async (target) => {
   border-top: 1px solid var(--color-border-light);
   margin-top: var(--spacing-xs);
   padding-top: var(--spacing-lg);
+  min-width: 0;
 }
 
 .floating-footer {
@@ -1033,6 +1043,7 @@ const runDiagnostic = async (target) => {
   width: 100%;
   max-width: 600px;
   pointer-events: auto;
+  min-width: 0;
 }
 
 .save-btn {
@@ -1095,6 +1106,7 @@ const runDiagnostic = async (target) => {
 .command-section h4 {
   font-size: 1rem;
   margin: 0 0 4px;
+  overflow-wrap: anywhere;
 }
 
 .alert-warning-soft {
@@ -1104,6 +1116,7 @@ const runDiagnostic = async (target) => {
   border-radius: var(--radius-lg);
   padding: 10px 14px;
   font-size: 0.88rem;
+  overflow-wrap: anywhere;
 }
 
 .pem-label-row {
@@ -1112,6 +1125,7 @@ const runDiagnostic = async (target) => {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 4px;
+  min-width: 0;
 }
 
 .btn-load-file {
@@ -1125,6 +1139,8 @@ const runDiagnostic = async (target) => {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--color-text-secondary);
+  max-width: 100%;
+  white-space: normal;
 }
 
 .btn-link-danger {
@@ -1135,6 +1151,8 @@ const runDiagnostic = async (target) => {
   padding: 0;
   background: none;
   border: none;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .pem-textarea {
@@ -1147,6 +1165,7 @@ const runDiagnostic = async (target) => {
   margin-top: 6px;
   font-size: 0.8rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .pem-feedback.is-error {
@@ -1163,12 +1182,15 @@ const runDiagnostic = async (target) => {
   justify-content: space-between;
   gap: 10px;
   margin-top: 6px;
+  min-width: 0;
 }
 
 .cert-present-hint {
   color: var(--color-success);
   font-size: 0.82rem;
   font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Tablet range and the experimental sidebar ("fullscreen") layout.

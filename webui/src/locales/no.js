@@ -56,7 +56,7 @@ export default {
     title: 'Vennligst logg inn',
     subtitle: 'Vennligst oppgi brukernavn og passord for å fortsette',
     username: 'Brukernavn',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Bruker',
     password: 'Passord',
     passwordPlaceholder: 'Passord',
     login: 'Logg inn',

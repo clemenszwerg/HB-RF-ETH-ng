@@ -33,11 +33,6 @@
         </span>
       </router-link>
 
-      <div class="device-chip desktop-only" :title="deviceName">
-        <AppIcon name="router" />
-        <span>{{ deviceName }}</span>
-      </div>
-
       <div class="desktop-nav">
         <router-link
           v-for="item in visibleNavItems"
@@ -247,8 +242,9 @@ const performRestart = async () => {
     await axios.post('/api/restart')
     showRestartModal.value = false
     closeMobileMenu()
-    uiStore.pushToast({ type: 'info', title: t('common.success'), message: t('firmware.restartingText'), duration: 18000 })
-    setTimeout(() => window.location.reload(), 20000)
+    const reloadDelay = settingsStore.flashPause ? 70000 : 20000
+    uiStore.pushToast({ type: 'info', title: t('common.success'), message: t('firmware.restartingText'), duration: Math.min(reloadDelay - 2000, 30000) })
+    setTimeout(() => window.location.reload(), reloadDelay)
   } catch (e) {
     console.error('Restart request failed', e)
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('settings.restartError') })
@@ -273,6 +269,14 @@ onMounted(async () => {
     }
   } catch (e) {
     console.error('Failed to load sys info for update check', e)
+  }
+
+  if (loginStore.isLoggedIn) {
+    try {
+      await settingsStore.load()
+    } catch (e) {
+      console.error('Failed to load settings for restart sync state', e)
+    }
   }
 
   if (localStorage.getItem('dismissedUpdate') === updateStore.latestVersion) {
@@ -329,7 +333,7 @@ onUnmounted(() => {
      intrinsic content width before flex distribution kicks in. */
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .brand {
@@ -372,27 +376,6 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-.device-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  max-width: 220px;
-  padding: 8px 12px;
-  border-radius: var(--radius-pill);
-  color: var(--color-primary-strong);
-  background: var(--color-primary-soft);
-  font-weight: 800;
-  font-size: 0.86rem;
-}
-
-.device-chip span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .desktop-nav {
   display: flex;
   align-items: center;
@@ -400,8 +383,8 @@ onUnmounted(() => {
   gap: 3px;
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  flex-wrap: wrap;
+  overflow: visible;
   padding: 3px;
   border: 1px solid var(--color-border);
   border-radius: 18px;
@@ -410,7 +393,7 @@ onUnmounted(() => {
 }
 
 .desktop-nav .nav-item {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 
 .desktop-nav::-webkit-scrollbar {
@@ -477,6 +460,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .icon-button {
@@ -511,6 +495,9 @@ onUnmounted(() => {
   text-decoration: none;
   font-weight: 700;
   border: none;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
 }
 
 .auth-button {
@@ -548,9 +535,12 @@ onUnmounted(() => {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  min-width: 200px;
+  width: min(220px, calc(100vw - 24px));
   padding: 10px;
   border-radius: 22px;
+  max-height: min(420px, calc(100vh - 96px));
+  overflow-y: auto;
+  z-index: 1200;
 }
 
 .locale-menu-item {
@@ -564,6 +554,8 @@ onUnmounted(() => {
   padding: 10px 12px;
   border-radius: 14px;
   text-align: left;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .locale-menu-item.active,
@@ -576,6 +568,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .update-banner-copy strong {
@@ -590,6 +583,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .mobile-only {
@@ -599,6 +593,7 @@ onUnmounted(() => {
 .mobile-overlay {
   position: fixed;
   inset: 0;
+  z-index: 1200;
   background: rgba(10, 14, 20, 0.38);
   backdrop-filter: blur(8px);
   display: flex;
@@ -609,6 +604,7 @@ onUnmounted(() => {
 .mobile-panel {
   width: min(340px, 100%);
   height: 100%;
+  max-height: calc(100vh - 24px);
   min-height: 0;
   border-radius: 28px;
   padding: 16px;
@@ -616,6 +612,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 
@@ -657,6 +654,8 @@ onUnmounted(() => {
   color: var(--color-text);
   text-decoration: none;
   font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .mobile-link.router-link-active {
@@ -675,7 +674,7 @@ onUnmounted(() => {
 
 .mobile-locale-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -690,6 +689,8 @@ onUnmounted(() => {
   justify-content: center;
   gap: 4px;
   font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .mobile-locale.active {
@@ -722,6 +723,7 @@ onUnmounted(() => {
   font-weight: 700;
   background: var(--color-primary-soft);
   color: var(--color-primary-strong);
+  white-space: normal;
 }
 
 .mobile-restart:disabled {
@@ -751,7 +753,7 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1200px) {
   .desktop-nav,
   .desktop-only {
     display: none;
@@ -780,9 +782,4 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 1599px) {
-  .device-chip {
-    display: none;
-  }
-}
 </style>

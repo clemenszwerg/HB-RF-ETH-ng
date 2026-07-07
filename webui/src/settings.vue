@@ -1129,6 +1129,7 @@ const restoreSettings = async () => {
 <style scoped>
 .settings-page {
   padding-bottom: 80px; /* Space for floating footer */
+  min-width: 0;
 }
 
 /* iOS Segmented Control */
@@ -1136,17 +1137,12 @@ const restoreSettings = async () => {
   display: flex;
   justify-content: center;
   margin-bottom: var(--spacing-xl);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.tabs-container::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
 }
 
 .segmented-control {
   display: inline-flex;
+  flex-wrap: wrap;
   background-color: var(--color-border-light);
   padding: 4px;
   border-radius: 20px;
@@ -1154,11 +1150,12 @@ const restoreSettings = async () => {
   width: 100%;
   max-width: 700px;
   gap: 4px;
+  min-width: 0;
 }
 
 .segment-btn {
-  flex: 1 0 auto;
-  min-width: max-content;
+  flex: 1 1 min(150px, 100%);
+  min-width: 0;
   border: none;
   background: transparent;
   padding: 8px 16px;
@@ -1175,11 +1172,14 @@ const restoreSettings = async () => {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .segment-label {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .segment-btn.active {
@@ -1195,6 +1195,7 @@ const restoreSettings = async () => {
   box-shadow: var(--shadow-md);
   margin-bottom: var(--spacing-lg);
   overflow: hidden;
+  min-width: 0;
 }
 
 .card-header {
@@ -1209,6 +1210,7 @@ const restoreSettings = async () => {
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  overflow-wrap: anywhere;
 }
 
 .card-body {
@@ -1221,17 +1223,25 @@ const restoreSettings = async () => {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-sm) 0;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.security-info {
+  min-width: 0;
 }
 
 .security-info h4 {
   margin: 0;
   font-size: 1rem;
+  overflow-wrap: anywhere;
 }
 
 .security-info p {
   margin: 0;
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .security-control-row {
@@ -1259,6 +1269,8 @@ hr {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
 }
 
 .switch-label {
@@ -1271,6 +1283,7 @@ hr {
   flex-direction: column;
   gap: 4px;
   padding-right: var(--spacing-md);
+  min-width: 0;
 }
 
 .switch-copy h4 {
@@ -1360,6 +1373,7 @@ hr {
   padding: 4px;
   border-radius: var(--radius-lg);
   margin-top: var(--spacing-xs);
+  min-width: 0;
 }
 
 .mode-btn {
@@ -1370,6 +1384,8 @@ hr {
   border-radius: var(--radius-md);
   font-weight: 500;
   transition: all 0.2s;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .mode-btn.active {
@@ -1396,6 +1412,9 @@ hr {
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .source-card.active {
@@ -1434,6 +1453,7 @@ hr {
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: background 0.2s;
+  min-width: 0;
 }
 
 .action-tile:hover {
@@ -1449,17 +1469,20 @@ hr {
 
 .tile-content {
   flex: 1;
+  min-width: 0;
 }
 
 .tile-content h4 {
   font-size: 1rem;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .tile-content p {
   margin: 0;
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .tile-arrow {
@@ -1475,7 +1498,7 @@ hr {
 /* LED Programs grid - base definition (was only in mobile MQ, missing on desktop) */
 .led-programs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
   gap: var(--spacing-md);
   margin-top: var(--spacing-md);
 }
@@ -1513,6 +1536,7 @@ hr {
   display: flex;
   gap: var(--spacing-md);
   align-items: center;
+  min-width: 0;
 }
 
 .save-btn {
@@ -1529,6 +1553,7 @@ hr {
   flex: 1;
   margin: 0;
   box-shadow: var(--shadow-lg);
+  min-width: 0;
 }
 
 .warning-chip {
@@ -1564,21 +1589,21 @@ hr {
 
   .tabs-container {
     margin-bottom: var(--spacing-lg);
-    margin-left: calc(-1 * var(--spacing-sm));
-    margin-right: calc(-1 * var(--spacing-sm));
-    padding: 0 var(--spacing-sm);
+    justify-content: flex-start;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
   }
 
   .segmented-control {
-    min-width: max-content;
-    width: auto;
-    flex-wrap: nowrap;
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .segment-btn {
     padding: 10px 16px;
     font-size: 0.875rem;
-    flex: 0 0 auto;
+    flex: 1 1 min(140px, 100%);
   }
 
   .settings-card {
@@ -1613,6 +1638,24 @@ hr {
     width: 100%;
   }
 
+  .switch-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .switch-copy {
+    padding-right: 0;
+  }
+
+  .mode-selector {
+    flex-direction: column;
+  }
+
+  .mode-btn {
+    text-align: center;
+  }
+
   .source-selector {
     grid-template-columns: 1fr;
     gap: var(--spacing-sm);
@@ -1639,12 +1682,26 @@ hr {
     text-align: right;
   }
 
+  .action-tile {
+    align-items: flex-start;
+  }
+
+  .tile-arrow {
+    display: none;
+  }
+
   .floating-footer {
     padding: var(--spacing-sm) var(--spacing-md);
   }
 
   .footer-container {
     flex-direction: column;
+  }
+
+  .footer-alert,
+  .save-btn,
+  .discard-btn {
+    width: 100%;
   }
 }
 

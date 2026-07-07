@@ -56,7 +56,7 @@ export default {
     title: 'Prosím přihlašte se',
     subtitle: 'Zadejte uživatelské jméno a heslo pro pokračování',
     username: 'Uživatelské jméno',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Uživatel',
     password: 'Heslo',
     passwordPlaceholder: 'Heslo',
     login: 'Přihlásit',

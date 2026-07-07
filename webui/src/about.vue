@@ -124,6 +124,7 @@ const libs = ref([
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  min-width: 0;
 }
 
 .about-section {
@@ -132,6 +133,7 @@ const libs = ref([
   box-shadow: var(--shadow-md);
   overflow: hidden;
   padding: var(--spacing-lg);
+  min-width: 0;
 }
 
 .section-header {
@@ -141,6 +143,7 @@ const libs = ref([
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
+  min-width: 0;
 }
 
 .section-icon {
@@ -155,6 +158,7 @@ const libs = ref([
   font-weight: 600;
   color: var(--color-text);
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .project-info {
@@ -173,6 +177,8 @@ const libs = ref([
   border-radius: var(--radius-full);
   font-weight: 600;
   width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
 }
 
 .version-label {
@@ -188,18 +194,21 @@ const libs = ref([
   color: var(--color-text-secondary);
   font-size: 0.9375rem;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .info-card {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+  min-width: 0;
 }
 
 .info-card p {
   margin: 0;
   color: var(--color-text);
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .info-card a {
@@ -224,6 +233,9 @@ const libs = ref([
   font-weight: 600;
   transition: all var(--transition-fast);
   width: fit-content;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .github-link:hover {
@@ -245,6 +257,7 @@ const libs = ref([
   background: var(--color-bg);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
+  min-width: 0;
 }
 
 .license-info p {
@@ -254,7 +267,7 @@ const libs = ref([
 
 .libs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
   gap: var(--spacing-sm);
 }
 
@@ -268,6 +281,8 @@ const libs = ref([
   border-radius: var(--radius-md);
   text-decoration: none !important;
   transition: all var(--transition-fast);
+  gap: var(--spacing-sm);
+  min-width: 0;
 }
 
 .lib-card:hover {
@@ -280,6 +295,8 @@ const libs = ref([
   font-weight: 500;
   color: var(--color-text);
   font-size: 0.875rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .lib-license {
@@ -289,6 +306,7 @@ const libs = ref([
   padding: 0.125rem 0.5rem;
   border-radius: var(--radius-full);
   font-weight: 500;
+  flex: 0 0 auto;
 }
 
 .text-muted {

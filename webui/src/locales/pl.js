@@ -56,7 +56,7 @@ export default {
     title: 'Proszę się zalogować',
     subtitle: 'Wprowadź nazwę użytkownika i hasło, aby kontynuować',
     username: 'Nazwa użytkownika',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Użytkownik',
     password: 'Hasło',
     passwordPlaceholder: 'Hasło',
     login: 'Zaloguj',

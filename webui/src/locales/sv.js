@@ -56,7 +56,7 @@ export default {
     title: 'Vänligen logga in',
     subtitle: 'Ange användarnamn och lösenord för att fortsätta',
     username: 'Användarnamn',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Användare',
     password: 'Lösenord',
     passwordPlaceholder: 'Lösenord',
     login: 'Logga in',

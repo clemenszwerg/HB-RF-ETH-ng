@@ -157,6 +157,7 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .newdesign-shell .app-container {
@@ -190,6 +191,7 @@ onUnmounted(() => {
   margin-bottom: var(--spacing-lg);
   /* Prevent content from overflowing horizontally on mobile */
   overflow-x: hidden;
+  min-width: 0;
 }
 
 .newdesign-shell .main-content {
@@ -238,6 +240,8 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: var(--spacing-md);
+  min-width: 0;
+  text-align: center;
 }
 
 .sponsor-btn {
@@ -254,6 +258,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   box-shadow: var(--shadow-sm);
+  max-width: 100%;
+  white-space: normal;
 }
 
 .sponsor-btn:hover {
@@ -277,6 +283,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* X / Twitter follow button — visually distinct from the sponsor button
@@ -297,6 +305,8 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: var(--shadow-sm);
+  max-width: 100%;
+  white-space: normal;
 }
 
 .follow-x-btn:hover {
@@ -356,6 +366,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 1rem;
   color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 .expired-prompt-body {
@@ -363,6 +374,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 16px;
   padding: 8px 0;
+  min-width: 0;
 }
 
 .expired-prompt-icon {
@@ -382,5 +394,21 @@ onUnmounted(() => {
   color: var(--color-text-secondary);
   font-size: 0.92rem;
   line-height: 1.5;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .expired-prompt-body {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .footer-actions,
+  .follow-x-btn,
+  .sponsor-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

@@ -56,7 +56,7 @@ export default {
     title: 'Veuillez vous connecter',
     subtitle: 'Veuillez entrer votre nom d\'utilisateur et votre mot de passe pour continuer',
     username: 'Nom d\'utilisateur',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: 'Utilisateur',
     password: 'Mot de passe',
     passwordPlaceholder: 'Mot de passe',
     login: 'Connexion',
