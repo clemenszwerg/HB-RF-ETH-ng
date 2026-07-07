@@ -1842,7 +1842,19 @@ static void _async_proxy_task(void *arg)
         }
     } else {
         ESP_LOGE(TAG, "%s (%s, HTTP %d)", job->error_message, esp_err_to_name(err), status_code);
-        httpd_resp_send_err(job->req, HTTPD_500_INTERNAL_SERVER_ERROR, job->error_message);
+        const char *client_status = "502 Bad Gateway";
+        if (status_code == 0) {
+            client_status = "504 Gateway Timeout";
+        } else if (status_code == 429 || status_code >= 500) {
+            client_status = "503 Service Unavailable";
+        }
+
+        char msg[160];
+        snprintf(msg, sizeof(msg), "%s (GitHub HTTP %d, %s)",
+                 job->error_message, status_code, esp_err_to_name(err));
+        httpd_resp_set_status(job->req, client_status);
+        httpd_resp_set_type(job->req, "text/plain");
+        httpd_resp_sendstr(job->req, msg);
     }
 
     if (client) {

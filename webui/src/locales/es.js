@@ -345,6 +345,7 @@ export default {
     archiveLoading: 'Cargando versiones...',
     archiveWarning: 'Cree una copia de seguridad antes de cambiar el firmware. Las versiones antiguas podrían no entender completamente los ajustes nuevos.',
     archiveLoadError: 'No se pudo cargar el archivo de firmware',
+    archiveUsingCache: 'GitHub no está disponible ahora. Se muestra la última lista de archivo guardada de {time}.',
     archiveEmpty: 'No se encontraron versiones de firmware coincidentes.',
     archiveCurrent: 'Instalada',
     archiveInstalled: 'Instalada',

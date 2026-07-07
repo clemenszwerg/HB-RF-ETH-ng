@@ -345,6 +345,7 @@ export default {
     archiveLoading: 'Načítání vydání...',
     archiveWarning: 'Před změnou firmwaru vytvořte zálohu. Starší verze nemusí plně rozumět novějším nastavením.',
     archiveLoadError: 'Archiv firmwaru se nepodařilo načíst',
+    archiveUsingCache: 'GitHub momentálně není dostupný. Zobrazuje se naposledy uložený archiv z {time}.',
     archiveEmpty: 'Nebyla nalezena žádná odpovídající vydání firmwaru.',
     archiveCurrent: 'Nainstalováno',
     archiveInstalled: 'Nainstalováno',

@@ -345,6 +345,7 @@ export default {
     archiveLoading: 'Läser in utgåvor...',
     archiveWarning: 'Skapa en säkerhetskopia innan du byter firmware. Äldre versioner kanske inte förstår nyare inställningar fullt ut.',
     archiveLoadError: 'Kunde inte läsa in firmwarearkivet',
+    archiveUsingCache: 'GitHub är inte tillgängligt just nu. Visar den senast sparade arkivlistan från {time}.',
     archiveEmpty: 'Inga matchande firmwareutgåvor hittades.',
     archiveCurrent: 'Installerad',
     archiveInstalled: 'Installerad',

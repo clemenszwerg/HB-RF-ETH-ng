@@ -345,6 +345,7 @@ export default {
     archiveLoading: 'Laster utgivelser...',
     archiveWarning: 'Lag en sikkerhetskopi før du bytter fastvare. Eldre versjoner forstår kanskje ikke nyere innstillinger fullt ut.',
     archiveLoadError: 'Kunne ikke laste fastvarearkivet',
+    archiveUsingCache: 'GitHub er ikke tilgjengelig akkurat nå. Viser den sist lagrede arkivlisten fra {time}.',
     archiveEmpty: 'Ingen passende fastvareutgivelser funnet.',
     archiveCurrent: 'Installert',
     archiveInstalled: 'Installert',

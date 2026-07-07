@@ -345,6 +345,7 @@ export default {
     archiveLoading: 'Releases laden...',
     archiveWarning: 'Maak een back-up voordat u van firmware wisselt. Oudere versies begrijpen nieuwere instellingen mogelijk niet volledig.',
     archiveLoadError: 'Firmwarearchief kon niet worden geladen',
+    archiveUsingCache: 'GitHub is momenteel niet beschikbaar. De laatst opgeslagen archieflijst van {time} wordt getoond.',
     archiveEmpty: 'Geen passende firmwarereleases gevonden.',
     archiveCurrent: 'Geïnstalleerd',
     archiveInstalled: 'Geïnstalleerd',

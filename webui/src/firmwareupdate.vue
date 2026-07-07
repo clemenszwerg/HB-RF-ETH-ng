@@ -395,6 +395,8 @@ const selectedArchiveVersion = ref('')
 
 const ARCHIVE_MANIFEST_URL = '/api/firmware_archive'
 const ARCHIVE_MANIFEST_FALLBACK_URL = 'https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/archive.json'
+const ARCHIVE_CACHE_KEY = 'hb-rf-eth-ng-firmware-archive-cache-v1'
+const ARCHIVE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 const archiveFilters = computed(() => [
   { value: 'stable', label: t('firmware.archiveStable') },
@@ -547,6 +549,8 @@ const parseArchiveManifest = (data) => {
     .filter((release) => release?.version && release.downloadUrl)
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 const fetchArchiveManifest = (url) => axios.get(url, {
   headers: { Accept: 'application/json' },
   params: { _: Date.now() },
@@ -554,17 +558,85 @@ const fetchArchiveManifest = (url) => axios.get(url, {
   silent: true
 })
 
-const loadArchiveManifest = async () => {
+const fetchArchiveManifestWithRetry = async (url, attempts = 2) => {
+  let lastError = null
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fetchArchiveManifest(url)
+    } catch (error) {
+      lastError = error
+      if (attempt < attempts) {
+        await sleep(600 * attempt)
+      }
+    }
+  }
+  throw lastError
+}
+
+const cacheArchiveManifest = (releases) => {
   try {
-    const response = await fetchArchiveManifest(ARCHIVE_MANIFEST_URL)
-    return parseArchiveManifest(response.data)
+    localStorage.setItem(ARCHIVE_CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      releases
+    }))
+  } catch (error) {
+    console.warn('Failed to cache firmware archive manifest', error)
+  }
+}
+
+const loadCachedArchiveManifest = () => {
+  try {
+    const raw = localStorage.getItem(ARCHIVE_CACHE_KEY)
+    if (!raw) return null
+    const cached = JSON.parse(raw)
+    if (!cached || !Array.isArray(cached.releases) || !Number.isFinite(cached.savedAt)) return null
+    if (Date.now() - cached.savedAt > ARCHIVE_CACHE_MAX_AGE_MS) return null
+    const releases = cached.releases
+      .map(normalizeArchiveEntry)
+      .filter((release) => release?.version && release.downloadUrl)
+    return releases.length > 0 ? { releases, savedAt: cached.savedAt } : null
+  } catch (error) {
+    console.warn('Failed to read cached firmware archive manifest', error)
+    return null
+  }
+}
+
+const archiveErrorDetails = (error) => {
+  const status = error?.response?.status
+  const serverMessage = typeof error?.response?.data === 'string' ? error.response.data : ''
+  return status
+    ? `${status}${serverMessage ? `: ${serverMessage}` : ''}`
+    : error?.message || ''
+}
+
+const loadArchiveManifest = async () => {
+  let lastError = null
+  try {
+    const response = await fetchArchiveManifestWithRetry(ARCHIVE_MANIFEST_URL)
+    const releases = parseArchiveManifest(response.data)
+    cacheArchiveManifest(releases)
+    return { releases, fromCache: false }
   } catch (primaryError) {
+    lastError = primaryError
     // Some firmware builds run the GitHub proxy with very little free heap.
     // Fall back to the static raw manifest directly from the browser so the
     // archive remains usable even when the device-side proxy cannot fetch it.
-    const response = await fetchArchiveManifest(ARCHIVE_MANIFEST_FALLBACK_URL)
-    return parseArchiveManifest(response.data)
+    try {
+      const response = await fetchArchiveManifestWithRetry(ARCHIVE_MANIFEST_FALLBACK_URL)
+      const releases = parseArchiveManifest(response.data)
+      cacheArchiveManifest(releases)
+      return { releases, fromCache: false }
+    } catch (fallbackError) {
+      lastError = fallbackError
+    }
   }
+
+  const cached = loadCachedArchiveManifest()
+  if (cached) {
+    return { ...cached, fromCache: true, error: lastError }
+  }
+
+  throw lastError || new Error(t('firmware.archiveLoadError'))
 }
 
 const loadFirmwareArchive = async () => {
@@ -572,14 +644,19 @@ const loadFirmwareArchive = async () => {
   archiveError.value = ''
 
   try {
-    firmwareArchive.value = await loadArchiveManifest()
+    const archiveResult = await loadArchiveManifest()
+    firmwareArchive.value = archiveResult.releases
     selectDefaultArchiveRelease()
+    if (archiveResult.fromCache) {
+      const savedAt = new Date(archiveResult.savedAt).toLocaleString()
+      const details = archiveErrorDetails(archiveResult.error)
+      archiveError.value = `${t('firmware.archiveUsingCache', { time: savedAt })}${details ? ` (${details})` : ''}`
+    }
   } catch (error) {
-    const status = error.response?.status
-    const serverMessage = typeof error.response?.data === 'string' ? error.response.data : ''
-    archiveError.value = status
-      ? `${t('firmware.archiveLoadError')} (${status}${serverMessage ? `: ${serverMessage}` : ''})`
-      : error.message || t('firmware.archiveLoadError')
+    const details = archiveErrorDetails(error)
+    archiveError.value = details
+      ? `${t('firmware.archiveLoadError')} (${details})`
+      : t('firmware.archiveLoadError')
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: archiveError.value })
   } finally {
     archiveLoading.value = false

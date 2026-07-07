@@ -345,6 +345,7 @@ export default {
     archiveLoading: 'Releases werden geladen...',
     archiveWarning: 'Vor dem Firmware-Wechsel bitte ein Backup erstellen. Ältere Versionen verstehen neuere Einstellungen eventuell nicht vollständig.',
     archiveLoadError: 'Firmware-Archiv konnte nicht geladen werden',
+    archiveUsingCache: 'GitHub ist gerade nicht erreichbar. Es wird die zuletzt gespeicherte Archivliste von {time} angezeigt.',
     archiveEmpty: 'Keine passenden Firmware-Releases gefunden.',
     archiveCurrent: 'Installiert',
     archiveInstalled: 'Installiert',
