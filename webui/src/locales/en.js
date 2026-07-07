@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Network',
     tabTime: 'Time',
     tabBackup: 'Backup',
+    tabLicense: 'License',
     tabExperimental: 'Experimental',
     changePassword: 'Change Password',
     repeatPassword: 'Repeat Password',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'These features are intended for testing. There is no guarantee for function or appearance.',
     experimentalDesign: 'Test design',
     experimentalDesignHint: 'Enables the new experimental layout. The choice is stored only in this browser and can be disabled at any time.',
-    flashPause: 'Flash Pause',
-    flashPauseHint: 'After a firmware update, hold the Ethernet link down for 35 seconds before restarting. This ensures the CCU watchdog (30 s timeout) detects the disconnection and triggers a clean CCU reboot, preventing stale connections after the update.',
+    flashPause: 'Restart Sync',
+    flashPauseHint: 'When a restart is triggered by a firmware update or settings change, the Ethernet link is held down for ~35 seconds before the device reboots. This lets the CCU watchdog (30 s timeout) detect the disconnect and perform a clean CCU reboot, preventing stale connections.',
     restoreSuccess: 'Settings successfully restored. System restarting...',
     restoreError: 'Error restoring settings',
     backupError: 'Error downloading backup',
@@ -297,7 +298,7 @@ export default {
     otaSuccess: 'Download successful. Installing...',
     currentVersion: 'Current Version',
     installedVersion: 'Installed version',
-    versionInfo: 'Modernized fork v2.2.3-Beta.20 by Xerolux (2025) - Based on the original work by Alexander Reinert.',
+    versionInfo: 'Modernized fork v2.2.3-Beta.21 by Xerolux (2025) - Based on the original work by Alexander Reinert.',
     updateAvailableMessage: 'An update to version {latestVersion} is available.',
     newVersionAvailable: 'New version {version} is available!',
     viewUpdate: 'View',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / release notes',
     otaFailed: 'OTA update failed',
     lostConnection: 'Lost connection to the device during the update',
-    restartFlashPauseHint: 'Flash Pause is active — the Ethernet link will be held down for ~35 s before the device actually reboots, so the page reload will take a bit longer than usual.'
+    restartFlashPauseHint: 'Restart Sync is active — the Ethernet link will be held down for ~35 s before the device is available again after the restart, so the page reload will take a bit longer than usual.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'This key expired on {date}.',
     validHint: 'Valid — expires on {date}.',
     footnote: 'Each key is unique and valid for a limited time. It is stored on this device.',
-    chipActive: 'Supporter',
-    chipInactive: 'Support',
+    chipActive: 'Active Supporter',
+    chipInactive: 'Support Project',
     chipTooltip: 'Supporter — valid until {date}',
-    chipInactiveTooltip: 'Become a supporter',
+    chipInactiveTooltip: 'This project relies on voluntary support — become a supporter',
     expiredPromptTitle: 'Your supporter key has expired',
     expiredPromptSupport: 'Support again',
     expiredPromptBody: 'Your supporter key has expired. With a small contribution (e.g. a coffee) you support the ongoing development of this project and receive a fresh supporter key as a thank you. Thank you! ❤'

@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Nettverk',
     tabTime: 'Tid',
     tabBackup: 'Sikkerhetskopi',
+    tabLicense: 'Lisens',
     tabExperimental: 'Eksperimentelt',
     changePassword: 'Endre Passord',
     repeatPassword: 'Gjenta Passord',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'Disse funksjonene er ment for testing. Det gis ingen garanti for funksjon eller utseende.',
     experimentalDesign: 'Testdesign',
     experimentalDesignHint: 'Aktiverer det nye eksperimentelle oppsettet. Valget lagres bare i denne nettleseren og kan deaktiveres når som helst.',
-    flashPause: 'Flash Pause',
-    flashPauseHint: 'Etter en fastvareoppdatering kobles Ethernet-lenken ned i 35 s før omstart, slik at CCU-watchdogen oppdager frakoblingen og starter CCU rent på nytt.',
+    flashPause: 'Omstart-synk.',
+    flashPauseHint: 'Etter en omstart utløst av en fastvareoppdatering eller en innstillingsendring, kobles Ethernet-lenken ned i 35 s før omstart, slik at CCU-watchdogen oppdager frakoblingen og starter CCU rent på nytt.',
     restoreSuccess: 'Innstillinger gjenopprettet. Starter systemet på nytt...',
     restoreError: 'Feil ved gjenoppretting av innstillinger',
     backupError: 'Feil ved nedlasting av sikkerhetskopi',
@@ -290,7 +291,7 @@ export default {
     otaSuccess: 'Nedlasting vellykket. Installerer...',
     currentVersion: 'Nåværende Versjon',
     installedVersion: 'Installert versjon',
-    versionInfo: 'Modernisert fork v2.2.3-Beta.20 av Xerolux (2025) - Basert på originalarbeidet til Alexander Reinert.',
+    versionInfo: 'Modernisert fork v2.2.3-Beta.21 av Xerolux (2025) - Basert på originalarbeidet til Alexander Reinert.',
     updateAvailable: 'Oppdatering tilgjengelig!',
     updateAvailableMessage: 'En oppdatering til versjon {latestVersion} er tilgjengelig.',
     upToDate: 'Fastvaren er oppdatert',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / utgivelsesnotater',
     otaFailed: 'OTA-oppdatering mislyktes',
     lostConnection: 'Mistet forbindelsen til enheten under oppdateringen',
-    restartFlashPauseHint: 'Flash-pause er aktiv: Ethernet-lenken holdes nede i ca. 35 s før enheten faktisk starter på nytt. Sideoppdateringen vil derfor ta litt lenger tid enn vanlig.'
+    restartFlashPauseHint: 'Omstart-synk. er aktiv: Ethernet-lenken holdes nede i ca. 35 s før enheten faktisk starter på nytt. Sideoppdateringen vil derfor ta litt lenger tid enn vanlig.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'Denne nøkkelen utløp {date}.',
     validHint: 'Gyldig — utløper {date}.',
     footnote: 'Hver nøkkel er unik og gyldig i begrenset tid. Den lagres på denne enheten.',
-    chipActive: 'Supporter',
-    chipInactive: 'Støtt',
+    chipActive: 'Aktiv supporter',
+    chipInactive: 'Støtt prosjektet',
     chipTooltip: 'Supporter — gyldig til {date}',
-    chipInactiveTooltip: 'Bli supporter',
+    chipInactiveTooltip: 'Dette prosjektet er avhengig av frivillig støtte — bli supporter',
     expiredPromptTitle: 'Din supporter-nøkkel er utløpt',
     expiredPromptSupport: 'Støtt igjen',
     expiredPromptBody: 'Din supporter-nøkkel er utløpt. Med et lite bidrag (f.eks. en kaffe) støtter du den videre utviklingen av dette prosjektet og får en ny supporter-nøkkel som takk. Takk! ❤'

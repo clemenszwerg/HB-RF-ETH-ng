@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Red',
     tabTime: 'Hora',
     tabBackup: 'Copia de seguridad',
+    tabLicense: 'Licencia',
     tabExperimental: 'Experimental',
     changePassword: 'Cambiar contraseña',
     repeatPassword: 'Repetir contraseña',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'Estas funciones están pensadas para pruebas. No hay garantía de funcionamiento ni de visualización.',
     experimentalDesign: 'Diseño de prueba',
     experimentalDesignHint: 'Activa el nuevo diseño experimental. La elección se guarda solo en este navegador y puede desactivarse en cualquier momento.',
-    flashPause: 'Pausa Flash',
-    flashPauseHint: 'Tras una actualización de firmware, desconecta el enlace Ethernet durante 35 s antes de reiniciar, para que el watchdog de la CCU detecte la desconexión y reinicie limpiamente.',
+    flashPause: 'Sincronización de reinicio',
+    flashPauseHint: 'Tras un reinicio provocado por una actualización de firmware o un cambio de ajustes, desconecta el enlace Ethernet durante 35 s antes de reiniciar, para que el watchdog de la CCU detecte la desconexión y reinicie limpiamente.',
     restoreSuccess: 'Configuración restaurada correctamente. Reiniciando el sistema...',
     restoreError: 'Error al restaurar la configuración',
     backupError: 'Error al descargar la copia de seguridad',
@@ -290,7 +291,7 @@ export default {
     otaSuccess: 'Descarga exitosa. Instalando...',
     currentVersion: 'Versión actual',
     installedVersion: 'Versión instalada',
-    versionInfo: 'Fork modernizado v2.2.3-Beta.20 por Xerolux (2025) - Basado en el trabajo original de Alexander Reinert.',
+    versionInfo: 'Fork modernizado v2.2.3-Beta.21 por Xerolux (2025) - Basado en el trabajo original de Alexander Reinert.',
     updateAvailable: '¡Actualización disponible!',
     updateAvailableMessage: 'Hay una actualización disponible para la versión {latestVersion}.',
     upToDate: 'El firmware está actualizado',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / notas de la versión',
     otaFailed: 'Error en la actualización OTA',
     lostConnection: 'Se perdió la conexión con el dispositivo durante la actualización',
-    restartFlashPauseHint: 'La pausa de Flash está activa: el enlace Ethernet se mantendrá desconectado unos 35 s antes de que el dispositivo se reinicie realmente. La recarga de la página tardará un poco más de lo habitual.'
+    restartFlashPauseHint: 'La sincronización de reinicio está activa: el enlace Ethernet se mantendrá desconectado unos 35 s antes de que el dispositivo se reinicie realmente. La recarga de la página tardará un poco más de lo habitual.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'Esta clave expiró el {date}.',
     validHint: 'Válida — expira el {date}.',
     footnote: 'Cada clave es única y válida por tiempo limitado. Se guarda en este dispositivo.',
-    chipActive: 'Patrocinador',
-    chipInactive: 'Apoyar',
+    chipActive: 'Patrocinador activo',
+    chipInactive: 'Apoyar proyecto',
     chipTooltip: 'Patrocinador — válido hasta {date}',
-    chipInactiveTooltip: 'Hazte patrocinador',
+    chipInactiveTooltip: 'Este proyecto depende del apoyo voluntario — hazte patrocinador',
     expiredPromptTitle: 'Tu clave de apoyo ha expirado',
     expiredPromptSupport: 'Apoyar de nuevo',
     expiredPromptBody: 'Tu clave de apoyo ha expirado. Con una pequeña aportación (p. ej. un café) apoyas el desarrollo continuo de este proyecto y recibes una nueva clave como agradecimiento. ¡Gracias! ❤'

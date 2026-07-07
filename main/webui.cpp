@@ -708,7 +708,7 @@ esp_err_t post_settings_json_handler_func(httpd_req_t *req)
     if (systemLogEnabledItem && cJSON_IsBool(systemLogEnabledItem)) {
         _settings->setSystemLogEnabled(cJSON_IsTrue(systemLogEnabledItem));
         if (cJSON_IsTrue(systemLogEnabledItem)) {
-            LogManager::begin(8192);
+            LogManager::begin();
             if (LogManager::instance().isEnabled()) {
                 emit_log_enable_snapshot();
             }
@@ -2172,7 +2172,7 @@ esp_err_t post_log_enable_handler_func(httpd_req_t *req)
         }
     }
 
-    LogManager::begin(8192);
+    LogManager::begin();
     if (LogManager::instance().isEnabled()) {
         if (_settings) {
             _settings->setSystemLogEnabled(true);

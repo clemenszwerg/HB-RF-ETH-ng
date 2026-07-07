@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Netwerk',
     tabTime: 'Tijd',
     tabBackup: 'Back-up',
+    tabLicense: 'Licentie',
     tabExperimental: 'Experimenteel',
     changePassword: 'Wachtwoord wijzigen',
     repeatPassword: 'Wachtwoord herhalen',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'Deze functies zijn bedoeld om te testen. Er is geen garantie voor werking of weergave.',
     experimentalDesign: 'Testontwerp',
     experimentalDesignHint: 'Schakelt de nieuwe experimentele lay-out in. De keuze wordt alleen in deze browser opgeslagen en kan op elk moment weer worden uitgeschakeld.',
-    flashPause: 'Flash Pauze',
-    flashPauseHint: 'Na een firmware-update wordt de Ethernet-link 35 s verbroken vóór de herstart, zodat de CCU-watchdog de onderbreking detecteert en de CCU schoon opnieuw opstart.',
+    flashPause: 'Herstart-synchronisatie',
+    flashPauseHint: 'Na een herstart geactiveerd door een firmware-update of instellingswijziging wordt de Ethernet-link 35 s verbroken vóór de herstart, zodat de CCU-watchdog de onderbreking detecteert en de CCU schoon opnieuw opstart.',
     restoreSuccess: 'Instellingen succesvol hersteld. Systeem herstart...',
     restoreError: 'Fout bij het herstellen van instellingen',
     backupError: 'Fout bij het downloaden van back-up',
@@ -290,7 +291,7 @@ export default {
     otaSuccess: 'Download succesvol. Installeren...',
     currentVersion: 'Huidige Versie',
     installedVersion: 'Geïnstalleerde versie',
-    versionInfo: 'Gemoderniseerde fork v2.2.3-Beta.20 door Xerolux (2025) - Gebaseerd op het originele werk van Alexander Reinert.',
+    versionInfo: 'Gemoderniseerde fork v2.2.3-Beta.21 door Xerolux (2025) - Gebaseerd op het originele werk van Alexander Reinert.',
     updateAvailable: 'Update beschikbaar!',
     updateAvailableMessage: 'Een update naar versie {latestVersion} is beschikbaar.',
     upToDate: 'Firmware is up-to-date',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / releasenotes',
     otaFailed: 'OTA-update mislukt',
     lostConnection: 'Verbinding met apparaat verloren tijdens update',
-    restartFlashPauseHint: 'Flash Pauze is actief: de Ethernet-link wordt circa 35 s verbroken voordat het apparaat daadwerkelijk herstart. Het herladen van de pagina duurt dus iets langer dan normaal.'
+    restartFlashPauseHint: 'Herstart-synchronisatie is actief: de Ethernet-link wordt circa 35 s verbroken voordat het apparaat daadwerkelijk herstart. Het herladen van de pagina duurt dus iets langer dan normaal.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'Deze sleutel is verlopen op {date}.',
     validHint: 'Geldig — verloopt op {date}.',
     footnote: 'Elke sleutel is uniek en beperkt geldig. Hij wordt op dit apparaat opgeslagen.',
-    chipActive: 'Supporter',
-    chipInactive: 'Steun',
+    chipActive: 'Actieve supporter',
+    chipInactive: 'Steun het project',
     chipTooltip: 'Supporter — geldig tot {date}',
-    chipInactiveTooltip: 'Word supporter',
+    chipInactiveTooltip: 'Dit project is afhankelijk van vrijwillige steun — word supporter',
     expiredPromptTitle: 'Je supporter-sleutel is verlopen',
     expiredPromptSupport: 'Opnieuw steunen',
     expiredPromptBody: 'Je supporter-sleutel is verlopen. Met een kleine bijdrage (bijv. een koffie) steun je de doorontwikkeling van dit project en ontvang je een nieuwe supporter-sleutel als dank. Bedankt! ❤'

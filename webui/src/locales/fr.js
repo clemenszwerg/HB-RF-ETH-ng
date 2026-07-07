@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Réseau',
     tabTime: 'Heure',
     tabBackup: 'Sauvegarde',
+    tabLicense: 'Licence',
     tabExperimental: 'Expérimental',
     changePassword: 'Changer le mot de passe',
     repeatPassword: 'Répéter le mot de passe',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'Ces fonctions sont prévues pour les tests. Aucune garantie n’est donnée pour le fonctionnement ou l’affichage.',
     experimentalDesign: 'Design de test',
     experimentalDesignHint: 'Active la nouvelle mise en page expérimentale. Le choix est enregistré uniquement dans ce navigateur et peut être désactivé à tout moment.',
-    flashPause: 'Flash Pause',
-    flashPauseHint: 'Après une mise à jour du firmware, coupe la liaison Ethernet pendant 35 s avant le redémarrage, pour que le watchdog de la CCU détecte la déconnexion et redémarre proprement.',
+    flashPause: 'Sync. redémarrage',
+    flashPauseHint: 'Après un redémarrage déclenché par une mise à jour du firmware ou une modification des paramètres, coupe la liaison Ethernet pendant 35 s avant le redémarrage, pour que le watchdog de la CCU détecte la déconnexion et redémarre proprement.',
     restoreSuccess: 'Paramètres restaurés avec succès. Redémarrage du système...',
     restoreError: 'Erreur lors de la restauration des paramètres',
     backupError: 'Erreur lors du téléchargement de la sauvegarde',
@@ -290,7 +291,7 @@ export default {
     otaSuccess: 'Téléchargement réussi. Installation...',
     currentVersion: 'Version actuelle',
     installedVersion: 'Version installée',
-    versionInfo: 'Fork modernisé v2.2.3-Beta.20 par Xerolux (2025) - Basé sur le travail original d\'Alexander Reinert.',
+    versionInfo: 'Fork modernisé v2.2.3-Beta.21 par Xerolux (2025) - Basé sur le travail original d\'Alexander Reinert.',
     updateAvailable: 'Mise à jour disponible !',
     updateAvailableMessage: 'Une mise à jour vers la version {latestVersion} est disponible.',
     upToDate: 'Le firmware est à jour',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / notes de version',
     otaFailed: 'Échec de la mise à jour OTA',
     lostConnection: 'Connexion à l\'appareil perdue pendant la mise à jour',
-    restartFlashPauseHint: 'Flash Pause est activée : la liaison Ethernet sera coupée pendant environ 35 s avant le redémarrage effectif de l\'appareil. Le rechargement de la page prendra donc un peu plus de temps que d\'habitude.'
+    restartFlashPauseHint: 'Sync. redémarrage est activée : la liaison Ethernet sera coupée pendant environ 35 s avant le redémarrage effectif de l\'appareil. Le rechargement de la page prendra donc un peu plus de temps que d\'habitude.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'Cette clé a expiré le {date}.',
     validHint: 'Valide — expire le {date}.',
     footnote: 'Chaque clé est unique et valable pour une durée limitée. Elle est stockée sur cet appareil.',
-    chipActive: 'Soutien',
-    chipInactive: 'Soutenir',
+    chipActive: 'Soutien actif',
+    chipInactive: 'Soutenir le projet',
     chipTooltip: 'Soutien — valide jusqu’au {date}',
-    chipInactiveTooltip: 'Devenir soutien',
+    chipInactiveTooltip: 'Ce projet dépend du soutien volontaire — devenez soutien',
     expiredPromptTitle: 'Votre clé de soutien a expiré',
     expiredPromptSupport: 'Soutenir à nouveau',
     expiredPromptBody: 'Votre clé de soutien a expiré. Avec une petite contribution (par ex. un café), vous soutenez le développement continu de ce projet et recevez une nouvelle clé de soutien en remerciement. Merci ! ❤'

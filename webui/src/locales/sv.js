@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Nätverk',
     tabTime: 'Tid',
     tabBackup: 'Säkerhetskopia',
+    tabLicense: 'Licens',
     tabExperimental: 'Experimentellt',
     changePassword: 'Byt Lösenord',
     repeatPassword: 'Upprepa Lösenord',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'Dessa funktioner är avsedda för testning. Det finns ingen garanti för funktion eller utseende.',
     experimentalDesign: 'Testdesign',
     experimentalDesignHint: 'Aktiverar den nya experimentella layouten. Valet sparas endast i den här webbläsaren och kan inaktiveras när som helst.',
-    flashPause: 'Flash-paus',
-    flashPauseHint: 'Efter en firmware-uppdatering kopplas Ethernet-länken ner i 35 s före omstart, så att CCU-watchdogen upptäcker frånkopplingen och startar om rent.',
+    flashPause: 'Omstart-synk.',
+    flashPauseHint: 'Efter en omstart som utlöses av en firmware-uppdatering eller inställningsändring kopplas Ethernet-länken ner i 35 s före omstart, så att CCU-watchdogen upptäcker frånkopplingen och startar om rent.',
     restoreSuccess: 'Inställningar återställda framgångsrikt. Startar om systemet...',
     restoreError: 'Fel vid återställning av inställningar',
     backupError: 'Fel vid nedladdning av säkerhetskopia',
@@ -290,7 +291,7 @@ export default {
     otaSuccess: 'Nedladdning lyckades. Installerar...',
     currentVersion: 'Nuvarande Version',
     installedVersion: 'Installerad version',
-    versionInfo: 'Moderniserad fork v2.2.3-Beta.20 av Xerolux (2025) - Baserad på originalarbetet av Alexander Reinert.',
+    versionInfo: 'Moderniserad fork v2.2.3-Beta.21 av Xerolux (2025) - Baserad på originalarbetet av Alexander Reinert.',
     updateAvailable: 'Uppdatering tillgänglig!',
     updateAvailableMessage: 'En uppdatering till version {latestVersion} finns tillgänglig.',
     upToDate: 'Den fasta programvaran är uppdaterad',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / versionsinformation',
     otaFailed: 'OTA-uppdatering misslyckades',
     lostConnection: 'Förlorade anslutningen till enheten under uppdateringen',
-    restartFlashPauseHint: 'Flash-paus är aktiv: Ethernet-länken hålls nere i ca 35 s innan enheten faktiskt startar om. Omladdningen av sidan kommer därför att ta lite längre tid än vanligt.'
+    restartFlashPauseHint: 'Omstart-synk. är aktiv: Ethernet-länken hålls nere i ca 35 s innan enheten faktiskt startar om. Omladdningen av sidan kommer därför att ta lite längre tid än vanligt.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'Denna nyckel gick ut {date}.',
     validHint: 'Giltig — löper ut {date}.',
     footnote: 'Varje nyckel är unik och giltig i begränsad tid. Den sparas på denna enhet.',
-    chipActive: 'Supporter',
-    chipInactive: 'Stöd',
+    chipActive: 'Aktiv supporter',
+    chipInactive: 'Stöd projektet',
     chipTooltip: 'Supporter — giltig till {date}',
-    chipInactiveTooltip: 'Bli supporter',
+    chipInactiveTooltip: 'Detta projekt är beroende av frivilligt stöd — bli supporter',
     expiredPromptTitle: 'Din supporternyckel har löpt ut',
     expiredPromptSupport: 'Stöd igen',
     expiredPromptBody: 'Din supporternyckel har löpt ut. Med ett litet bidrag (t.ex. en kaffe) stöder du den fortsatta utvecklingen av detta projekt och får en ny supporternyckel som tack. Tack! ❤'

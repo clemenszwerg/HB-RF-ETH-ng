@@ -32,13 +32,31 @@
 static const char *TAG = "SystemReset";
 
 static bool g_flashPauseEnabled = false;
+// Optional callback registered by the Ethernet driver. When set, it cleanly
+// stops the MAC (esp_eth_stop) BEFORE we toggle the PHY reset pin. This
+// guarantees the link drops at both layers — GPIO-only PHY reset alone was
+// unreliable on some board revisions and the CCU watchdog never saw the
+// disconnect.
+static restart_eth_pause_fn_t g_eth_pause_cb = NULL;
 
 void set_flash_pause_enabled(bool enabled) {
     g_flashPauseEnabled = enabled;
 }
 
+void register_restart_eth_pause_callback(restart_eth_pause_fn_t cb) {
+    g_eth_pause_cb = cb;
+}
+
 void full_system_restart() {
     ESP_LOGI(TAG, "Initiating full system restart...");
+
+    // Cleanly stop the Ethernet MAC first so the link partner (switch / CCU)
+    // immediately sees carrier loss. The PHY pin toggle below keeps the PHY
+    // in reset during the pause window; together both layers are down.
+    if (g_flashPauseEnabled && g_eth_pause_cb) {
+        ESP_LOGI(TAG, "Stopping Ethernet MAC for link-down pause...");
+        g_eth_pause_cb();
+    }
 
     // Configure pins as output
     gpio_config_t io_conf = {};
@@ -60,7 +78,7 @@ void full_system_restart() {
         // timeout) detects the link loss and triggers a clean CCU restart.
         // The PHY nRST pin is driven, not a power rail — PoE is unaffected.
         // pdMS_TO_TICKS overflows for large values, so loop in 5 s chunks.
-        ESP_LOGI(TAG, "Flash pause: Ethernet off for 35 s (CCU watchdog trigger)...");
+        ESP_LOGI(TAG, "Link-down pause active: Ethernet off for 35 s (CCU watchdog trigger)...");
         for (int i = 0; i < 7; i++) {
             vTaskDelay(pdMS_TO_TICKS(5000));
         }

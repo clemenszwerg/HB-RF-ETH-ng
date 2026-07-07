@@ -146,7 +146,12 @@
               </div>
             </div>
           </div>
+        </div>
+      </Transition>
 
+      <!-- License Tab -->
+      <Transition name="fade" mode="out-in">
+        <div v-if="activeTab === 'license'" class="tab-panel">
           <!-- Supporter key (cosmetic badge) -->
           <div class="settings-card supporter-card" :class="{ 'is-active': sysInfoStore.supporterActive }">
             <div class="card-header">
@@ -643,6 +648,7 @@ const tabs = computed(() => [
   { id: 'network', label: t('settings.tabNetwork'), icon: 'network' },
   { id: 'time', label: t('settings.tabTime'), icon: 'clock' },
   { id: 'backup', label: t('settings.tabBackup'), icon: 'backup' },
+  { id: 'license', label: t('settings.tabLicense'), icon: 'heart' },
   { id: 'experimental', label: t('settings.tabExperimental'), icon: 'alert' }
 ])
 

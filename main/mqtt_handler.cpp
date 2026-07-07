@@ -617,7 +617,8 @@ void mqtt_handler_publish_ha_discovery(void)
     auto publish_config = [&](const char* component, const char* object_id, const char* name,
                               const char* device_class, const char* state_class,
                               const char* unit_of_measurement, const char* value_template,
-                              const char* entity_category = NULL, const char* icon = NULL) {
+                              const char* entity_category = NULL, const char* icon = NULL,
+                              const char* payload_on = NULL, const char* payload_off = NULL) {
 
         cJSON *root = cJSON_CreateObject();
         cJSON_AddStringToObject(root, "name", name);
@@ -634,6 +635,8 @@ void mqtt_handler_publish_ha_discovery(void)
         if (state_class) cJSON_AddStringToObject(root, "state_class", state_class);
         if (unit_of_measurement) cJSON_AddStringToObject(root, "unit_of_measurement", unit_of_measurement);
         if (value_template) cJSON_AddStringToObject(root, "value_template", value_template);
+        if (payload_on) cJSON_AddStringToObject(root, "payload_on", payload_on);
+        if (payload_off) cJSON_AddStringToObject(root, "payload_off", payload_off);
         if (entity_category) cJSON_AddStringToObject(root, "entity_category", entity_category);
         if (icon) cJSON_AddStringToObject(root, "icon", icon);
 
@@ -671,10 +674,13 @@ void mqtt_handler_publish_ha_discovery(void)
     publish_config("sensor", "board_revision", "Board Revision", NULL, NULL, NULL, NULL, "diagnostic", "mdi:expansion-card");
 
     // ---- Sensors: network -----------------------------------------------
+    // Binary sensors use payload_on/off instead of value_json because the
+    // state topics publish plain strings ("online"/"offline", "true"/"false").
+    // This makes the entities decode correctly in Home Assistant.
     publish_config("binary_sensor", "online", "Online", "connectivity", NULL, NULL,
-                   "{{ value_json }}", "diagnostic", "mdi:lan-connect");
+                   NULL, "diagnostic", "mdi:lan-connect", "online", "offline");
     publish_config("binary_sensor", "eth_connected", "Ethernet Link", "connectivity", NULL, NULL,
-                   "{{ value_json }}", "diagnostic", "mdi:ethernet");
+                   NULL, "diagnostic", "mdi:ethernet", "true", "false");
     publish_config("sensor", "eth_link_speed", "Ethernet Speed", "data_rate", "measurement", "Mbit/s", NULL, "diagnostic", "mdi:speedometer");
     publish_config("sensor", "ip_address", "IP Address", NULL, NULL, NULL, NULL, "diagnostic", "mdi:ip");
     publish_config("sensor", "netmask", "Subnet Mask", NULL, NULL, NULL, NULL, "diagnostic", "mdi:ip-network");
@@ -690,7 +696,7 @@ void mqtt_handler_publish_ha_discovery(void)
 
     // ---- Sensors: time / NTP --------------------------------------------
     publish_config("binary_sensor", "ntp_synced", "NTP Synced", NULL, NULL, NULL,
-                   "{{ value_json }}", "diagnostic", "mdi:clock-check");
+                   NULL, "diagnostic", "mdi:clock-check", "true", "false");
 
     // ---- Sensors: OTA ----------------------------------------------------
     publish_config("sensor", "ota_progress", "OTA Progress", NULL, "measurement", "%", NULL, "diagnostic", "mdi:progress-download");

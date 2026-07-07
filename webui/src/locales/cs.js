@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Síť',
     tabTime: 'Čas',
     tabBackup: 'Záloha',
+    tabLicense: 'Licence',
     tabExperimental: 'Experimentální',
     changePassword: 'Změnit heslo',
     repeatPassword: 'Opakovat heslo',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'Tyto funkce jsou určeny k testování. Funkčnost ani vzhled nejsou zaručeny.',
     experimentalDesign: 'Testovací design',
     experimentalDesignHint: 'Aktivuje nové experimentální rozvržení. Volba se ukládá pouze v tomto prohlížeči a lze ji kdykoli znovu vypnout.',
-    flashPause: 'Pauza Flash',
-    flashPauseHint: 'Po aktualizaci firmware odpojí Ethernet na 35 s před restartem, aby watchdog CCU detekoval odpojení a provedl čistý restart.',
+    flashPause: 'Synchronizace restartu',
+    flashPauseHint: 'Po restartu spuštěném aktualizací firmware nebo změnou nastavení odpojí Ethernet na 35 s před restartem, aby watchdog CCU detekoval odpojení a provedl čistý restart.',
     restoreSuccess: 'Nastavení úspěšně obnoveno. Restartování systému...',
     restoreError: 'Chyba při obnově nastavení',
     backupError: 'Chyba při stahování zálohy',
@@ -290,7 +291,7 @@ export default {
     otaSuccess: 'Stažení úspěšné. Instalace...',
     currentVersion: 'Současná verze',
     installedVersion: 'Nainstalovaná verze',
-    versionInfo: 'Modernizovaný fork v2.2.3-Beta.20 od Xerolux (2025) - Založeno na původní práci Alexandra Reinerta.',
+    versionInfo: 'Modernizovaný fork v2.2.3-Beta.21 od Xerolux (2025) - Založeno na původní práci Alexandra Reinerta.',
     updateAvailable: 'Aktualizace k dispozici!',
     updateAvailableMessage: 'Je k dispozici aktualizace na verzi {latestVersion}.',
     upToDate: 'Firmware je aktuální',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / poznámky k vydání',
     otaFailed: 'Aktualizace OTA selhala',
     lostConnection: 'Během aktualizace bylo ztraceno spojení se zařízením',
-    restartFlashPauseHint: 'Pauza Flash je aktivní — ethernetové spojení bude přerušeno na cca 35 s, než se zařízení skutečně restartuje. Načtení stránky proto bude trvat o něco déle než obvykle.'
+    restartFlashPauseHint: 'Synchronizace restartu je aktivní — ethernetové spojení bude přerušeno na cca 35 s, než se zařízení skutečně restartuje. Načtení stránky proto bude trvat o něco déle než obvykle.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'Tento klíč vypršel {date}.',
     validHint: 'Platný — vyprší {date}.',
     footnote: 'Každý klíč je jedinečný a platný po omezenou dobu. Ukládá se v tomto zařízení.',
-    chipActive: 'Příznivce',
-    chipInactive: 'Podpořit',
+    chipActive: 'Aktivní příznivce',
+    chipInactive: 'Podpořit projekt',
     chipTooltip: 'Příznivce — platný do {date}',
-    chipInactiveTooltip: 'Staňte se příznivcem',
+    chipInactiveTooltip: 'Tento projekt závisí na dobrovolné podpoře — staňte se příznivcem',
     expiredPromptTitle: 'Váš klíč příznivce vypršel',
     expiredPromptSupport: 'Podpořit znovu',
     expiredPromptBody: 'Váš klíč příznivce vypršel. Malým příspěvkem (např. kávou) podpoříte další vývoj tohoto projektu a jako díky získáte nový klíč příznivce. Děkujeme! ❤'

@@ -40,9 +40,14 @@ class LogManager {
 public:
     static LogManager& instance();
 
+    // Default ring-buffer size. Reduced from 8 KB to 4 KB because the ESP32
+    // has no PSRAM and TLS handshakes (OTA, update check, MQTT) need the heap.
+    // The fallback logic in begin() still tries smaller sizes if 4 KB does not fit.
+    static constexpr size_t DEFAULT_BUFFER_SIZE = 4096;
+
     // Static wrappers for initialization (called from main.cpp / WebUI)
     static void init();  // install the capture hook at boot (idempotent)
-    static void begin(size_t size = 8192);
+    static void begin(size_t size = DEFAULT_BUFFER_SIZE);
     // Frees the ring buffer and restores the default log sink. The buffer is
     // NOT allocated at boot (saves ~8 KB heap needed for the TLS handshake
     // during firmware update checks); the WebUI enables it on demand.

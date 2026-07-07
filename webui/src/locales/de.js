@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Netzwerk',
     tabTime: 'Zeit',
     tabBackup: 'Backup',
+    tabLicense: 'Lizenz',
     tabExperimental: 'Experimentell',
     changePassword: 'Passwort ändern',
     repeatPassword: 'Passwort wiederholen',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'Diese Funktionen sind zum Testen gedacht. Es gibt keine Garantie auf Funktion oder Darstellung.',
     experimentalDesign: 'Testdesign',
     experimentalDesignHint: 'Aktiviert das neue experimentelle Layout. Die Auswahl wird nur in diesem Browser gespeichert und kann jederzeit wieder deaktiviert werden.',
-    flashPause: 'Flash-Pause',
-    flashPauseHint: 'Nach einem Firmware-Update die Ethernet-Verbindung für 35 Sekunden trennen, bevor der Neustart erfolgt. So erkennt der CCU-Watchdog (30 s Timeout) den Verbindungsabbruch und startet die CCU sauber neu — dadurch werden veraltete Verbindungen nach dem Update vermieden.',
+    flashPause: 'Neustart-Sync',
+    flashPauseHint: 'Nach einem Neustart, ausgelöst durch Firmware-Update oder Einstellungsänderung, wird die Ethernet-Verbindung für ca. 35 Sekunden getrennt, bevor das Gerät neu startet. So erkennt der CCU-Watchdog (30 s Timeout) den Verbindungsabbruch und startet die CCU sauber neu — dadurch werden veraltete Verbindungen vermieden.',
     restoreSuccess: 'Einstellungen erfolgreich wiederhergestellt. System startet neu...',
     restoreError: 'Fehler beim Wiederherstellen der Einstellungen',
     backupError: 'Fehler beim Herunterladen der Sicherung',
@@ -297,7 +298,7 @@ export default {
     otaSuccess: 'Download erfolgreich. Installation...',
     currentVersion: 'Aktuelle Version',
     installedVersion: 'Installierte Version',
-    versionInfo: 'Modernisierte Fork v2.2.3-Beta.20 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
+    versionInfo: 'Modernisierte Fork v2.2.3-Beta.21 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
     updateAvailableMessage: 'Ein Update auf Version {latestVersion} ist verfügbar.',
     newVersionAvailable: 'Neue Version {version} ist verfügbar!',
     viewUpdate: 'Ansehen',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / Release Notes',
     otaFailed: 'OTA-Update fehlgeschlagen',
     lostConnection: 'Verbindung zum Gerät während des Updates verloren',
-    restartFlashPauseHint: 'Flash-Pause ist aktiv — die Ethernet-Verbindung wird für ca. 35 s getrennt, bevor das Gerät tatsächlich neu startet. Das Neuladen der Seite dauert also etwas länger als sonst.'
+    restartFlashPauseHint: 'Neustart-Sync ist aktiv — die Ethernet-Verbindung wird für ca. 35 s getrennt, bevor das Gerät nach dem Neustart wieder verfügbar ist. Das Neuladen der Seite dauert also etwas länger als sonst.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'Dieser Key ist am {date} abgelaufen.',
     validHint: 'Gültig — läuft am {date} ab.',
     footnote: 'Jeder Key ist einzigartig und zeitlich begrenzt gültig. Er wird auf diesem Gerät gespeichert.',
-    chipActive: 'Supporter',
-    chipInactive: 'Supporten',
+    chipActive: 'Aktiver Supporter',
+    chipInactive: 'Projekt unterstützen',
     chipTooltip: 'Supporter — gültig bis {date}',
-    chipInactiveTooltip: 'Werde Supporter',
+    chipInactiveTooltip: 'Dieses Projekt lebt von freiwilliger Unterstützung — jetzt Supporter werden',
     expiredPromptTitle: 'Dein Supporter-Key ist abgelaufen',
     expiredPromptSupport: 'Jetzt erneut unterstützen',
     expiredPromptBody: 'Die Gültigkeit deines Supporter-Keys ist leider abgelaufen. Mit einem kleinen Beitrag (z. B. einem Kaffee) unterstützt du die Weiterentwicklung dieses Projekts und erhältst als Dankeschön einen frischen Supporter-Key. Danke! ❤'

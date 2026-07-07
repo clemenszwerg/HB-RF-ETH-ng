@@ -160,7 +160,7 @@ void app_main()
     // boot so startup diagnostics are included.
     if (settings.getSystemLogEnabled())
     {
-        LogManager::begin(8192);
+        LogManager::begin();
         if (LogManager::instance().isEnabled())
         {
             ESP_LOGI(TAG, "System log capture restored from settings");
@@ -338,7 +338,7 @@ void app_main()
     {
         xTaskCreate([](void *) {
             vTaskDelay(pdMS_TO_TICKS(10000));
-            LogManager::begin(8192);
+            LogManager::begin();
             if (LogManager::instance().isEnabled())
                 ESP_LOGI(TAG, "System log capture restored in deferred retry");
             else

@@ -28,8 +28,20 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "events.h"
+#include "system_reset.h"
 
 static const char *TAG = "Ethernet";
+
+// File-static handle so the link-down pause callback can stop the MAC without
+// needing access to the Ethernet instance (system_reset.cpp is standalone).
+static esp_eth_handle_t s_pause_eth_handle = NULL;
+static void eth_pause_for_restart_cb() {
+    if (s_pause_eth_handle) {
+        esp_eth_stop(s_pause_eth_handle);
+        // Give lwIP a moment to propagate carrier loss to the link partner.
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
 
 // DNS Cache Implementierung
 Ethernet::dns_cache_entry Ethernet::_dns_cache[Ethernet::DNS_CACHE_SIZE] = {};
@@ -257,6 +269,11 @@ void Ethernet::start()
     ESP_LOGI(TAG, "Starting Ethernet...");
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_eth_start(_eth_handle));
     ESP_LOGI(TAG, "Ethernet start() called, waiting for link...");
+
+    // Register the link-down callback so full_system_restart() can cleanly
+    // stop the MAC before toggling the PHY reset pin.
+    s_pause_eth_handle = _eth_handle;
+    register_restart_eth_pause_callback(eth_pause_for_restart_cb);
 }
 
 void Ethernet::stop()

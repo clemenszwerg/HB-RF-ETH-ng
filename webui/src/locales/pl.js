@@ -105,6 +105,7 @@ export default {
     tabNetwork: 'Sieć',
     tabTime: 'Czas',
     tabBackup: 'Kopia zapasowa',
+    tabLicense: 'Licencja',
     tabExperimental: 'Eksperymentalne',
     changePassword: 'Zmień hasło',
     repeatPassword: 'Powtórz hasło',
@@ -189,8 +190,8 @@ export default {
     experimentalWarningText: 'Te funkcje są przeznaczone do testów. Nie ma gwarancji działania ani wyglądu.',
     experimentalDesign: 'Projekt testowy',
     experimentalDesignHint: 'Włącza nowy eksperymentalny układ. Wybór jest zapisywany tylko w tej przeglądarce i można go w każdej chwili wyłączyć.',
-    flashPause: 'Pauza Flash',
-    flashPauseHint: 'Po aktualizacji firmware odłącza łącze Ethernet na 35 s przed restartem, aby watchdog CCU wykrył rozłączenie i uruchomił się ponownie.',
+    flashPause: 'Synchronizacja restartu',
+    flashPauseHint: 'Po restarcie wywołanym aktualizacją firmware lub zmianą ustawień odłącza łącze Ethernet na 35 s przed restartem, aby watchdog CCU wykrył rozłączenie i uruchomił się ponownie.',
     restoreSuccess: 'Ustawienia przywrócone pomyślnie. Restartowanie systemu...',
     restoreError: 'Błąd przywracania ustawień',
     backupError: 'Błąd pobierania kopii zapasowej',
@@ -290,7 +291,7 @@ export default {
     otaSuccess: 'Pobieranie udane. Instalowanie...',
     currentVersion: 'Obecna Wersja',
     installedVersion: 'Zainstalowana wersja',
-    versionInfo: 'Zmodernizowany fork v2.2.3-Beta.20 autorstwa Xerolux (2025) - Na podstawie oryginalnej pracy Alexandra Reinerta.',
+    versionInfo: 'Zmodernizowany fork v2.2.3-Beta.21 autorstwa Xerolux (2025) - Na podstawie oryginalnej pracy Alexandra Reinerta.',
     updateAvailable: 'Dostępna aktualizacja!',
     updateAvailableMessage: 'Dostępna jest aktualizacja do wersji {latestVersion}.',
     upToDate: 'Oprogramowanie jest aktualne',
@@ -348,7 +349,7 @@ export default {
     archiveReleaseNotes: 'Changelog / notatki wydania',
     otaFailed: 'Aktualizacja OTA nie powiodła się',
     lostConnection: 'Utracono połączenie z urządzeniem podczas aktualizacji',
-    restartFlashPauseHint: 'Pauza Flash jest aktywna: połączenie Ethernet zostanie przerwane na około 35 s przed faktycznym ponownym uruchomieniem urządzenia. Odświeżenie strony potrwa więc nieco dłużej niż zwykle.'
+    restartFlashPauseHint: 'Synchronizacja restartu jest aktywna: połączenie Ethernet zostanie przerwane na około 35 s przed faktycznym ponownym uruchomieniem urządzenia. Odświeżenie strony potrwa więc nieco dłużej niż zwykle.'
   },
 
   // Monitoring
@@ -678,10 +679,10 @@ export default {
     expired: 'Ten klucz wygasł dnia {date}.',
     validHint: 'Ważny — wygasa {date}.',
     footnote: 'Każdy klucz jest unikalny i ważny przez ograniczony czas. Jest przechowywany na tym urządzeniu.',
-    chipActive: 'Wspierający',
-    chipInactive: 'Wesprzyj',
+    chipActive: 'Aktywny wspierający',
+    chipInactive: 'Wesprzyj projekt',
     chipTooltip: 'Wspierający — ważny do {date}',
-    chipInactiveTooltip: 'Zostań wspierającym',
+    chipInactiveTooltip: 'Ten projekt opiera się na dobrowolnym wsparciu — zostań wspierającym',
     expiredPromptTitle: 'Twój klucz wspierającego wygasł',
     expiredPromptSupport: 'Wesprzyj ponownie',
     expiredPromptBody: 'Twój klucz wspierającego wygasł. Małym wkładem (np. kawą) wspierasz dalszy rozwój tego projektu i otrzymujesz nowy klucz w ramach podziękowania. Dziękujemy! ❤'

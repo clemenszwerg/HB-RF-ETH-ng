@@ -46,6 +46,16 @@ LogManager& LogManager::instance() {
 int log_vprintf(const char *fmt, va_list args) {
     LogManager &manager = LogManager::instance();
 
+    // Fast path: when the ring buffer is not active AND no subscribers are
+    // registered, skip all the va_copy / vsnprintf / malloc overhead and just
+    // forward to the original UART sink. This is the common case at runtime
+    // (logging is opt-in) and avoids the ~50 % CPU regression seen on devices
+    // with chatty subsystems (raw-uart bridge, network events) where every
+    // log line paid the full formatting cost for nothing.
+    if (!manager.log_buffer && manager._subscriber_count == 0) {
+        return manager._orig_vprintf ? manager._orig_vprintf(fmt, args) : vprintf(fmt, args);
+    }
+
     // FIX: va_list can only be consumed once. We need two copies:
     // one for measuring length + formatting, one for forwarding to UART.
     va_list args_for_uart;
@@ -325,13 +335,19 @@ std::string LogManager::getLogContent(size_t offset) {
                 data_len = log_buffer_size;
             }
 
-            // FIX: Check heap before allocating to prevent OOM crash
-            // std::string::resize will abort on ESP-IDF if allocation fails
-            uint32_t free_heap = esp_get_free_heap_size();
-            if (data_len > free_heap / 2) {
-                // Cap to half of free heap to leave room for other operations
-                data_len = free_heap / 2;
+            // FIX: Check heap before allocating to prevent OOM crash.
+            // std::string::resize may abort on ESP-IDF if allocation fails.
+            // Use the largest contiguous free block (not total free heap) and
+            // keep a safety margin for the HTTP server / TLS while streaming.
+            size_t largest_block = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
+            size_t max_alloc = (largest_block > 1536) ? (largest_block - 1536) : 0;
+            if (data_len > max_alloc) {
+                data_len = max_alloc;
                 if (data_len > log_buffer_size) data_len = log_buffer_size;
+                if (data_len == 0) {
+                    xSemaphoreGive(_mutex);
+                    return "";
+                }
                 offset = local_total - data_len;
             }
 

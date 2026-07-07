@@ -22,7 +22,7 @@
         <router-link
           class="meta-chip supporter-hero-chip"
           :class="{ 'is-active': sysInfoStore.supporterActive }"
-          to="/settings"
+          to="/settings?tab=license"
           :title="sysInfoStore.supporterActive
             ? t('supporter.chipTooltip', { date: sysInfoStore.supporterExpiresAt || '—' })
             : t('supporter.chipInactiveTooltip')"

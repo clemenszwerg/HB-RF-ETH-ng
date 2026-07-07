@@ -323,6 +323,13 @@ onUnmounted(() => {
   gap: 14px;
   padding: 12px 16px;
   border-radius: 28px;
+  /* Prevent long hostnames from blowing out the nav and pushing menu items
+     off-screen. The brand truncates at 180px, but without min-width:0 on
+     the flex container itself, some browsers let the brand grow to its
+     intrinsic content width before flex distribution kicks in. */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .brand {
@@ -744,7 +751,7 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1199px) {
   .desktop-nav,
   .desktop-only {
     display: none;
