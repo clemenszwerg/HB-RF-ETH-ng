@@ -31,6 +31,10 @@ void supporter_crl_init(void);
 // No-op when the task is already running.
 void supporter_crl_start_refresh_task(void);
 
+// Stops and deletes the background refresh task, freeing ~8 KB task stack.
+// Called before OTA to maximise free heap for the TLS download.
+void supporter_crl_stop_refresh_task(void);
+
 // Re-fetches revoked_keys.json from GitHub and refreshes the in-RAM + NVS
 // cache. Network call — serialised on g_net_fetch_mutex like every other
 // outbound TLS fetch. Returns true on success. Safe to call manually too.

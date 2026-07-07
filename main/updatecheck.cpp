@@ -36,6 +36,8 @@
 #include "events.h"
 #include "esp_heap_caps.h"
 #include "cJSON.h"
+#include "mqtt_handler.h"
+#include "supporter_crl.h"
 
 static const char *TAG = "UpdateCheck";
 
@@ -713,6 +715,17 @@ void UpdateCheck::performOnlineUpdate()
     // forwarding) to stand down for the duration of the download so they
     // don't contend for g_net_fetch_mutex or the limited TLS heap.
     net_fetch_set_ota_active(true);
+
+    // Free ~40 KB heap by stopping MQTT + CRL so the GitHub TLS handshake
+    // + download has enough room. Without this, the WROOM-32 (no PSRAM)
+    // OOMs at ~60 KB free heap during the TLS download.
+    ESP_LOGI(TAG, "Freeing heap for OTA (current: %u KB)...",
+             (unsigned)(heap_caps_get_free_size(MALLOC_CAP_DEFAULT) / 1024));
+    mqtt_handler_stop();
+    supporter_crl_stop_refresh_task();
+    vTaskDelay(pdMS_TO_TICKS(200));
+    ESP_LOGI(TAG, "Heap after OTA prep: %u KB",
+             (unsigned)(heap_caps_get_free_size(MALLOC_CAP_DEFAULT) / 1024));
 
     // Use the advanced esp_https_ota API so we can report real progress to
     // MQTT / WebUI. The simple esp_https_ota(&ota_config) call is a thin

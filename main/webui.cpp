@@ -53,6 +53,7 @@
 #include "log_stream.h"
 #include "supporter_key.h"
 #include "supporter_crl.h"
+#include "mqtt_handler.h"
 
 static const char *TAG = "WebUI";
 
@@ -1357,6 +1358,32 @@ httpd_uri_t get_ota_status_handler = {
     .handler = get_ota_status_handler_func,
     .user_ctx = NULL};
 
+// Free heap for URL-based OTA by shutting down heap-heavy TLS subsystems.
+// The ESP32-WROOM-32 has no PSRAM; with MQTT (TLS broker) + CRL running,
+// only ~60 KB heap remains — not enough for the GitHub TLS handshake +
+// download (~50 KB). Stopping MQTT + CRL before the download frees ~40 KB.
+// On OTA success the device restarts and everything comes back; on failure
+// a manual restart restores them.
+static void prepare_ota_heap()
+{
+    ESP_LOGI(TAG, "Preparing heap for OTA download (current free: %u KB)",
+             (unsigned)(esp_get_free_heap_size() / 1024));
+
+    // Stop MQTT client — frees TLS context + 10 KB publish task stack (~30 KB)
+    esp_err_t mqtt_ret = mqtt_handler_stop();
+    ESP_LOGI(TAG, "MQTT stopped for OTA: %s (free heap now %u KB)",
+             esp_err_to_name(mqtt_ret),
+             (unsigned)(esp_get_free_heap_size() / 1024));
+
+    // Stop CRL refresh task — frees 8 KB task stack
+    supporter_crl_stop_refresh_task();
+    ESP_LOGI(TAG, "CRL task stopped for OTA (free heap now %u KB)",
+             (unsigned)(esp_get_free_heap_size() / 1024));
+
+    // Brief settle for heap de-fragmentation
+    vTaskDelay(pdMS_TO_TICKS(200));
+}
+
 // OTA update from URL handler
 static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
 {
@@ -1494,6 +1521,10 @@ static esp_err_t post_ota_url_handler_func(httpd_req_t *req)
         // forwarding) to stand down for the duration of the download so they
         // don't contend for g_net_fetch_mutex or the limited TLS heap.
         net_fetch_set_ota_active(true);
+
+        // Free ~40 KB heap by stopping MQTT + CRL so the GitHub TLS handshake
+        // + download has enough room (~50 KB needed, was OOMing at 61 KB free).
+        prepare_ota_heap();
 
         // Use advanced OTA API for progress tracking. Retry the begin+download
         // a couple of times — the GitHub asset redirect forces a second TLS

@@ -307,3 +307,16 @@ void supporter_crl_start_refresh_task()
     }
     xSemaphoreGive(s_start_mutex);
 }
+
+void supporter_crl_stop_refresh_task()
+{
+    if (!s_start_mutex) s_start_mutex = xSemaphoreCreateMutex();
+    xSemaphoreTake(s_start_mutex, portMAX_DELAY);
+    if (s_refresh_task != NULL)
+    {
+        vTaskDelete(s_refresh_task);
+        s_refresh_task = NULL;
+        ESP_LOGI(TAG, "CRL refresh task stopped (freed ~8 KB task stack for OTA)");
+    }
+    xSemaphoreGive(s_start_mutex);
+}
