@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.18] - 2026-07-07
+
+### Changes
+- fix: resolve IPv6 validation and syslog bugs; optimize log-viewer performance and stack-usage
+- fix: resolve OTA failure and bootloader rollback (socket exhaustion)
+- docs: declare feature freeze until stable release
+- chore: update manifests for v2.2.3-Beta.17
+
 ## [2.2.3-Beta.17] - 2026-07-06
 
 ### Changes
