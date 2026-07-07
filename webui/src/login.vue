@@ -101,7 +101,7 @@ const route = useRoute()
 const loginStore = useLoginStore()
 const sysInfoStore = useSysInfoStore()
 
-const username = ref('admin')
+const username = ref('')
 const password = ref('')
 const showError = ref(false)
 const loading = ref(false)
