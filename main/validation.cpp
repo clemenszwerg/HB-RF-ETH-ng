@@ -382,13 +382,23 @@ bool validateServerAddress(const char *server, size_t maxLength)
     }
 
     // Find optional port (last occurrence of ':')
+    // A bare IPv6 address without brackets contains multiple colons (at least two)
+    // and cannot have a port appended. Therefore, we only look for a port if there is
+    // at most one colon in the address, or if it is enclosed in brackets.
     size_t portSep = 0;
+    int colonCount = 0;
     for (size_t i = 0; i < len; i++)
     {
         if (server[i] == ':')
         {
+            colonCount++;
             portSep = i;
         }
+    }
+
+    if (colonCount > 1)
+    {
+        portSep = 0; // Treat as bare IPv6 (no port)
     }
 
     // Extract hostname/IP part (before optional port)

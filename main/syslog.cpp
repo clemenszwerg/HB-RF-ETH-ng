@@ -240,7 +240,10 @@ static int resolve_and_connect_tcp(const char *host, uint16_t port)
         if (flags >= 0) fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 
         int r = connect(sock, a->ai_addr, a->ai_addrlen);
-        if (r == 0) break;
+        if (r == 0) {
+            if (flags >= 0) fcntl(sock, F_SETFL, flags);
+            break;
+        }
 
         if (errno == EINPROGRESS || errno == EWOULDBLOCK) {
             fd_set wset;

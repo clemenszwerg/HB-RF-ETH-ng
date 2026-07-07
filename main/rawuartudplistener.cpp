@@ -26,6 +26,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include <string.h>
+#include <vector>
 #include "udphelper.h"
 #include "metrics.h"
 
@@ -73,17 +74,18 @@ RawUartUdpListener::RawUartUdpListener(RadioModuleConnector *radioModuleConnecto
 void RawUartUdpListener::handlePacket(pbuf *pb, ip4_addr_t addr, uint16_t port)
 {
     size_t length = pb->tot_len;
-    unsigned char data[1500];
-    unsigned char response_buffer[3];
-
-    if (length < 4 || length > sizeof(data))
+    if (length < 4 || length > 1500)
     {
-        ESP_LOGE(TAG, "Received invalid raw-uart packet, length %d", length);
+        ESP_LOGE(TAG, "Received invalid raw-uart packet, length %zu", length);
         g_rx_drops.inc();
         return;
     }
-    if (pbuf_copy_partial(pb, data, length, 0) != length) {
-        ESP_LOGE(TAG, "Could not linearize raw-uart packet, length %d", length);
+
+    std::vector<unsigned char> data(length);
+    unsigned char response_buffer[3];
+
+    if (pbuf_copy_partial(pb, data.data(), length, 0) != length) {
+        ESP_LOGE(TAG, "Could not linearize raw-uart packet, length %zu", length);
         g_rx_drops.inc();
         return;
     }
@@ -99,8 +101,8 @@ void RawUartUdpListener::handlePacket(pbuf *pb, ip4_addr_t addr, uint16_t port)
      * a network pbuf and is not guaranteed to be 2-byte aligned, and casting an
      * unsigned char* to uint16_t* also violates strict aliasing. */
     uint16_t received_crc;
-    memcpy(&received_crc, data + length - 2, sizeof(uint16_t));
-    if (received_crc != htons(HMFrame::crc(data, length - 2)))
+    memcpy(&received_crc, data.data() + length - 2, sizeof(uint16_t));
+    if (received_crc != htons(HMFrame::crc(data.data(), length - 2)))
     {
         ESP_LOGE(TAG, "Received raw-uart packet with invalid crc.");
         g_rx_drops.inc();

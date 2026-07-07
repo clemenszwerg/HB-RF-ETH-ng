@@ -79,13 +79,13 @@
         <div v-if="logEnabled" ref="logContainer" class="log-container" @scroll="onScroll">
           <div v-if="filteredEntries.length" class="log-list">
             <div
-              v-for="(line, index) in filteredEntries"
-              :key="`${index}-${line}`"
+              v-for="(entry, index) in filteredEntries"
+              :key="`${index}-${entry.raw}`"
               class="log-line"
-              :class="levelClass(line)"
+              :class="levelClass(entry)"
             >
-              <code>{{ line }}</code>
-              <button class="line-copy" type="button" @click="copyLine(line)">
+              <code>{{ entry.raw }}</code>
+              <button class="line-copy" type="button" @click="copyLine(entry.raw)">
                 <AppIcon name="copy" />
               </button>
             </div>
@@ -223,8 +223,8 @@ const getEntryLevel = (line) => {
   return 'N'
 }
 
-const levelClass = (line) => {
-  const level = getEntryLevel(line)
+const levelClass = (entry) => {
+  const level = entry.level
   if (level === 'E') return 'error'
   if (level === 'W') return 'warning'
   if (level === 'I') return 'info'
@@ -233,9 +233,10 @@ const levelClass = (line) => {
 
 const filteredEntries = computed(() => {
   const query = searchQuery.value.toLowerCase()
-  return logEntries.value.filter((line) => {
-    const matchesQuery = !query || line.toLowerCase().includes(query)
-    const matchesLevel = levelFilter.value === 'all' || getEntryLevel(line) === levelFilter.value
+  const filter = levelFilter.value
+  return logEntries.value.filter((entry) => {
+    const matchesQuery = !query || entry.lowerRaw.includes(query)
+    const matchesLevel = filter === 'all' || entry.level === filter
     return matchesQuery && matchesLevel
   })
 })
@@ -252,7 +253,11 @@ const appendChunk = (chunk) => {
     if (logEntries.value.length >= MAX_LOG_LINES) {
       logEntries.value.shift()
     }
-    logEntries.value.push(line)
+    logEntries.value.push({
+      raw: line,
+      level: getEntryLevel(line),
+      lowerRaw: line.toLowerCase()
+    })
   }
 
   if (paused.value || !autoScroll.value) {
@@ -434,7 +439,7 @@ const downloadLog = async () => {
 }
 
 const copyVisibleLog = async () => {
-  const content = filteredEntries.value.slice(-MAX_COPY_LINES).join('\n')
+  const content = filteredEntries.value.slice(-MAX_COPY_LINES).map(e => e.raw).join('\n')
   if (!content) return
   try {
     await copyToClipboard(content)
