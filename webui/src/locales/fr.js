@@ -48,7 +48,11 @@ export default {
     login: 'Connexion',
     logout: 'Déconnexion',
     toggleTheme: 'Changer de thème',
-    language: 'Langue'
+    language: 'Langue',
+    mainMenu: 'Menu principal',
+    groupOverview: 'Vue d’ensemble',
+    groupSystem: 'Système',
+    groupInfo: 'Infos'
   },
 
   // Login Page

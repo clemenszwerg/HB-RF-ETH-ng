@@ -33,19 +33,26 @@
         </span>
       </router-link>
 
-      <nav class="side-nav" aria-label="Main navigation">
-        <router-link
-          v-for="item in visibleNavItems"
-          :key="item.to"
-          :to="item.to"
-          class="nav-item"
-          active-class="active"
-          @click="closeMobileMenu"
+      <nav class="side-nav" :aria-label="t('nav.mainMenu')">
+        <div
+          v-for="group in visibleNavGroups"
+          :key="group.id"
+          class="side-nav-group"
         >
-          <AppIcon :name="item.icon" />
-          <span>{{ item.label }}</span>
-          <span v-if="item.to === '/firmware' && updateStore.shouldShowUpdateBadge" class="mini-dot"></span>
-        </router-link>
+          <div class="side-nav-heading">{{ group.label }}</div>
+          <router-link
+            v-for="item in group.items"
+            :key="item.to"
+            :to="item.to"
+            class="nav-item"
+            active-class="active"
+            @click="closeMobileMenu"
+          >
+            <AppIcon :name="item.icon" />
+            <span>{{ item.label }}</span>
+            <span v-if="item.to === '/firmware' && updateStore.shouldShowUpdateBadge" class="mini-dot"></span>
+          </router-link>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
@@ -145,16 +152,23 @@
           </div>
 
           <div class="mobile-links">
-            <router-link
-              v-for="item in visibleNavItems"
-              :key="item.to"
-              :to="item.to"
-              class="mobile-link"
-              @click="closeMobileMenu"
+            <div
+              v-for="group in visibleNavGroups"
+              :key="group.id"
+              class="mobile-link-group"
             >
-              <AppIcon :name="item.icon" />
-              {{ item.label }}
-            </router-link>
+              <div class="mobile-section-title">{{ group.label }}</div>
+              <router-link
+                v-for="item in group.items"
+                :key="item.to"
+                :to="item.to"
+                class="mobile-link"
+                @click="closeMobileMenu"
+              >
+                <AppIcon :name="item.icon" />
+                {{ item.label }}
+              </router-link>
+            </div>
           </div>
 
           <div class="mobile-section">
@@ -248,7 +262,7 @@ let clockTimer = null
 
 const currentLocale = computed(() => locale.value)
 const deviceName = computed(() => sysInfoStore.hostname || 'HB-RF-ETH-ng')
-const { visibleNavItems } = useHeaderNavigation(t, loginStore)
+const { visibleNavGroups } = useHeaderNavigation(t, loginStore)
 const currentTime = computed(() => now.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
 const uptimeShort = computed(() => {
   const seconds = sysInfoStore.uptimeSeconds || 0
@@ -507,8 +521,26 @@ onUnmounted(() => {
 .side-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 18px;
   min-width: 0;
+}
+
+.side-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.side-nav-heading {
+  padding: 0 14px;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .nav-item {
@@ -516,20 +548,36 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 22px;
+  padding: 0 14px;
   border-radius: var(--radius-sm);
+  border: 1px solid transparent;
   color: var(--color-text-secondary);
   text-decoration: none;
   font-weight: 650;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.nav-item:hover,
+.nav-item:hover {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
 .nav-item.active {
-  color: white;
-  background: var(--color-primary);
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
+  border-color: rgba(242, 106, 61, 0.28);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.nav-item .app-icon {
+  flex: 0 0 auto;
+}
+
+.nav-item span:not(.mini-dot) {
+  min-width: 0;
 }
 
 .mini-dot {
@@ -857,9 +905,18 @@ onUnmounted(() => {
 }
 
 .mobile-links,
+.mobile-link-group,
 .mobile-section {
   display: flex;
   flex-direction: column;
+}
+
+.mobile-links {
+  gap: 14px;
+}
+
+.mobile-link-group,
+.mobile-section {
   gap: 8px;
 }
 

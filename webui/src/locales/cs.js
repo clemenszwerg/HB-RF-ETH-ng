@@ -48,7 +48,11 @@ export default {
     login: 'Přihlásit',
     logout: 'Odhlásit',
     toggleTheme: 'Přepnout téma',
-    language: 'Jazyk'
+    language: 'Jazyk',
+    mainMenu: 'Hlavní menu',
+    groupOverview: 'Přehled',
+    groupSystem: 'Systém',
+    groupInfo: 'Info'
   },
 
   // Login Page

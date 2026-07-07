@@ -33,19 +33,26 @@
         </span>
       </router-link>
 
-      <div class="desktop-nav">
-        <router-link
-          v-for="item in visibleNavItems"
-          :key="item.to"
-          :to="item.to"
-          class="nav-item"
-          active-class="active"
-          exact-active-class="exact-active"
+      <div class="desktop-nav" :aria-label="t('nav.mainMenu')">
+        <div
+          v-for="group in visibleNavGroups"
+          :key="group.id"
+          class="desktop-nav-group"
         >
-          <AppIcon :name="item.icon" />
-          <span>{{ item.label }}</span>
-          <span v-if="item.to === '/firmware' && updateStore.shouldShowUpdateBadge" class="mini-dot"></span>
-        </router-link>
+          <span class="desktop-nav-group-label">{{ group.label }}</span>
+          <router-link
+            v-for="item in group.items"
+            :key="item.to"
+            :to="item.to"
+            class="nav-item"
+            active-class="active"
+            exact-active-class="exact-active"
+          >
+            <AppIcon :name="item.icon" />
+            <span>{{ item.label }}</span>
+            <span v-if="item.to === '/firmware' && updateStore.shouldShowUpdateBadge" class="mini-dot"></span>
+          </router-link>
+        </div>
       </div>
 
       <div class="header-actions">
@@ -108,16 +115,23 @@
           </div>
 
           <div class="mobile-links">
-            <router-link
-              v-for="item in visibleNavItems"
-              :key="item.to"
-              :to="item.to"
-              class="mobile-link"
-              @click="closeMobileMenu"
+            <div
+              v-for="group in visibleNavGroups"
+              :key="group.id"
+              class="mobile-link-group"
             >
-              <AppIcon :name="item.icon" />
-              {{ item.label }}
-            </router-link>
+              <div class="mobile-section-title">{{ group.label }}</div>
+              <router-link
+                v-for="item in group.items"
+                :key="item.to"
+                :to="item.to"
+                class="mobile-link"
+                @click="closeMobileMenu"
+              >
+                <AppIcon :name="item.icon" />
+                {{ item.label }}
+              </router-link>
+            </div>
           </div>
 
           <div class="mobile-section">
@@ -209,7 +223,7 @@ let updateCheckTimer = null
 
 const currentLocale = computed(() => locale.value)
 const deviceName = computed(() => sysInfoStore.hostname || 'HB-RF-ETH-ng')
-const { visibleNavItems } = useHeaderNavigation(t, loginStore)
+const { visibleNavGroups } = useHeaderNavigation(t, loginStore)
 
 watch(mobileMenuOpen, (isOpen) => {
   document.body.style.overflow = isOpen ? 'hidden' : ''
@@ -380,19 +394,45 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 3px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
   flex-wrap: wrap;
   overflow: visible;
-  padding: 3px;
+  padding: 5px;
   border: 1px solid var(--color-border);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.34);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.32);
   scrollbar-width: none;
 }
 
-.desktop-nav .nav-item {
+.desktop-nav-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 3px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.desktop-nav-group + .desktop-nav-group {
+  border-left: 1px solid var(--color-border);
+  padding-left: 8px;
+}
+
+.desktop-nav-group-label {
+  padding: 0 7px;
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.desktop-nav-group .nav-item {
   flex: 0 1 auto;
 }
 
@@ -404,15 +444,19 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.04);
 }
 
+[data-bs-theme="dark"] .desktop-nav-group {
+  background: rgba(255, 255, 255, 0.035);
+}
+
 .nav-item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
   min-height: 38px;
-  padding: 8px 8px;
+  padding: 8px 10px;
   border: 1px solid transparent;
-  border-radius: 14px;
+  border-radius: 13px;
   color: var(--color-text-secondary);
   text-decoration: none;
   font-weight: 700;
@@ -441,12 +485,12 @@ onUnmounted(() => {
 .nav-item.active,
 .nav-item.exact-active {
   color: var(--color-primary-strong);
-  background: var(--color-primary-soft);
+  background: linear-gradient(180deg, rgba(242, 106, 61, 0.18), rgba(242, 106, 61, 0.09));
   border-color: rgba(242, 106, 61, 0.22);
 }
 
 .nav-item.exact-active {
-  box-shadow: inset 0 -2px 0 rgba(242, 106, 61, 0.28);
+  box-shadow: inset 0 -2px 0 rgba(242, 106, 61, 0.32);
 }
 
 .mini-dot {
@@ -638,9 +682,18 @@ onUnmounted(() => {
 }
 
 .mobile-links,
+.mobile-link-group,
 .mobile-section {
   display: flex;
   flex-direction: column;
+}
+
+.mobile-links {
+  gap: 14px;
+}
+
+.mobile-link-group,
+.mobile-section {
   gap: 8px;
 }
 

@@ -738,19 +738,43 @@ textarea {
   cursor: pointer;
 }
 
+.form-switch {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 3.2rem;
+  min-height: 2rem;
+  padding-left: 0;
+  flex: 0 0 auto;
+}
+
 .form-switch .form-check-input {
+  appearance: none;
+  -webkit-appearance: none;
   width: 3.2rem;
+  min-width: 3.2rem;
+  max-width: none;
   height: 2rem;
+  flex: 0 0 3.2rem;
+  margin: 0;
   border: none;
   border-radius: 999px;
   background-color: rgba(125, 139, 167, 0.25);
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='white'/%3e%3c/svg%3e");
   background-size: 1.45rem;
   background-position: left 0.28rem center;
+  background-repeat: no-repeat;
+  transition: background-color 0.18s ease, background-position 0.18s ease, box-shadow 0.18s ease;
 }
 
 .form-switch .form-check-input:checked {
   background-color: var(--color-success);
+  background-position: right 0.28rem center;
+}
+
+.form-switch .form-check-input:focus {
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  outline: none;
 }
 
 .modal-content {

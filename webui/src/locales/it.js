@@ -48,7 +48,11 @@ export default {
     login: 'Accedi',
     logout: 'Esci',
     toggleTheme: 'Cambia tema',
-    language: 'Lingua'
+    language: 'Lingua',
+    mainMenu: 'Menu principale',
+    groupOverview: 'Panoramica',
+    groupSystem: 'Sistema',
+    groupInfo: 'Info'
   },
 
   // Login Page

@@ -48,7 +48,11 @@ export default {
     login: 'Logg inn',
     logout: 'Logg ut',
     toggleTheme: 'Bytt tema',
-    language: 'Språk'
+    language: 'Språk',
+    mainMenu: 'Hovedmeny',
+    groupOverview: 'Oversikt',
+    groupSystem: 'System',
+    groupInfo: 'Info'
   },
 
   // Login Page

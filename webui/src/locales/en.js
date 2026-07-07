@@ -48,7 +48,11 @@ export default {
     login: 'Login',
     logout: 'Logout',
     toggleTheme: 'Toggle theme',
-    language: 'Language'
+    language: 'Language',
+    mainMenu: 'Main menu',
+    groupOverview: 'Overview',
+    groupSystem: 'System',
+    groupInfo: 'Info'
   },
 
   // Login Page

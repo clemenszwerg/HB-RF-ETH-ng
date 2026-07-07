@@ -48,7 +48,11 @@ export default {
     login: 'Zaloguj',
     logout: 'Wyloguj',
     toggleTheme: 'Zmień motyw',
-    language: 'Język'
+    language: 'Język',
+    mainMenu: 'Menu główne',
+    groupOverview: 'Przegląd',
+    groupSystem: 'System',
+    groupInfo: 'Info'
   },
 
   // Login Page

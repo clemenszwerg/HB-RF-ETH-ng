@@ -48,7 +48,11 @@ export default {
     login: 'Iniciar sesión',
     logout: 'Cerrar sesión',
     toggleTheme: 'Cambiar tema',
-    language: 'Idioma'
+    language: 'Idioma',
+    mainMenu: 'Menú principal',
+    groupOverview: 'Vista general',
+    groupSystem: 'Sistema',
+    groupInfo: 'Info'
   },
 
   // Login Page

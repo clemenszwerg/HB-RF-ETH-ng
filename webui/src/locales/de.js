@@ -48,7 +48,11 @@ export default {
     login: 'Anmelden',
     logout: 'Abmelden',
     toggleTheme: 'Design wechseln',
-    language: 'Sprache'
+    language: 'Sprache',
+    mainMenu: 'Hauptmenü',
+    groupOverview: 'Übersicht',
+    groupSystem: 'System',
+    groupInfo: 'Info'
   },
 
   // Login Page

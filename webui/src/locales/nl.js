@@ -48,7 +48,11 @@ export default {
     login: 'Inloggen',
     logout: 'Uitloggen',
     toggleTheme: 'Thema wisselen',
-    language: 'Taal'
+    language: 'Taal',
+    mainMenu: 'Hoofdmenu',
+    groupOverview: 'Overzicht',
+    groupSystem: 'Systeem',
+    groupInfo: 'Info'
   },
 
   // Login Page
