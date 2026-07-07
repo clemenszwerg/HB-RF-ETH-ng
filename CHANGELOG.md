@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.19] - 2026-07-07
+
+### Changes
+- fix: stop CRL refresh task crash at uptime 60s (stack overflow)
+- fix: stop CRL refresh task crash at uptime 60s (stack overflow)
+- chore: update manifests for v2.2.3-Beta.18
+
 ## [2.2.3-Beta.18] - 2026-07-07
 
 ### Changes
