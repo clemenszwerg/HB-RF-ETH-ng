@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.29] - 2026-07-08
+
+### Changes
+- fix-freezing-issue-in-firmware-search
+- Avoid competing firmware lookups
+- speichermanagement, design , password
+- Align auth and dialogs with new design
+- chore: update manifests for v2.2.3-Beta.28
+
 ## [2.2.3-Beta.28] - 2026-07-07
 
 ### Changes
