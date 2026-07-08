@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3-Beta.32] - 2026-07-08
+
+### Changes
+- fix(webui): test-design toggle hardened against the last spring-back race. The previous wall-clock guard (Beta.31) was shorter than the persist POST's own 5 s timeout and could still let a stale server value through under load. Replaced with a POST-lifecycle-bound guard: a `_persistInFlight` flag cleared in the POST's `.finally()` plus a 3 s post-POST cooldown for the ESP32's NVS commit latency. The convergence-clear path that reopened a race when two settingsStore.load() calls overlapped is also removed.
+- fix(webui): settingsStore.load() now deduplicates concurrent callers (header mount + page mount) onto a single GET /settings.json via an in-flight promise, instead of firing two parallel requests that overwrite each other.
+- fix(webui): add missing i18n key `common.clear` (used by the three "Clear" secret-reset buttons on the monitoring page) to all 10 locales — previously rendered the literal key path as the button label.
+
 ## [2.2.3-Beta.31] - 2026-07-08
 
 ### Changes

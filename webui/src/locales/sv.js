@@ -15,6 +15,7 @@ export default {
     ok: 'OK',
     unknownError: 'Okänt fel',
     copyFailed: 'Kopiering misslyckades',
+    clear: 'Rensa',
     network: {
       serverErrorTitle: 'Serverfel',
       serverError: 'Serverfel: {status}',
@@ -295,7 +296,7 @@ export default {
     otaSuccess: 'Nedladdning lyckades. Installerar...',
     currentVersion: 'Nuvarande Version',
     installedVersion: 'Installerad version',
-    versionInfo: 'Moderniserad fork v2.2.3-Beta.31 av Xerolux (2025) - Baserad på originalarbetet av Alexander Reinert.',
+    versionInfo: 'Moderniserad fork v2.2.3-Beta.32 av Xerolux (2025) - Baserad på originalarbetet av Alexander Reinert.',
     updateAvailable: 'Uppdatering tillgänglig!',
     updateAvailableMessage: 'En uppdatering till version {latestVersion} finns tillgänglig.',
     upToDate: 'Den fasta programvaran är uppdaterad',

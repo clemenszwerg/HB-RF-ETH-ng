@@ -124,10 +124,19 @@ export const useExperimentalStore = defineStore('experimental', {
     // is reconciled with the server (see syncFromServer) and localStorage
     // becomes a mirror of the authoritative device setting.
     testDesignEnabled: safeLocal.get("hb-rf-eth-ng-test-design") === "1",
-    // Wall-clock time (ms) of the last user-initiated flip. Used by
-    // syncFromServer to ignore stale server values that arrive while the
-    // flip's own persist POST is still in flight (see the race note below).
-    // 0 means "no recent local flip — trust the server unconditionally".
+    // --- Race-guard state for the test-design toggle ---
+    // The toggle's persist POST and the header's settingsStore.load() (which
+    // fires because flipping swaps the header component) race. A naive server
+    // sync can read the OLD value while the POST is still being written and
+    // flip the toggle straight back — the exact "spring-back" bug.
+    //
+    // Guard mechanism (deterministic, not a wall-clock guess):
+    //   _persistInFlight: true while the flip's POST has not yet resolved.
+    //   _lastFlipAt:      ms timestamp of the last flip; used as an extra
+    //                     cooldown AFTER the POST resolves, to cover the NVS
+    //                     write commit window on the device. Both must be
+    //                     clear before syncFromServer trusts a server value.
+    _persistInFlight: false,
     _lastFlipAt: 0
   }),
   actions: {
@@ -159,38 +168,43 @@ export const useExperimentalStore = defineStore('experimental', {
       // failed experimental-toggle persist must NOT disturb the session.
       // Fire-and-forget: a network failure does NOT roll back the local
       // toggle; the device value stays stale until the next successful save.
+      this._persistInFlight = true
       axios.post("/settings.json", { testDesignEnabled: next }, { timeout: 5000, silent: true })
         .catch((e) => console.warn("Failed to persist test-design toggle to device:", e?.message || e))
+        // finally() runs on BOTH success and failure, so the in-flight flag is
+        // always cleared and the post-POST cooldown (_lastFlipAt) takes over.
+        .finally(() => { this._persistInFlight = false })
     },
     // Called by useSettingsStore.load() after /settings.json returns, so the
     // device-wide persisted value wins over the localStorage boot guess.
     //
-    // RACE GUARD: flipping the toggle swaps the header component (app.vue
-    // switches between <Header> and <NewDesignHeader>), and the newly-mounted
-    // header calls settingsStore.load() in its onMounted. That load() can
-    // resolve BEFORE this flip's persist POST has been written to NVS — in
-    // which case the server still reports the OLD value, and naively applying
-    // it would flip the toggle straight back (the exact "spring-back" bug).
-    // We therefore ignore any server value that arrives within a short grace
-    // window after a local flip; once the window passes, the POST has had
-    // enough time to land and the server is authoritative again.
+    // RACE GUARD: while a flip's persist POST is in flight, OR within a short
+    // cooldown after it resolved, ignore server values that disagree with the
+    // local choice. The POST is bound to its own lifecycle (deterministic),
+    // and the cooldown covers the ESP32's NVS commit latency after the HTTP
+    // response is sent. Both conditions are checked so that overlapping
+    // settingsStore.load() calls (header mount + page mount) cannot sneak a
+    // stale value past the guard: the flag is shared singleton state.
     syncFromServer(serverValue) {
       if (typeof serverValue !== 'boolean') return
       if (serverValue === this.testDesignEnabled) {
-        // Converged — clear the flip marker so a later genuine change is
-        // honoured immediately.
-        this._lastFlipAt = 0
+        // Already converged — nothing to do. We intentionally do NOT clear the
+        // guard here: a second in-flight load() could still return a stale
+        // value (the POST's NVS write may not be durably committed yet), and
+        // clearing early would let it through. The guard expires on its own
+        // (POST resolve + cooldown).
         return
       }
-      // Within the post-flip grace window, trust the local user choice over
-      // the (likely stale) server value. 4 s comfortably covers the persist
-      // POST + ESP32 NVS write + the header's checkForUpdate round-trip that
-      // precedes its settingsStore.load().
-      if (this._lastFlipAt && (Date.now() - this._lastFlipAt) < 4000) {
-        return
-      }
-      // Outside the window: the server is authoritative. Apply and clear.
-      this._lastFlipAt = 0
+      // Disagreement while a flip's POST is in flight: the server value is
+      // almost certainly stale (the POST hasn't landed). Trust the local flip.
+      if (this._persistInFlight) return
+      // Disagreement within the post-flip cooldown: even though the POST has
+      // resolved, the device's NVS write can lag the HTTP response by a few
+      // hundred ms, and a concurrent GET dispatched slightly earlier can
+      // still observe the pre-write state. 3 s is a conservative cooldown
+      // that covers the slowest realistic ESP32 NVS flush.
+      if (this._lastFlipAt && (Date.now() - this._lastFlipAt) < 3000) return
+      // No active guard: the server is authoritative. Apply it.
       this.testDesignEnabled = serverValue
       safeLocal.set("hb-rf-eth-ng-test-design", serverValue ? "1" : "0")
       this.applyDesignClass()
@@ -405,29 +419,48 @@ export const useSettingsStore = defineStore('settings', {
       booting: 4,
       update_in_progress: 5
     },
+    // Internal: in-flight load() promise to dedupe concurrent callers.
+    // Underscore-prefixed so Pinia does not expose it as a getter; not reactive.
+    _loadInFlight: null,
   }),
   actions: {
+    // settingsStore.load() is called by BOTH the app header (header.vue /
+    // NewDesignHeader.vue onMounted) AND the page component (settings.vue,
+    // firmwareupdate.vue onMounted) during the same mount cycle. Without a
+    // guard this fires two concurrent GET /settings.json requests whose
+    // responses overwrite each other on $state. The in-flight promise
+    // deduplicates them onto a single network round-trip: concurrent callers
+    // await the same promise and observe the same result. Stays null between
+    // loads so a later explicit reload still hits the network.
     async load() {
-      try {
-        const response = await axios.get("/settings.json", { timeout: 5000 })
-        if (response.data?.settings) {
-          const incoming = { ...response.data.settings }
-          // The test-design toggle is owned by useExperimentalStore. Pull it
-          // out of the incoming settings payload and forward it there as a
-          // ONE-TIME server→client sync (never push it back later). Then drop
-          // it so it cannot leak into this store's state.
-          const serverTestDesign = incoming.testDesignEnabled
-          delete incoming.testDesignEnabled
-          Object.assign(this.$state, incoming)
-          if (serverTestDesign !== undefined) {
-            useExperimentalStore().syncFromServer(!!serverTestDesign)
+      if (this._loadInFlight) return this._loadInFlight
+      this._loadInFlight = (async () => {
+        try {
+          const response = await axios.get("/settings.json", { timeout: 5000 })
+          if (response.data?.settings) {
+            const incoming = { ...response.data.settings }
+            // The test-design toggle is owned by useExperimentalStore. Pull it
+            // out of the incoming settings payload and forward it there as a
+            // ONE-TIME server→client sync (never push it back later). Then drop
+            // it so it cannot leak into this store's state.
+            const serverTestDesign = incoming.testDesignEnabled
+            delete incoming.testDesignEnabled
+            Object.assign(this.$state, incoming)
+            if (serverTestDesign !== undefined) {
+              useExperimentalStore().syncFromServer(!!serverTestDesign)
+            }
+          } else {
+            throw new Error('Invalid response format: missing settings')
           }
-        } else {
-          throw new Error('Invalid response format: missing settings')
+        } catch (error) {
+          console.error('Failed to load settings:', error.response?.status || error.message)
+          throw error
         }
-      } catch (error) {
-        console.error('Failed to load settings:', error.response?.status || error.message)
-        throw error
+      })()
+      try {
+        return await this._loadInFlight
+      } finally {
+        this._loadInFlight = null
       }
     },
     async save(settings) {

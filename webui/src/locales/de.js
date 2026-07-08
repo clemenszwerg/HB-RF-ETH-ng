@@ -15,6 +15,7 @@ export default {
     ok: 'OK',
     unknownError: 'Unbekannter Fehler',
     copyFailed: 'Kopieren fehlgeschlagen',
+    clear: 'Leeren',
     network: {
       serverErrorTitle: 'Serverfehler',
       serverError: 'Serverfehler: {status}',
@@ -315,7 +316,7 @@ export default {
     otaSuccess: 'Download erfolgreich. Installation...',
     currentVersion: 'Aktuelle Version',
     installedVersion: 'Installierte Version',
-    versionInfo: 'Modernisierte Fork v2.2.3-Beta.31 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
+    versionInfo: 'Modernisierte Fork v2.2.3-Beta.32 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
     updateAvailableMessage: 'Ein Update auf Version {latestVersion} ist verfügbar.',
     newVersionAvailable: 'Neue Version {version} ist verfügbar!',
     viewUpdate: 'Ansehen',
