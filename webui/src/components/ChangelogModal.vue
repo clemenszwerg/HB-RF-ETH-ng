@@ -71,11 +71,11 @@ const error = ref(null)
 const changelog = ref('')
 
 const escapeHtml = (value) => value
-  .replaceAll('&', '&amp;')
-  .replaceAll('<', '&lt;')
-  .replaceAll('>', '&gt;')
-  .replaceAll('"', '&quot;')
-  .replaceAll("'", '&#39;')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
 
 // Sanitize link targets to prevent javascript:/data: XSS via markdown links.
 const changelogRenderer = new marked.Renderer()

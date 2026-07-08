@@ -1,7 +1,17 @@
 <template>
-  <div id="app" :class="{ 'newdesign-shell': experimentalStore.testDesignEnabled, 'auth-screen': isLoginScreen }">
-    <div class="app-container">
-      <component v-if="!isLoginScreen" :is="experimentalStore.testDesignEnabled ? NewDesignHeader : Header" />
+  <div id="app" :class="{ 'newdesign-shell': experimentalStore.testDesignEnabled, 'bare-layout': isBareLayout }">
+    <!-- Bare layout: full-screen pages (login) render standalone, no shell. -->
+    <main v-if="isBareLayout" class="bare-main">
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
+    </main>
+
+    <!-- Full app shell: sidebar header + content + footer. -->
+    <div v-else class="app-container">
+      <component :is="experimentalStore.testDesignEnabled ? NewDesignHeader : Header" />
       <main class="main-content">
         <RouterView v-slot="{ Component }">
           <Transition name="page" mode="out-in">
@@ -9,7 +19,7 @@
           </Transition>
         </RouterView>
       </main>
-      <footer v-if="!isLoginScreen" class="app-footer">
+      <footer class="app-footer">
         <div class="footer-content">
           <small class="text-muted">{{ t('app.footerCopyright', { version: sysInfoStore.currentVersion ? 'v' + sysInfoStore.currentVersion : '' }) }}</small>
           <div class="footer-actions">
@@ -32,6 +42,11 @@
       </footer>
     </div>
 
+    <!-- Restart countdown overlay (from the restart UI store) + global overlays
+         live OUTSIDE the layout branch so they work in both layouts: an OTA-
+         success can land on the login page after reboot, toasts and the
+         supporter prompt can surface anywhere, and the restart countdown may
+         fire regardless of which page is active. -->
     <div v-if="restartUiStore.visible" class="countdown-overlay restart-countdown-overlay">
       <div class="countdown-card">
         <div class="spinner-container">
@@ -91,9 +106,10 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useExperimentalStore, useLoginStore, useRestartUiStore, useSysInfoStore } from './stores.js'
+import { safeLocal, safeSession } from './composables/useSafeStorage'
 import Header from './header.vue'
 import NewDesignHeader from './components/NewDesignHeader.vue'
 import SponsorModal from './components/SponsorModal.vue'
@@ -111,8 +127,13 @@ const showSupporterExpiredPrompt = ref(false)
 const otaUpdateVersion = ref('')
 let updateSuccessTimer = null
 const pageTitle = computed(() => `${sysInfoStore.hostname || 'HB-RF-ETH-ng'} - HB-RF-ETH-ng`)
-const testDesignEnabled = computed(() => experimentalStore.testDesignEnabled)
-const isLoginScreen = computed(() => route.path === '/login')
+// Routes flagged meta.bareLayout (currently /login) render without the app
+// shell — standalone full-screen page instead of sidebar + content + footer.
+// (Replaces the older isLoginScreen approach: meta.bareLayout is generic and
+// declared on the route, not hard-coded to /login here.)
+const isBareLayout = computed(() => !!route.meta.bareLayout)
+// Restart-countdown overlay computeds (driven by the restart UI store). The
+// overlay is rendered below for every layout.
 const restartCountdownTitle = computed(() => (
   restartUiStore.phase === 'sync'
     ? t('settings.flashPause')
@@ -136,8 +157,8 @@ const restartCountdownProgress = computed(() => {
 watch(() => [sysInfoStore.supporterExpired, loginStore.isLoggedIn], ([expired, loggedIn]) => {
   if (!expired || !loggedIn) return
   if (sysInfoStore.supporterActive) return
-  if (sessionStorage.getItem('supporterPromptShown') === '1') return
-  sessionStorage.setItem('supporterPromptShown', '1')
+  if (safeSession.get('supporterPromptShown') === '1') return
+  safeSession.set('supporterPromptShown', '1')
   showSupporterExpiredPrompt.value = true
 })
 
@@ -148,9 +169,11 @@ watch(pageTitle, (title) => {
   document.title = title
 }, { immediate: true })
 
-watch(testDesignEnabled, (enabled) => {
-  document.body.classList.toggle('newdesign-active', enabled)
-}, { immediate: true })
+// Note: the `newdesign-active` body class is owned exclusively by the
+// experimental store (useExperimentalStore.applyDesignClass) + an inline
+// script in index.html for FOUC prevention. Do NOT toggle it here — a
+// duplicate watcher previously disagreed with the store on which element
+// holds the class (<html> vs <body>) and caused the toggle to feel flaky.
 
 onMounted(() => {
   sysInfoStore.update().catch((error) => {
@@ -158,11 +181,11 @@ onMounted(() => {
   })
 
   // Check if we just came back from an OTA update
-  const pendingVersion = localStorage.getItem('otaUpdateVersion')
+  const pendingVersion = safeLocal.get('otaUpdateVersion')
   if (pendingVersion) {
     otaUpdateVersion.value = pendingVersion
     showUpdateSuccess.value = true
-    localStorage.removeItem('otaUpdateVersion')
+    safeLocal.remove('otaUpdateVersion')
     // Auto-close after 10 seconds
     updateSuccessTimer = setTimeout(() => {
       showUpdateSuccess.value = false
@@ -171,7 +194,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  document.body.classList.remove('newdesign-active')
   if (updateSuccessTimer) {
     clearTimeout(updateSuccessTimer)
   }
@@ -180,9 +202,22 @@ onUnmounted(() => {
 
 <style scoped>
 #app {
+  /* dvh accounts for the iOS Safari dynamic toolbar; vh is the fallback. */
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+/* Bare layout (login): full-viewport standalone page, no shell. */
+.bare-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  min-width: 0;
 }
 
 .app-container {
@@ -232,6 +267,7 @@ onUnmounted(() => {
 
 .newdesign-shell .main-content {
   min-height: 100vh;
+  min-height: 100dvh;
   margin-bottom: 0;
   padding: 112px 24px 24px 384px;
 }

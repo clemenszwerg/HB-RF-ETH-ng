@@ -23,6 +23,7 @@
             v-model="currentPassword"
             :placeholder="t('changePassword.currentPasswordPlaceholder')"
             :state="v$.currentPassword.$error ? false : null"
+            autocomplete="current-password"
             size="lg"
           />
           <BFormInvalidFeedback v-if="v$.currentPassword.required.$invalid">
@@ -36,6 +37,7 @@
             v-model="newPassword"
             :placeholder="t('changePassword.newPasswordPlaceholder')"
             :state="v$.newPassword.$error ? false : null"
+            autocomplete="new-password"
             size="lg"
           />
           <BFormInvalidFeedback v-if="v$.newPassword.minLength.$invalid">
@@ -52,6 +54,7 @@
             v-model="confirmPassword"
             :placeholder="t('changePassword.confirmPasswordPlaceholder')"
             :state="v$.confirmPassword.$error ? false : null"
+            autocomplete="new-password"
             size="lg"
             @keyup.enter="handleSubmit"
           />

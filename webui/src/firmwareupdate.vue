@@ -367,6 +367,7 @@ import { useI18n } from 'vue-i18n'
 import { useSysInfoStore, useUpdateStore, useFirmwareUpdateStore, useUiStore, useSettingsStore } from './stores.js'
 import axios from 'axios'
 import ChangelogModal from './components/ChangelogModal.vue'
+import { safeLocal } from './composables/useSafeStorage'
 
 const { t } = useI18n()
 const sysInfoStore = useSysInfoStore()
@@ -768,7 +769,7 @@ const startOtaFromUrl = async (updateUrl, version) => {
   otaProgress.value = 0
 
   // Remember target version so app.vue can show a success modal after reboot
-  localStorage.setItem('otaUpdateVersion', version)
+  safeLocal.set('otaUpdateVersion', version)
 
   uiStore.pushToast({ type: 'info', title: t('firmware.title'), message: t('firmware.otaProgress'), duration: 2200 })
 
@@ -783,11 +784,11 @@ const startOtaFromUrl = async (updateUrl, version) => {
       // Firmware returns HTTP 200 with { success: false, error } for several
       // legitimate conditions (already-in-progress, invalid URL, ...). Surface
       // it instead of silently doing nothing.
-      localStorage.removeItem('otaUpdateVersion')
+      safeLocal.remove('otaUpdateVersion')
       uiStore.pushToast({ type: 'error', title: t('common.error'), message: response.data.error || t('firmware.otaFailed') })
     }
   } catch (error) {
-    localStorage.removeItem('otaUpdateVersion')
+    safeLocal.remove('otaUpdateVersion')
     uiStore.pushToast({ type: 'error', title: t('common.error'), message: error.response?.data?.error || error.message || t('firmware.otaFailed') })
   } finally {
     otaUpdating.value = false

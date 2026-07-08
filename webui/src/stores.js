@@ -1,20 +1,21 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { safeLocal, safeSession } from './composables/useSafeStorage'
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000
 const getStoredLastActivity = () => {
-  const stored = Number(sessionStorage.getItem("hb-rf-eth-ng-last-activity"))
+  const stored = Number(safeSession.get("hb-rf-eth-ng-last-activity"))
   return Number.isFinite(stored) && stored > 0 ? stored : Date.now()
 }
 
 export const useThemeStore = defineStore('theme', {
   state: () => ({
-    theme: localStorage.getItem('theme') || 'light'
+    theme: safeLocal.get('theme') || 'light'
   }),
   actions: {
     setTheme(newTheme) {
       this.theme = newTheme
-      localStorage.setItem('theme', newTheme)
+      safeLocal.set('theme', newTheme)
       document.documentElement.setAttribute('data-bs-theme', newTheme)
     },
     toggleTheme() {
@@ -118,15 +119,22 @@ export const useRestartUiStore = defineStore('restartUi', {
 
 export const useExperimentalStore = defineStore('experimental', {
   state: () => ({
-    testDesignEnabled: localStorage.getItem("hb-rf-eth-ng-test-design") === "1"
+    testDesignEnabled: safeLocal.get("hb-rf-eth-ng-test-design") === "1"
   }),
   actions: {
     applyDesignClass() {
-      document.documentElement.classList.toggle('newdesign-active', this.testDesignEnabled)
+      // Single source of truth for the new-design toggle. The class MUST live
+      // on <body> because every new-design CSS rule in styles/main.css
+      // targets `body.newdesign-active`. (Previously this wrote to <html>,
+      // which matched no rule — the toggle only worked by accident via a
+      // duplicate watcher in app.vue, and it caused a pre-paint flash of the
+      // old UI on cold boot.) index.html also sets this class inline before
+      // first paint to prevent FOUC.
+      document.body.classList.toggle('newdesign-active', this.testDesignEnabled)
     },
     setTestDesignEnabled(enabled) {
       this.testDesignEnabled = !!enabled
-      localStorage.setItem("hb-rf-eth-ng-test-design", this.testDesignEnabled ? "1" : "0")
+      safeLocal.set("hb-rf-eth-ng-test-design", this.testDesignEnabled ? "1" : "0")
       this.applyDesignClass()
     },
     init() {
@@ -137,13 +145,13 @@ export const useExperimentalStore = defineStore('experimental', {
 
 export const useLoginStore = defineStore('login', {
   state: () => {
-    const token = sessionStorage.getItem("hb-rf-eth-ng-pw") || ""
+    const token = safeSession.get("hb-rf-eth-ng-pw") || ""
     const lastActivity = getStoredLastActivity()
     const sessionExpired = token && Date.now() - lastActivity > IDLE_TIMEOUT_MS
 
     if (sessionExpired) {
-      sessionStorage.removeItem("hb-rf-eth-ng-pw")
-      sessionStorage.removeItem("hb-rf-eth-ng-last-activity")
+      safeSession.remove("hb-rf-eth-ng-pw")
+      safeSession.remove("hb-rf-eth-ng-last-activity")
     }
 
     return {
@@ -155,15 +163,20 @@ export const useLoginStore = defineStore('login', {
   },
   actions: {
     login(token) {
-      sessionStorage.setItem("hb-rf-eth-ng-pw", token)
+      // Persist FIRST. In iOS Safari private-browsing mode setItem throws
+      // QuotaExceededError; if that propagates out of an already-accepted
+      // server login the user is bounced back to the login screen despite
+      // correct credentials. Set in-memory state regardless of persistence
+      // success so the session stays valid for the lifetime of the tab.
+      safeSession.set("hb-rf-eth-ng-pw", token)
       this.token = token
       this.isLoggedIn = true
       this.updateActivity()
     },
     logout() {
       this.isLoggedIn = false
-      sessionStorage.removeItem("hb-rf-eth-ng-pw")
-      sessionStorage.removeItem("hb-rf-eth-ng-last-activity")
+      safeSession.remove("hb-rf-eth-ng-pw")
+      safeSession.remove("hb-rf-eth-ng-last-activity")
       this.token = ""
     },
     setPasswordChanged(status) {
@@ -172,7 +185,7 @@ export const useLoginStore = defineStore('login', {
     updateActivity() {
       if (this.isLoggedIn) {
         this.lastActivity = Date.now()
-        sessionStorage.setItem("hb-rf-eth-ng-last-activity", this.lastActivity)
+        safeSession.set("hb-rf-eth-ng-last-activity", this.lastActivity)
       }
     },
     checkActivity() {
@@ -186,20 +199,36 @@ export const useLoginStore = defineStore('login', {
       return false
     },
     async tryLogin(username, password) {
+      let serverAccepted = false
+      let token = null
+      let passwordChanged = true
       try {
         const response = await axios.post("/login.json", { username, password }, { timeout: 8000 })
         if (response.data?.isAuthenticated && response.data?.token) {
-          this.login(response.data.token)
-          this.setPasswordChanged(response.data.passwordChanged !== false)
-          return true
+          serverAccepted = true
+          token = response.data.token
+          passwordChanged = response.data.passwordChanged !== false
         }
-        return false
       } catch (error) {
         const status = error.response?.status || error.message
         console.error('Login failed:', status)
         // Don't throw - let caller handle the error via response
         return false
       }
+
+      if (serverAccepted) {
+        // login() never throws now (storage writes are guarded), but keep the
+        // outer guard so any future regression can't turn an accepted login
+        // into a reported failure.
+        try {
+          this.login(token)
+          this.setPasswordChanged(passwordChanged)
+        } catch (e) {
+          console.error('login() state update failed:', e)
+        }
+        return true
+      }
+      return false
     }
   }
 })

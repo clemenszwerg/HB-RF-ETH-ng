@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changes
+- feat: make the WebUI installable as a Progressive Web App (manifest + theme-color + apple-touch-icon; "Install app" on Android Chrome/Edge, "Zum Home-Bildschirm" on iOS Safari). Single embedded 256px icon serves any/maskable/apple-touch to keep flash usage minimal.
+- feat: serve the firmware release archive from flash instead of fetching it live from GitHub on every archive view — removes a TLS handshake + GitHub round-trip per view (a heap-pressure source on the WROOM-32) and makes the archive viewable offline. The "newest release available" check stays live.
+- feat: cache-busting for the embedded WebUI assets via content-hashed query params + no-cache HTML shell, so the browser always pulls the new bundle after a firmware update without a manual cache clear.
+- fix(webui): new-design toggle now reliably applies on toggle and on cold boot — the class lived on `<html>` (which no CSS rule reads) and only worked by accident via a duplicate watcher; the store is now the single source of truth on `<body>`, and an inline script prevents a pre-paint flash of the old UI.
+- fix(webui): login page renders standalone (no sidebar header / footer) via a bare layout, replacing the brittle position:fixed hack.
+- fix(webui): harden the new design for iOS Safari / private-browsing mode — guarded storage writes so an accepted login no longer rolls back, iOS-safe clipboard copy, body scroll lock, locale dismiss-on-outside-click, autocomplete hints, dynamic-viewport (dvh) sizing.
+- fix(webui): close new-design whitelist gaps — flatten Bootstrap button/alert variants, spinners, diagnostics list, supporter-card internals, changelog modal, and tone down the supporter medallion to match the flat theme.
+- fix(firmware): start the UpdateCheck background task after monitoring_init() creates the shared HTTPS-fetch mutex, closing a boot-time race where the first manifest fetch could overlap a CRL/MQTT fetch and exhaust the TLS heap.
+- chore: dark-mode palette of the new design realigned to a neutral-grey scheme; new-design radii/shadows tightened to a more compact aesthetic.
+
 ## [2.2.3-Beta.29] - 2026-07-08
 
 ### Changes

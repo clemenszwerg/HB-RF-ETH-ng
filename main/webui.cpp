@@ -88,6 +88,13 @@ EMBED_HANDLER("/*", index_html_gz, "text/html")
 EMBED_HANDLER("/main.js", main_js_gz, "application/javascript")
 EMBED_HANDLER("/main.css", main_css_gz, "text/css")
 EMBED_HANDLER("/favicon.ico", favicon_ico_gz, "image/x-icon")
+// PWA assets — make the WebUI installable. The single icon-256.png serves as
+// the standard icon, the maskable icon (declared in manifest.webmanifest with
+// purpose "any maskable"), and the iOS apple-touch-icon (referenced from the
+// apple-touch-icon <link> in index.html). Embedding one file instead of three
+// copies saves ~188 KB of flash on the memory-constrained WROOM-32.
+EMBED_HANDLER("/manifest.webmanifest", manifest_webmanifest_gz, "application/manifest+json")
+EMBED_HANDLER("/icon-256.png", icon_256_png_gz, "image/png")
 
 static Settings *_settings;
 static LED *_statusLED;
@@ -2303,12 +2310,36 @@ httpd_uri_t get_changelog_handler = {
     .handler = get_changelog_handler_func,
     .user_ctx = NULL};
 
+// Embedded firmware release archive (gzipped archive.json). Generated from
+// archive.json by scripts/update_archive.py at build time. Serving it from
+// flash avoids a TLS handshake + GitHub round-trip on every archive view,
+// which was one of the heap-pressure sources that could panic the WROOM-32.
+// The archive now lists releases up to the one before the running firmware;
+// the "newest release available" check still runs live via /api/check_update.
+//
+// Symbols follow the same convention the WebUI embed handlers use (see
+// EMBED_HANDLER): ESP-IDF's target_add_binary_data emits _start + _end via
+// objcopy and adds a convenience _length symbol the WebUI relies on.
+extern const char archive_json_gz[] asm("_binary_archive_json_gz_start");
+extern const size_t archive_json_gz_length asm("archive_json_gz_length");
+
 esp_err_t get_firmware_archive_handler_func(httpd_req_t *req)
 {
-    return start_async_proxy(req,
-                             "https://raw.githubusercontent.com/Xerolux/HB-RF-ETH-ng/main/archive.json",
-                             "application/json",
-                             "Failed to fetch firmware archive from GitHub");
+    add_security_headers(req);
+    if (validate_auth(req) != ESP_OK)
+    {
+        httpd_resp_set_status(req, "401 Not authorized");
+        httpd_resp_sendstr(req, "401 Not authorized");
+        return ESP_OK;
+    }
+    // The archive is historical reference data that only changes with firmware
+    // releases, so it may be cached for the browser session. That also matches
+    // the WebUI's own caching of the parsed archive in localStorage.
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+    httpd_resp_set_hdr(req, "Cache-Control", "private, max-age=3600");
+    httpd_resp_send(req, archive_json_gz, archive_json_gz_length);
+    return ESP_OK;
 }
 
 httpd_uri_t get_firmware_archive_handler = {
@@ -3050,6 +3081,9 @@ void WebUI::start()
         httpd_register_uri_handler(_httpd_handle, &main_css_gz_handler);
         httpd_register_uri_handler(_httpd_handle, &favicon_ico_gz_handler);
         httpd_register_uri_handler(_httpd_handle, &index_html_gz_handler);
+        // PWA assets
+        httpd_register_uri_handler(_httpd_handle, &manifest_webmanifest_gz_handler);
+        httpd_register_uri_handler(_httpd_handle, &icon_256_png_gz_handler);
     }
 }
 

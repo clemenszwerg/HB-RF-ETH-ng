@@ -33,7 +33,11 @@ const router = createRouter({
     { path: '/systemlog', component: SystemLog, meta: { requiresAuth: true } },
     { path: '/change-password', component: ChangePassword, meta: { requiresAuth: true } },
     { path: '/about', component: About },
-    { path: '/login', component: Login },
+    // bareLayout: rendered WITHOUT the app shell (no sidebar header, no footer).
+    // Login is a full-screen standalone page — the shell's 384px sidebar + footer
+    // make no sense on an auth page, and the previous CSS hack (position:fixed
+    // to escape the sidebar padding) was brittle. See app.vue.
+    { path: '/login', component: Login, meta: { bareLayout: true } },
   ]
 })
 

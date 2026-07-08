@@ -112,12 +112,20 @@ jobs:
               f.write("\n")
           PY
 
-      - name: Commit archive manifest
+      - name: Regenerate embedded archive bundle
+        run: |
+          # Produce the gzipped copy that the firmware embeds. The .gz is
+          # committed alongside archive.json so local and CI firmware builds
+          # always have a current, build-ready embedded resource without
+          # having to run the script themselves.
+          python3 scripts/update_archive.py
+
+      - name: Commit archive manifest and embedded bundle
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add archive.json
+          git add archive.json main/generated/archive.json.gz
           if git diff --cached --quiet; then
             echo "archive.json already up to date"
             exit 0

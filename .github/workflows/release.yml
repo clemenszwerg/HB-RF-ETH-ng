@@ -118,6 +118,14 @@ jobs:
       - name: Rename WebUI files
         run: python3 rename_webui_files.py
 
+      - name: Regenerate embedded firmware archive
+        # Embeds the release archive into the firmware build. Uses the
+        # committed archive.json (which contains all PRIOR releases, since the
+        # current release is only appended after the build) so a freshly
+        # released firmware lists every version up to the previous one. The
+        # just-built release is added on the NEXT rebuild-archive run.
+        run: python3 scripts/update_archive.py
+
       - name: Setup ESP-IDF v6.0.1
         run: |
           python -m pip install --upgrade pip

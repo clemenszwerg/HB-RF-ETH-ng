@@ -109,6 +109,8 @@ python3 rename_webui_files.py   # gzip-compresses the dist assets idf.py embeds
 
 `main/CMakeLists.txt` embeds `webui/dist/{index.html,main.css,main.js,favicon.ico}.gz` directly into the firmware via `target_add_binary_data` — these gzipped files must exist before the ESP-IDF build runs.
 
+It also embeds `main/generated/archive.json.gz` — the gzipped firmware release archive. This is the source for the `/api/firmware_archive` endpoint, which serves the archive **from flash** instead of fetching it live from GitHub on every request (the live TLS fetch was a heap-pressure / panic source and made the archive viewable only when online). The embedded `.gz` is regenerated from `archive.json` by `scripts/update_archive.py`, which runs in every CI build step right before `idf.py build` (see `.github/workflows/*.yml`) and is also committed by the `rebuild-archive.yml` workflow. A local firmware build must therefore run `python scripts/update_archive.py` first if `archive.json` changed. The script is strict: it fails (non-zero exit) if `archive.json` is missing or invalid JSON. The "newest release available" check stays live via `/api/check_update` (`latest.json`/`beta.json`); only the historical archive list is embedded.
+
 ### Other Python Scripts
 
 | Script | Purpose |

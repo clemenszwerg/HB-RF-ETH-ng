@@ -23,6 +23,7 @@
                 :class="{ 'has-error': v$.username.$error }"
                 autocomplete="username"
                 autocapitalize="none"
+                autocorrect="off"
                 spellcheck="false"
                 autofocus
                 @keyup.enter="loginClick"
@@ -326,7 +327,10 @@ const loginClick = async () => {
 
 <style scoped>
 .login-page {
+  /* 100dvh accounts for the iOS Safari dynamic toolbar; 100vh is the fallback
+     for older browsers that do not understand dvh. */
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;

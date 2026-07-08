@@ -118,4 +118,25 @@ def rename_webui_files():
         else:
             print(f"WARNING: {filename} not found in dist")
 
+    # PWA assets (progressive web app installability). Vite copies files from
+    # webui/public/ to dist/ verbatim; gzip them here so CMake can embed the
+    # .gz variants the same way it embeds main.js.gz / favicon.ico.gz. PNG icons
+    # are already compressed image data, so gzip barely shrinks them — but the
+    # firmware handler sets Content-Encoding: gzip for every embedded asset, so
+    # a .gz copy is required for the response to decode correctly.
+    pwa_assets = [
+        "manifest.webmanifest",
+        "icon-256.png",
+    ]
+    for filename in pwa_assets:
+        source = dist_dir / filename
+        target = dist_dir / f"{filename}.gz"
+        if source.exists():
+            with open(source, 'rb') as f_in:
+                with gzip.open(target, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+            print(f"Created {target.name}")
+        else:
+            print(f"WARNING: PWA asset {filename} not found in dist")
+
 rename_webui_files()

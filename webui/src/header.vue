@@ -60,7 +60,7 @@
           <AppIcon name="firmware" />
         </button>
 
-        <div class="locale-picker desktop-only">
+        <div class="locale-picker desktop-only" ref="localePickerRef">
           <button class="icon-button locale-button" @click="localeOpen = !localeOpen">
             <AppIcon name="language" />
             <span>{{ currentLocale.toUpperCase() }}</span>
@@ -204,6 +204,9 @@ import axios from 'axios'
 import { useLoginStore, useThemeStore, useUpdateStore, useSysInfoStore, useUiStore, useSettingsStore, useRestartUiStore } from './stores.js'
 import { availableLocales } from './locales/index.js'
 import { useHeaderNavigation } from './composables/useHeaderNavigation.js'
+import { safeLocal } from './composables/useSafeStorage'
+import { setBodyScrollLock } from './composables/useBodyScrollLock'
+import { useDismissable } from './composables/useDismissable'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -222,13 +225,22 @@ const showRestartModal = ref(false)
 const isRestarting = ref(false)
 let updateCheckTimer = null
 
+// Wrap the desktop locale toggle + its dropdown so outside clicks / Escape
+// close it. iOS Safari has no natural "click elsewhere" affordance for an
+// absolutely-positioned dropdown sitting over other controls.
+const localePickerRef = ref(null)
+const { enable: enableLocaleDismiss, disable: disableLocaleDismiss } = useDismissable(localePickerRef, () => (localeOpen.value = false))
+watch(localeOpen, (open) => open ? enableLocaleDismiss() : disableLocaleDismiss())
+
 const currentLocale = computed(() => locale.value)
 const deviceName = computed(() => sysInfoStore.hostname || 'HB-RF-ETH-ng')
 const { visibleNavGroups } = useHeaderNavigation(t, loginStore)
 
-watch(mobileMenuOpen, (isOpen) => {
-  document.body.style.overflow = isOpen ? 'hidden' : ''
-})
+// iOS Safari ignores `body { overflow: hidden }` for touch scrolling; the fixed
+// body trick in useBodyScrollLock actually locks the background behind the open
+// mobile menu / restart modal so it doesn't scroll-through.
+watch(mobileMenuOpen, (isOpen) => setBodyScrollLock(isOpen))
+watch(showRestartModal, (isOpen) => setBodyScrollLock(isOpen))
 
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false
@@ -237,7 +249,7 @@ const closeMobileMenu = () => {
 const changeLocale = (newLocale) => {
   locale.value = newLocale
   localeOpen.value = false
-  localStorage.setItem('locale', newLocale)
+  safeLocal.set('locale', newLocale)
 }
 
 const logout = () => {
@@ -268,7 +280,7 @@ const performRestart = async () => {
 
 const dismissUpdate = () => {
   showBanner.value = false
-  localStorage.setItem('dismissedUpdate', updateStore.latestVersion)
+  safeLocal.set('dismissedUpdate', updateStore.latestVersion)
 }
 
 onMounted(async () => {
@@ -293,7 +305,7 @@ onMounted(async () => {
     }
   }
 
-  if (localStorage.getItem('dismissedUpdate') === updateStore.latestVersion) {
+  if (safeLocal.get('dismissedUpdate') === updateStore.latestVersion) {
     showBanner.value = false
   }
 
@@ -305,7 +317,9 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  document.body.style.overflow = ''
+  // Release the body scroll lock if a menu/modal was open when navigating away.
+  setBodyScrollLock(false)
+  disableLocaleDismiss()
   if (updateCheckTimer) {
     clearInterval(updateCheckTimer)
   }

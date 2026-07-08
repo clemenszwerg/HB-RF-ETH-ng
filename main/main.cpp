@@ -300,8 +300,15 @@ void app_main()
     ResetInfo::init();
 
     static UpdateCheck updateCheck(&settings, &sysInfo, &statusLED);
-    updateCheck.start();
-
+    // NOTE: updateCheck.start() is intentionally deferred until AFTER
+    // monitoring_init(). monitoring_init() creates g_net_fetch_mutex, the
+    // serialization guard for all outbound TLS handshakes. The UpdateCheck task
+    // delays its first fetch by 30 s, but on a slow boot (radio-module
+    // detection alone can take ~20 s) that window can close before the mutex
+    // exists, letting the first manifest fetch race a CRL/MQTT/WebUI fetch and
+    // exhaust the WROOM-32 TLS heap → panic. Starting the task after the mutex
+    // exists removes that boot-race for good. The task itself only sleeps until
+    // then, so this costs nothing.
     // Register data providers for MQTT status topics (Ethernet link/IP,
     // radio module info, system clock / NTP sync state). Must happen before
     // monitoring_init() so the very first status publish cycle sees them.
@@ -314,6 +321,10 @@ void app_main()
     {
         ESP_LOGE(TAG, "Monitoring initialization failed: %s", esp_err_to_name(monitoringResult));
     }
+
+    // g_net_fetch_mutex now exists — safe to start the background update-check
+    // task. See the NOTE above for why this ordering matters.
+    updateCheck.start();
 
     // Emit a one-shot "radio module detected" event now that the notification
     // worker is running. Boots without a module stay silent.

@@ -56,25 +56,27 @@
       </nav>
 
       <div class="sidebar-footer">
-        <button class="utility-row" type="button" @click="localeOpen = !localeOpen">
-          <AppIcon name="language" />
-          <span>{{ currentLocale.toUpperCase() }}</span>
-          <AppIcon name="chevronDown" />
-        </button>
-        <Transition name="dropdown-fade">
-          <div v-if="localeOpen" class="locale-menu">
-            <button
-              v-for="loc in availableLocales"
-              :key="loc.code"
-              class="locale-menu-item"
-              :class="{ active: loc.code === currentLocale }"
-              @click="changeLocale(loc.code)"
-            >
-              <span>{{ loc.flag }}</span>
-              <span>{{ loc.name }}</span>
-            </button>
-          </div>
-        </Transition>
+        <div class="locale-picker" ref="localePickerRef">
+          <button class="utility-row" type="button" @click="localeOpen = !localeOpen">
+            <AppIcon name="language" />
+            <span>{{ currentLocale.toUpperCase() }}</span>
+            <AppIcon name="chevronDown" />
+          </button>
+          <Transition name="dropdown-fade">
+            <div v-if="localeOpen" class="locale-menu">
+              <button
+                v-for="loc in availableLocales"
+                :key="loc.code"
+                class="locale-menu-item"
+                :class="{ active: loc.code === currentLocale }"
+                @click="changeLocale(loc.code)"
+              >
+                <span>{{ loc.flag }}</span>
+                <span>{{ loc.name }}</span>
+              </button>
+            </div>
+          </Transition>
+        </div>
         <router-link v-if="!loginStore.isLoggedIn" to="/login" class="utility-row">{{ t('nav.login') }}</router-link>
         <template v-else>
           <button class="utility-row restart-row" type="button" :disabled="isRestarting" @click="showRestartModal = true">
@@ -241,6 +243,9 @@ import axios from 'axios'
 import { useLoginStore, useThemeStore, useUpdateStore, useSysInfoStore, useUiStore, useSettingsStore, useRestartUiStore } from '../stores.js'
 import { availableLocales } from '../locales/index.js'
 import { useHeaderNavigation } from '../composables/useHeaderNavigation.js'
+import { safeLocal } from '../composables/useSafeStorage'
+import { setBodyScrollLock } from '../composables/useBodyScrollLock'
+import { useDismissable } from '../composables/useDismissable'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -261,6 +266,12 @@ const now = ref(new Date())
 let updateCheckTimer = null
 let clockTimer = null
 
+// Wrap the desktop locale toggle + dropdown for outside-click / Escape dismiss
+// (see header.vue for rationale).
+const localePickerRef = ref(null)
+const { enable: enableLocaleDismiss, disable: disableLocaleDismiss } = useDismissable(localePickerRef, () => (localeOpen.value = false))
+watch(localeOpen, (open) => open ? enableLocaleDismiss() : disableLocaleDismiss())
+
 const currentLocale = computed(() => locale.value)
 const deviceName = computed(() => sysInfoStore.hostname || 'HB-RF-ETH-ng')
 const { visibleNavGroups } = useHeaderNavigation(t, loginStore)
@@ -275,9 +286,10 @@ const uptimeShort = computed(() => {
   return `${minutes}m`
 })
 
-watch(mobileMenuOpen, (isOpen) => {
-  document.body.style.overflow = isOpen ? 'hidden' : ''
-})
+// iOS Safari ignores `body { overflow: hidden }`; useBodyScrollLock fixes the
+// body so the background cannot scroll behind the open mobile menu / modal.
+watch(mobileMenuOpen, (isOpen) => setBodyScrollLock(isOpen))
+watch(showRestartModal, (isOpen) => setBodyScrollLock(isOpen))
 
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false
@@ -286,7 +298,7 @@ const closeMobileMenu = () => {
 const changeLocale = (newLocale) => {
   locale.value = newLocale
   localeOpen.value = false
-  localStorage.setItem('locale', newLocale)
+  safeLocal.set('locale', newLocale)
 }
 
 const logout = () => {
@@ -316,7 +328,7 @@ const performRestart = async () => {
 
 const dismissUpdate = () => {
   showBanner.value = false
-  localStorage.setItem('dismissedUpdate', updateStore.latestVersion)
+  safeLocal.set('dismissedUpdate', updateStore.latestVersion)
 }
 
 onMounted(async () => {
@@ -341,7 +353,7 @@ onMounted(async () => {
     }
   }
 
-  if (localStorage.getItem('dismissedUpdate') === updateStore.latestVersion) {
+  if (safeLocal.get('dismissedUpdate') === updateStore.latestVersion) {
     showBanner.value = false
   }
 
@@ -357,7 +369,9 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  document.body.style.overflow = ''
+  // Release the body scroll lock if a menu/modal was open when navigating away.
+  setBodyScrollLock(false)
+  disableLocaleDismiss()
   if (updateCheckTimer) {
     clearInterval(updateCheckTimer)
   }
@@ -592,6 +606,16 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+}
+
+/* Wrapper around the locale toggle + dropdown so outside-click / Escape can
+   dismiss it. It participates in the sidebar column like a direct child. */
+.sidebar-footer .locale-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
   min-width: 0;
 }
 

@@ -261,6 +261,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSysInfoStore, useUpdateStore, useUiStore, useLoginStore } from './stores.js'
+import { copyToClipboard } from './composables/useClipboard'
 
 const { t } = useI18n()
 const sysInfoStore = useSysInfoStore()
@@ -295,35 +296,20 @@ const safePercent = (value) => Math.max(0, Math.min(100, Number(value || 0).toFi
 
 const copyValue = async (value, label) => {
   if (!value) return
-  // execCommand runs synchronously within the click handler, so it still has
-  // the user-gesture activation. Awaiting the async Clipboard API first can
-  // consume that activation before falling back, breaking copy on HTTP pages.
-  const textarea = document.createElement('textarea')
-  textarea.value = value
-  textarea.style.position = 'fixed'
-  textarea.style.opacity = '0'
-  document.body.appendChild(textarea)
-  textarea.select()
-  let ok = false
+  // The shared helper is iOS-Safari-safe: it prefers the async Clipboard API
+  // on secure contexts and otherwise copies via a contentEditable span +
+  // document-level Selection (which iOS honours, unlike a hidden textarea).
   try {
-    ok = document.execCommand('copy')
-  } catch {
-    ok = false
+    await copyToClipboard(value)
+    uiStore.pushToast({
+      type: 'success',
+      title: t('common.success'),
+      message: t('sysinfo.copied', { label }),
+      duration: 2200
+    })
+  } catch (e) {
+    uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('common.copyFailed') })
   }
-  document.body.removeChild(textarea)
-  if (!ok) {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(value)
-    } else {
-      throw new Error(t('common.copyFailed'))
-    }
-  }
-  uiStore.pushToast({
-    type: 'success',
-    title: t('common.success'),
-    message: t('sysinfo.copied', { label }),
-    duration: 2200
-  })
 }
 
 let updateTimer = null

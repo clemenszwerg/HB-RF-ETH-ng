@@ -157,7 +157,10 @@ button {
 }
 
 #app {
+  /* dvh accounts for the iOS Safari dynamic toolbar; vh is the fallback. The
+     scoped rule in app.vue duplicates this; keep both in sync. */
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* App-wide layout guardrails: long hostnames, release names, MQTT topics,
@@ -926,7 +929,45 @@ body.newdesign-active {
 
 [data-bs-theme="dark"] body.newdesign-active,
 body.newdesign-active[data-bs-theme="dark"] {
-  background: #111722;
+  /* Dark background aligned to the SMLIGHT-style neutral-grey palette
+     (replacing the previous bluish #111722). */
+  background: #1e1e1e;
+}
+
+/* New-design tokens are declared on body.newdesign-active (NOT just on
+   .newdesign-shell) so that pages rendered in the bare layout — currently the
+   login route, which lives in #app.bare-layout, NOT inside .newdesign-shell —
+   can also resolve --newdesign-*. .newdesign-shell below repeats the same
+   declarations for backwards compatibility with rules that read them there. */
+body.newdesign-active {
+  /* Semantic radii tuned to the SMLIGHT-style compact aesthetic: small,
+     tight corners rather than the old 22-30px glass curves. */
+  --newdesign-radius-card: 8px;
+  --newdesign-radius-input: 4px;
+  --newdesign-radius-chip: 4px;
+  --newdesign-radius-button: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-pill: 999px;
+  --radius-full: 999px;
+  --newdesign-panel: #ffffff;
+  --newdesign-panel-soft: #f8fafc;
+  --newdesign-border: #dbe3ee;
+  --newdesign-border-strong: #c7d2e1;
+  --newdesign-text-soft: #667085;
+  --newdesign-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --newdesign-shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.14);
+  /* Brand accent, kept orange (HB-RF-ETH identity) but unified into a single
+     source of truth instead of ~10 hardcoded rgba(242,106,61,…) copies. The
+     --color-primary* tokens are defined in :root above; these aliases make the
+     new-design rules read with intent (focus ring, soft tint, hover border…). */
+  --newdesign-primary: var(--color-primary);
+  --newdesign-primary-soft: var(--color-primary-soft);
+  --newdesign-primary-strong: var(--color-primary-strong);
+  --newdesign-focus-ring: 0 0 0 3px var(--color-primary-soft);
+  --newdesign-hover-border: rgba(242, 106, 61, 0.25);
 }
 
 body.newdesign-active .newdesign-shell {
@@ -957,11 +998,26 @@ body.newdesign-active:has(.update-banner) .newdesign-shell .main-content {
 
 [data-bs-theme="dark"] body.newdesign-active .newdesign-shell,
 body.newdesign-active[data-bs-theme="dark"] .newdesign-shell {
-  --newdesign-panel: #182131;
-  --newdesign-panel-soft: #121a27;
-  --newdesign-border: rgba(148, 163, 184, 0.22);
-  --newdesign-border-strong: rgba(148, 163, 184, 0.34);
-  --newdesign-text-soft: #a8b3c5;
+  /* Dark tokens aligned to the SMLIGHT neutral-grey palette:
+     panels ~#252525 (sidebar), soft ~#1e1e1e (main bg), borders #374151. */
+  --newdesign-panel: #252525;
+  --newdesign-panel-soft: #1e1e1e;
+  --newdesign-border: #374151;
+  --newdesign-border-strong: #4b5563;
+  --newdesign-text-soft: #9ca3af;
+  --newdesign-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+  --newdesign-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Mirror the dark tokens to body.newdesign-active (without .newdesign-shell)
+   so bare-layout pages (login) also resolve them in dark mode. */
+[data-bs-theme="dark"] body.newdesign-active,
+body.newdesign-active[data-bs-theme="dark"] {
+  --newdesign-panel: #252525;
+  --newdesign-panel-soft: #1e1e1e;
+  --newdesign-border: #374151;
+  --newdesign-border-strong: #4b5563;
+  --newdesign-text-soft: #9ca3af;
   --newdesign-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
   --newdesign-shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.5);
 }
@@ -987,7 +1043,7 @@ body.newdesign-active .newdesign-shell .network-update-card,
 body.newdesign-active .newdesign-shell .radio-card,
 body.newdesign-active .newdesign-shell .action-tile,
 body.newdesign-active .newdesign-shell .system-actions .action-tile {
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel) !important;
   box-shadow: none !important;
@@ -1023,8 +1079,9 @@ body.newdesign-active .newdesign-shell .restore-confirm,
 body.newdesign-active .newdesign-shell .manual-network-settings,
 body.newdesign-active .newdesign-shell .ipv6-list,
 body.newdesign-active .newdesign-shell .password-requirements,
-body.newdesign-active .newdesign-shell .warning-alert {
-  border-radius: 8px !important;
+body.newdesign-active .newdesign-shell .warning-alert,
+body.newdesign-active .newdesign-shell .spinner-container {
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
@@ -1056,49 +1113,49 @@ body.newdesign-active .newdesign-shell .system-actions {
   gap: 14px !important;
 }
 
-/* ---- Login page: full-screen, ignores sidebar padding ---- */
-body.newdesign-active .newdesign-shell .login-page {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
+/* ---- Login page (bare layout: standalone full-screen, no app shell) ----
+   These selectors intentionally do NOT require .newdesign-shell, because the
+   login route renders in the bare layout (#app.bare-layout > .bare-main) which
+   is not inside .newdesign-shell. They key off body.newdesign-active only. */
+body.newdesign-active .login-page {
   align-items: center;
   justify-content: center;
   padding: var(--spacing-md);
   background: inherit;
 }
 
-body.newdesign-active .newdesign-shell .login-card {
-  border-radius: 10px !important;
+body.newdesign-active .login-card {
+  border-radius: var(--newdesign-radius-card, 8px) !important;
   padding: 32px !important;
 }
 
-body.newdesign-active .newdesign-shell .brand-logo {
-  border-radius: 8px !important;
+body.newdesign-active .brand-logo {
+  border-radius: var(--newdesign-radius-card, 8px) !important;
   box-shadow: none !important;
 }
 
-body.newdesign-active .newdesign-shell .modern-input {
-  border-radius: 6px !important;
+body.newdesign-active .modern-input {
+  border-radius: var(--newdesign-radius-input, 4px) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
 }
 
-body.newdesign-active .newdesign-shell .modern-input:focus {
-  border-color: rgba(242, 106, 61, 0.5) !important;
-  box-shadow: 0 0 0 3px rgba(242, 106, 61, 0.12) !important;
+body.newdesign-active .modern-input:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-soft) !important;
   background: var(--newdesign-panel) !important;
 }
 
-body.newdesign-active .newdesign-shell .login-btn {
-  border-radius: 6px !important;
+body.newdesign-active .login-btn {
+  border-radius: var(--newdesign-radius-input, 4px) !important;
   box-shadow: none !important;
 }
 
 /* ---- Hero / page header ---- */
 body.newdesign-active .newdesign-shell .page-hero,
 body.newdesign-active .newdesign-shell .page-header {
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel) !important;
   box-shadow: none !important;
@@ -1108,9 +1165,9 @@ body.newdesign-active .newdesign-shell .page-header {
 }
 
 body.newdesign-active .newdesign-shell .hero-eyebrow {
-  border-radius: 5px !important;
-  border-color: rgba(242, 106, 61, 0.22) !important;
-  background: var(--color-primary-soft) !important;
+  border-radius: var(--newdesign-radius-chip) !important;
+  border-color: var(--newdesign-hover-border) !important;
+  background: var(--newdesign-primary-soft) !important;
   letter-spacing: 0.04em !important;
 }
 
@@ -1190,7 +1247,7 @@ body.newdesign-active .newdesign-shell .tile-icon,
 body.newdesign-active .newdesign-shell .support-icon,
 body.newdesign-active .newdesign-shell .modal-icon,
 body.newdesign-active .newdesign-shell .brand-logo {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-chip) !important;
 }
 
 body.newdesign-active .newdesign-shell .icon-badge {
@@ -1209,7 +1266,7 @@ body.newdesign-active .newdesign-shell .current-badge,
 body.newdesign-active .newdesign-shell .beta-badge,
 body.newdesign-active .newdesign-shell .version-badge,
 body.newdesign-active .newdesign-shell .warning-chip {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-chip) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
@@ -1237,7 +1294,7 @@ body.newdesign-active .newdesign-shell .toolbar,
 body.newdesign-active .newdesign-shell .log-actions,
 body.newdesign-active .newdesign-shell .archive-actions,
 body.newdesign-active .newdesign-shell .archive-title-row {
-  border-radius: 8px;
+  border-radius: var(--newdesign-radius-card);
 }
 
 body.newdesign-active .newdesign-shell .tab-panel {
@@ -1246,7 +1303,7 @@ body.newdesign-active .newdesign-shell .tab-panel {
 
 body.newdesign-active .newdesign-shell .search-field,
 body.newdesign-active .newdesign-shell .level-filter {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-input) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
@@ -1261,7 +1318,7 @@ body.newdesign-active .newdesign-shell .mode-toggle,
 body.newdesign-active .newdesign-shell .mode-selector,
 body.newdesign-active .newdesign-shell .time-source-options,
 body.newdesign-active .newdesign-shell .source-selector {
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel) !important;
   box-shadow: none !important;
@@ -1273,7 +1330,7 @@ body.newdesign-active .newdesign-shell .filter-btn,
 body.newdesign-active .newdesign-shell .mode-btn,
 body.newdesign-active .newdesign-shell .source-card,
 body.newdesign-active .newdesign-shell .time-source-card {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-button) !important;
   border: 1px solid transparent !important;
   background: transparent !important;
   color: var(--newdesign-text-soft) !important;
@@ -1285,9 +1342,9 @@ body.newdesign-active .newdesign-shell .filter-btn.active,
 body.newdesign-active .newdesign-shell .mode-btn.active,
 body.newdesign-active .newdesign-shell .source-card.active,
 body.newdesign-active .newdesign-shell .time-source-card.active {
-  border-color: rgba(242, 106, 61, 0.25) !important;
-  background: var(--color-primary-soft) !important;
-  color: var(--color-primary-strong) !important;
+  border-color: var(--newdesign-hover-border) !important;
+  background: var(--newdesign-primary-soft) !important;
+  color: var(--newdesign-primary-strong) !important;
 }
 
 /* ---- Forms ---- */
@@ -1297,7 +1354,7 @@ body.newdesign-active .newdesign-shell textarea,
 body.newdesign-active .newdesign-shell .pem-textarea,
 body.newdesign-active .newdesign-shell .archive-select,
 body.newdesign-active .newdesign-shell .brightness-control {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-input) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
@@ -1308,8 +1365,8 @@ body.newdesign-active .newdesign-shell .form-select:focus,
 body.newdesign-active .newdesign-shell textarea:focus,
 body.newdesign-active .newdesign-shell .pem-textarea:focus,
 body.newdesign-active .newdesign-shell .archive-select:focus {
-  border-color: rgba(242, 106, 61, 0.5) !important;
-  box-shadow: 0 0 0 3px rgba(242, 106, 61, 0.12) !important;
+  border-color: var(--newdesign-primary) !important;
+  box-shadow: var(--newdesign-focus-ring) !important;
   background: var(--newdesign-panel) !important;
 }
 
@@ -1341,7 +1398,7 @@ body.newdesign-active .newdesign-shell .security-control-row:last-child {
 }
 
 body.newdesign-active .newdesign-shell .led-program-item {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
 }
@@ -1375,7 +1432,7 @@ body.newdesign-active .newdesign-shell .remove-file-btn,
 body.newdesign-active .newdesign-shell .btn-retry,
 body.newdesign-active .newdesign-shell .btn-close-modal,
 body.newdesign-active .newdesign-shell .btn-link-danger {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-button) !important;
   box-shadow: none !important;
 }
 
@@ -1440,7 +1497,7 @@ body.newdesign-active .newdesign-shell .form-check-input:focus {
 }
 
 body.newdesign-active .newdesign-shell .chip-btn {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-button) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
 }
@@ -1462,8 +1519,8 @@ body.newdesign-active .newdesign-shell .metric-progress {
 /* ---- Firmware page specifics ---- */
 body.newdesign-active .newdesign-shell .upload-zone.dragging,
 body.newdesign-active .newdesign-shell .upload-zone.has-file {
-  border-color: rgba(242, 106, 61, 0.45) !important;
-  background: var(--color-primary-soft) !important;
+  border-color: var(--newdesign-primary) !important;
+  background: var(--newdesign-primary-soft) !important;
 }
 
 body.newdesign-active .newdesign-shell .beta-toggle-label,
@@ -1476,7 +1533,7 @@ body.newdesign-active .newdesign-shell .progress-value {
 }
 
 body.newdesign-active .newdesign-shell .changelog-link {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-button) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
@@ -1527,7 +1584,7 @@ body.newdesign-active .newdesign-shell .diagnostic-copy {
 
 /* ---- System log specifics ---- */
 body.newdesign-active .newdesign-shell .log-line {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-card) !important;
 }
 
 body.newdesign-active .newdesign-shell .log-line:hover {
@@ -1536,13 +1593,13 @@ body.newdesign-active .newdesign-shell .log-line:hover {
 
 body.newdesign-active .newdesign-shell .log-empty,
 body.newdesign-active .newdesign-shell .log-disabled {
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   color: var(--newdesign-text-soft) !important;
 }
 
 body.newdesign-active .newdesign-shell .line-copy,
 body.newdesign-active .newdesign-shell .copy-value {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-input) !important;
 }
 
 /* ---- About page specifics ---- */
@@ -1562,12 +1619,12 @@ body.newdesign-active .newdesign-shell .link-icon {
 
 /* ---- Change password specifics ---- */
 body.newdesign-active .newdesign-shell .req-icon {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-chip) !important;
 }
 
 body.newdesign-active .newdesign-shell .lock-icon,
 body.newdesign-active .newdesign-shell .alert-icon {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-chip) !important;
 }
 
 /* ---- KV lists / metric value ---- */
@@ -1581,7 +1638,7 @@ body.newdesign-active .newdesign-shell .metric-value {
 
 body.newdesign-active .newdesign-shell .radio-stat,
 body.newdesign-active .newdesign-shell .ipv6-row {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
 }
@@ -1592,17 +1649,17 @@ body.newdesign-active .newdesign-shell .floating-footer {
 }
 
 body.newdesign-active .newdesign-shell .footer-container {
-  border-radius: 8px;
+  border-radius: var(--newdesign-radius-card);
 }
 
 body.newdesign-active .newdesign-shell .footer-alert {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-card) !important;
 }
 
 /* ---- In-shell menus (mobile panel is in-shell in NewDesignHeader) ---- */
 body.newdesign-active .newdesign-shell .locale-menu,
 body.newdesign-active .newdesign-shell .mobile-panel {
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel) !important;
   box-shadow: var(--newdesign-shadow-lg) !important;
@@ -1612,56 +1669,43 @@ body.newdesign-active .newdesign-shell .mobile-panel {
    Teleported layers (Bootstrap modals & dropdowns land on
    <body>, NOT inside .newdesign-shell). Use body.newdesign-active
    without the .newdesign-shell scope so they actually match.
+   The --newdesign-* tokens resolve correctly here because they are
+   declared on body.newdesign-active (see above), so dark mode is
+   handled by the token cascade — no duplicated dark blocks needed.
    ============================================================ */
 
 body.newdesign-active .modal-content,
 body.newdesign-active .dropdown-menu {
-  border-radius: 10px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
-  background: var(--newdesign-panel, #ffffff) !important;
-  box-shadow: var(--newdesign-shadow-lg, 0 18px 50px rgba(15, 23, 42, 0.14)) !important;
-}
-
-[data-bs-theme="dark"] body.newdesign-active .modal-content,
-[data-bs-theme="dark"] body.newdesign-active .dropdown-menu {
-  background: #182131 !important;
-  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: var(--newdesign-shadow-lg) !important;
 }
 
 body.newdesign-active .modal-header {
-  border-bottom: 1px solid var(--newdesign-border, #dbe3ee) !important;
+  border-bottom: 1px solid var(--newdesign-border) !important;
 }
 
 body.newdesign-active .modal-footer {
-  border-top: 1px solid var(--newdesign-border, #dbe3ee) !important;
+  border-top: 1px solid var(--newdesign-border) !important;
 }
 
 body.newdesign-active .sponsor-modal-content {
-  border-radius: 10px !important;
-  border: 1px solid var(--newdesign-border, #dbe3ee) !important;
-  background: var(--newdesign-panel, #ffffff) !important;
-  box-shadow: var(--newdesign-shadow-lg, 0 18px 50px rgba(15, 23, 42, 0.14)) !important;
-}
-
-[data-bs-theme="dark"] body.newdesign-active .sponsor-modal-content {
-  background: #182131 !important;
-  border-color: rgba(148, 163, 184, 0.22) !important;
+  border-radius: var(--newdesign-radius-card) !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel) !important;
+  box-shadow: var(--newdesign-shadow-lg) !important;
 }
 
 body.newdesign-active .sponsor-option,
 body.newdesign-active .close-btn {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-input) !important;
   box-shadow: none !important;
 }
 
 body.newdesign-active .sponsor-option {
-  background: var(--newdesign-panel-soft, #f8fafc) !important;
-  border: 1px solid var(--newdesign-border, #dbe3ee) !important;
-}
-
-[data-bs-theme="dark"] body.newdesign-active .sponsor-option {
-  background: #121a27 !important;
-  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--newdesign-panel-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
 }
 
 body.newdesign-active .modal-header-custom {
@@ -1669,17 +1713,13 @@ body.newdesign-active .modal-header-custom {
 }
 
 body.newdesign-active .modal-footer-custom {
-  background: var(--newdesign-panel-soft, #f8fafc) !important;
-  border-top: 1px solid var(--newdesign-border, #dbe3ee) !important;
-}
-
-[data-bs-theme="dark"] body.newdesign-active .modal-footer-custom {
-  background: #121a27 !important;
+  background: var(--newdesign-panel-soft) !important;
+  border-top: 1px solid var(--newdesign-border) !important;
 }
 
 /* ---- Toasts (rendered inside #app, so within .newdesign-shell) ---- */
 body.newdesign-active .newdesign-shell .app-toast {
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel) !important;
   box-shadow: var(--newdesign-shadow) !important;
@@ -1689,14 +1729,14 @@ body.newdesign-active .newdesign-shell .app-toast {
 
 body.newdesign-active .newdesign-shell .toast-icon-wrap,
 body.newdesign-active .newdesign-shell .toast-dismiss {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-chip) !important;
 }
 
 /* ---- Code / pre ---- */
 body.newdesign-active .newdesign-shell .archive-notes pre,
 body.newdesign-active .newdesign-shell pre,
 body.newdesign-active .newdesign-shell code {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-card) !important;
 }
 
 body.newdesign-active .newdesign-shell .archive-notes pre {
@@ -1713,7 +1753,7 @@ body.newdesign-active .newdesign-shell .bg-info-light { background-color: var(--
 
 /* ---- Alerts ---- */
 body.newdesign-active .newdesign-shell .alert {
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   box-shadow: none !important;
 }
@@ -1721,7 +1761,7 @@ body.newdesign-active .newdesign-shell .alert {
 /* ---- Skeleton ---- */
 body.newdesign-active .newdesign-shell .skeleton,
 body.newdesign-active .newdesign-shell .skeleton-block {
-  border-radius: 6px !important;
+  border-radius: var(--newdesign-radius-card) !important;
 }
 
 /* ---- Responsive ---- */
@@ -1742,8 +1782,13 @@ body.newdesign-active .newdesign-shell .skeleton-block {
   }
 }
 
-/* ---- NewDesign auth and dialog surfaces ---- */
-body.newdesign-active .newdesign-shell.auth-screen {
+/* ---- NewDesign auth and dialog surfaces ----
+   These cover the bare-layout login (the body carries .bare-layout, the
+   page .login-page) plus the older .auth-screen class kept for back-compat.
+   Both selectors are listed so the styling applies regardless of which
+   login-layout approach is active. */
+body.newdesign-active .newdesign-shell.auth-screen,
+body.newdesign-active.bare-layout {
   min-height: 100vh;
   background:
     radial-gradient(circle at 14% 12%, rgba(242, 106, 61, 0.14), transparent 28%),
@@ -1752,12 +1797,14 @@ body.newdesign-active .newdesign-shell.auth-screen {
 }
 
 body.newdesign-active .newdesign-shell.auth-screen .app-container,
-body.newdesign-active .newdesign-shell.auth-screen .main-content {
+body.newdesign-active .newdesign-shell.auth-screen .main-content,
+body.newdesign-active.bare-layout .bare-main {
   min-height: 100vh;
   padding: 0 !important;
 }
 
-body.newdesign-active .newdesign-shell.auth-screen .login-page {
+body.newdesign-active .newdesign-shell.auth-screen .login-page,
+body.newdesign-active.bare-layout .login-page {
   position: relative;
   inset: auto;
   z-index: 1;
@@ -1766,35 +1813,170 @@ body.newdesign-active .newdesign-shell.auth-screen .login-page {
   background: transparent !important;
 }
 
-body.newdesign-active .newdesign-shell.auth-screen .login-container {
+body.newdesign-active .newdesign-shell.auth-screen .login-container,
+body.newdesign-active.bare-layout .login-container {
   max-width: 440px;
   gap: 18px;
 }
 
-body.newdesign-active .newdesign-shell.auth-screen .login-card {
+body.newdesign-active .newdesign-shell.auth-screen .login-card,
+body.newdesign-active.bare-layout .login-card {
   border: 1px solid var(--newdesign-border) !important;
-  border-radius: 10px !important;
+  border-radius: var(--newdesign-radius-card, 10px) !important;
   background: var(--newdesign-panel) !important;
   box-shadow: var(--newdesign-shadow) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-body.newdesign-active .newdesign-shell.auth-screen .brand-logo {
+body.newdesign-active .newdesign-shell.auth-screen .brand-logo,
+body.newdesign-active.bare-layout .brand-logo {
   width: 56px;
   height: 56px;
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card, 8px) !important;
   background: var(--color-primary) !important;
   box-shadow: none !important;
 }
 
 body.newdesign-active .newdesign-shell.auth-screen .login-footer,
-body.newdesign-active .newdesign-shell.auth-screen .login-footer a {
+body.newdesign-active .newdesign-shell.auth-screen .login-footer a,
+body.newdesign-active.bare-layout .login-footer,
+body.newdesign-active.bare-layout .login-footer a {
   color: var(--newdesign-text-soft) !important;
 }
 
 body.newdesign-active .newdesign-shell .password-reset-panel {
-  border-radius: 8px !important;
+  border-radius: var(--newdesign-radius-card, 8px) !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+  box-shadow: none !important;
+}
+
+/* Bootstrap button variants: flatten the default gradients/shadows so they
+   sit in the flat theme. Colors are kept (Bootstrap's palette is fine); we
+   only neutralize depth. */
+body.newdesign-active .newdesign-shell .btn-primary,
+body.newdesign-active .newdesign-shell .btn-danger,
+body.newdesign-active .newdesign-shell .btn-success,
+body.newdesign-active .newdesign-shell .btn-warning,
+body.newdesign-active .newdesign-shell .btn-info,
+body.newdesign-active .newdesign-shell .btn-secondary {
+  border-radius: var(--newdesign-radius-button) !important;
+  box-shadow: none !important;
+  border: 1px solid transparent !important;
+}
+
+body.newdesign-active .newdesign-shell .btn-outline-primary,
+body.newdesign-active .newdesign-shell .btn-outline-secondary,
+body.newdesign-active .newdesign-shell .btn-outline-danger {
+  border-radius: var(--newdesign-radius-button) !important;
+  box-shadow: none !important;
+}
+
+/* Bootstrap alert variants: soft flat fills instead of the heavy colored
+   bars. Backgrounds use the existing *-soft tokens (defined in :root). */
+body.newdesign-active .newdesign-shell .alert-warning {
+  border-radius: var(--newdesign-radius-card) !important;
+  background: var(--color-warning-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+}
+body.newdesign-active .newdesign-shell .alert-danger {
+  border-radius: var(--newdesign-radius-card) !important;
+  background: var(--color-danger-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+}
+body.newdesign-active .newdesign-shell .alert-success {
+  border-radius: var(--newdesign-radius-card) !important;
+  background: var(--color-success-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+}
+body.newdesign-active .newdesign-shell .alert-info,
+body.newdesign-active .newdesign-shell .alert-primary {
+  border-radius: var(--newdesign-radius-card) !important;
+  background: var(--color-info-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+}
+
+/* Spinner: token-coloured, no glow. */
+body.newdesign-active .newdesign-shell .spinner-border {
+  color: var(--newdesign-primary) !important;
+}
+
+/* Plain checkboxes (non-switch). */
+body.newdesign-active .newdesign-shell .form-check-input:not(.form-switch .form-check-input) {
+  border-radius: var(--newdesign-radius-input) !important;
+  border-color: var(--newdesign-border-strong) !important;
+}
+
+/* Generic links: accent colour, no underline by default. */
+body.newdesign-active .newdesign-shell a:not(.btn):not(.nav-link):not(.brand):not(.follow-x-btn):not(.sponsor-btn):not(.mobile-link):not(.utility-row) {
+  color: var(--newdesign-primary) !important;
+  text-decoration: none !important;
+}
+body.newdesign-active .newdesign-shell a:not(.btn):not(.nav-link):not(.brand):not(.follow-x-btn):not(.sponsor-btn):not(.mobile-link):not(.utility-row):hover {
+  text-decoration: underline !important;
+}
+
+/* Footer: flatten and token it (previously only styled in app.vue scoped
+   CSS with old tokens). */
+body.newdesign-active .newdesign-shell .app-footer {
+  border-top: 1px solid var(--newdesign-border) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.newdesign-active .newdesign-shell .footer-content {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: transparent !important;
+}
+
+/* ---- monitoring.vue: diagnostics self-test list ---- */
+body.newdesign-active .newdesign-shell .diag-list {
+  gap: 6px !important;
+}
+body.newdesign-active .newdesign-shell .diag-row,
+body.newdesign-active .newdesign-shell .diag-row-head {
+  border-radius: var(--newdesign-radius-card) !important;
+  background: var(--newdesign-panel-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+  box-shadow: none !important;
+}
+body.newdesign-active .newdesign-shell .diag-test-btn {
+  border-radius: var(--newdesign-radius-button) !important;
+  background: var(--newdesign-panel) !important;
+  border: 1px solid var(--newdesign-border-strong) !important;
+  box-shadow: none !important;
+  color: var(--newdesign-primary) !important;
+}
+body.newdesign-active .newdesign-shell .diag-test-btn:hover:not(:disabled) {
+  background: var(--newdesign-primary-soft) !important;
+  border-color: var(--newdesign-hover-border) !important;
+}
+body.newdesign-active .newdesign-shell .diag-message {
+  color: var(--newdesign-text-soft) !important;
+}
+
+/* ---- settings.vue: supporter card internals (medallion handled in Phase 6) ---- */
+body.newdesign-active .newdesign-shell .supporter-input {
+  border-radius: var(--newdesign-radius-input) !important;
+  background: var(--newdesign-panel-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+  box-shadow: none !important;
+}
+body.newdesign-active .newdesign-shell .supporter-activate-btn {
+  border-radius: var(--newdesign-radius-button) !important;
+  box-shadow: none !important;
+}
+body.newdesign-active .newdesign-shell .supporter-feedback {
+  border-radius: var(--newdesign-radius-card) !important;
+  border: 1px solid var(--newdesign-border) !important;
+  background: var(--newdesign-panel-soft) !important;
+  box-shadow: none !important;
+}
+body.newdesign-active .newdesign-shell .supporter-revoked-panel,
+body.newdesign-active .newdesign-shell .supporter-thanks-panel {
+  border-radius: var(--newdesign-radius-card) !important;
   border: 1px solid var(--newdesign-border) !important;
   background: var(--newdesign-panel-soft) !important;
   box-shadow: none !important;
@@ -1806,7 +1988,7 @@ body.newdesign-active .newdesign-shell .forgot-link {
 
 body.newdesign-active .modal-content {
   border: 1px solid var(--newdesign-border, #dbe3ee) !important;
-  border-radius: 10px !important;
+  border-radius: var(--newdesign-radius-card, 10px) !important;
   background: var(--newdesign-panel, #ffffff) !important;
   color: var(--color-text) !important;
   box-shadow: var(--newdesign-shadow-lg, 0 18px 50px rgba(15, 23, 42, 0.14)) !important;
@@ -1822,7 +2004,101 @@ body.newdesign-active .modal-backdrop.show {
 }
 
 @media (max-width: 480px) {
-  body.newdesign-active .newdesign-shell.auth-screen .login-card {
+  body.newdesign-active .newdesign-shell.auth-screen .login-card,
+  body.newdesign-active.bare-layout .login-card {
     padding: 24px 18px !important;
   }
+}
+
+/* ---- firmwareupdate.vue: archive release-notes row + changelog button ---- */
+body.newdesign-active .newdesign-shell .archive-notes-row {
+  border-top: 1px solid var(--newdesign-border) !important;
+}
+body.newdesign-active .newdesign-shell .archive-changelog-btn {
+  border-radius: var(--newdesign-radius-button) !important;
+  background: transparent !important;
+  border: 1px solid var(--newdesign-border-strong) !important;
+  box-shadow: none !important;
+  color: var(--newdesign-primary) !important;
+}
+body.newdesign-active .newdesign-shell .archive-changelog-btn:hover:not(:disabled) {
+  background: var(--newdesign-primary-soft) !important;
+  border-color: var(--newdesign-hover-border) !important;
+}
+
+/* ---- about.vue: license pill + version badge ---- */
+body.newdesign-active .newdesign-shell .lib-license {
+  border-radius: var(--newdesign-radius-chip) !important;
+  background: var(--newdesign-panel-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+  color: var(--newdesign-text-soft) !important;
+}
+
+/* ---- sysinfo.vue: board-sense hint pill + supporter hero chip active ---- */
+body.newdesign-active .newdesign-shell .board-sense-hint {
+  border-radius: var(--newdesign-radius-chip) !important;
+  background: var(--color-warning-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+}
+/* Tone down the neon active state of the supporter hero chip so it sits in
+   the flat theme: keep the accent but reduce the glow. */
+body.newdesign-active .newdesign-shell .supporter-hero-chip.is-active {
+  background: var(--newdesign-primary-soft) !important;
+  border-color: var(--newdesign-hover-border) !important;
+  box-shadow: none !important;
+}
+
+/* ---- change-password.vue: flatten the orange gradient card header ---- */
+body.newdesign-active .newdesign-shell .change-password-card .card-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--newdesign-border) !important;
+}
+
+/* ---- ChangelogModal: inner surfaces (teleported, so no .newdesign-shell) ----
+   The modal frame is already flattened by the teleported-layer rule above, but
+   the component's own :deep styles re-assert old --color-surface backgrounds.
+   These override them so the body/header/footer sit in the flat theme. */
+body.newdesign-active .changelog-modal,
+body.newdesign-active .changelog-header,
+body.newdesign-active .changelog-body,
+body.newdesign-active .changelog-footer {
+  background: var(--newdesign-panel) !important;
+  border-color: var(--newdesign-border) !important;
+  box-shadow: none !important;
+}
+body.newdesign-active .changelog-content {
+  color: var(--bs-body-color, inherit) !important;
+}
+
+/* Inline code: give it a soft chip background so it isn't a bare radius. */
+body.newdesign-active .newdesign-shell code:not(pre code) {
+  background: var(--newdesign-panel-soft) !important;
+  border: 1px solid var(--newdesign-border) !important;
+  border-radius: var(--newdesign-radius-chip) !important;
+  padding: 1px 5px !important;
+}
+
+/* ---- Supporter medallion (settings.vue): keep the animation, tone it down ----
+   The base medallion uses heavy multi-colour gradients + strong orange glows
+   that look neon against the otherwise flat theme. Here we soften the glow,
+   drop the inset highlight, and derive the accent from tokens so it matches
+   the brand without overpowering the card. The float/spin/twinkle animations
+   are preserved. */
+body.newdesign-active .newdesign-shell .medallion {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.22), transparent 55%),
+    linear-gradient(135deg, var(--newdesign-primary) 0%, var(--newdesign-primary-strong) 100%);
+  box-shadow: var(--newdesign-shadow) !important;
+}
+body.newdesign-active .newdesign-shell .medallion-shine {
+  background: conic-gradient(from 0deg, transparent 70%, rgba(255, 255, 255, 0.4) 85%, transparent 96%);
+}
+body.newdesign-active .newdesign-shell .medallion-spark {
+  color: var(--newdesign-primary-strong);
+  opacity: 0.7;
+}
+body.newdesign-active .newdesign-shell .medallion-label {
+  color: var(--newdesign-primary-strong) !important;
+  background: var(--newdesign-primary-soft) !important;
+  border-radius: var(--newdesign-radius-chip) !important;
 }

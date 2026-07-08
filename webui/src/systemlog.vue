@@ -134,6 +134,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useUiStore } from './stores.js'
+import { copyToClipboard } from './composables/useClipboard'
 
 const { t } = useI18n()
 const uiStore = useUiStore()
@@ -157,63 +158,7 @@ let syncingFromBackend = false
 const MAX_LOG_LINES = 2500
 const MAX_COPY_LINES = 500
 
-const copyToClipboard = async (text) => {
-  // Modern async Clipboard API. It only exists and only works in a secure
-  // context (HTTPS / localhost). The device WebUI is normally served over
-  // plain HTTP, so this branch is usually skipped and we fall through to the
-  // synchronous execCommand fallback below.
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text)
-      return
-    } catch (e) {
-      // fall through to the synchronous fallback
-    }
-  }
-
-  // Synchronous fallback for insecure (HTTP) contexts. We copy via a
-  // document-level Range/Selection on a throwaway element rather than focusing
-  // a form field. A focused <textarea> fights the modal focus-trap (which is
-  // exactly what broke the share-link copy button inside the BModal), whereas a
-  // Selection lives at the document level and is copied regardless of which
-  // element holds focus. execCommand('copy') copies the current selection even
-  // when it is not editable.
-  const span = document.createElement('span')
-  span.textContent = text
-  span.style.position = 'fixed'
-  span.style.top = '0'
-  span.style.left = '0'
-  span.style.opacity = '0'
-  span.style.pointerEvents = 'none'
-  span.style.whiteSpace = 'pre'   // preserve newlines in multi-line copies
-  span.style.userSelect = 'text'  // override any global `user-select: none`
-  span.setAttribute('aria-hidden', 'true')
-  // contentEditable makes the selection copyable on iOS Safari as well.
-  span.contentEditable = 'true'
-  document.body.appendChild(span)
-
-  const selection = window.getSelection()
-  const previousRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
-  let ok = false
-  try {
-    const range = document.createRange()
-    range.selectNodeContents(span)
-    selection.removeAllRanges()
-    selection.addRange(range)
-    ok = document.execCommand('copy')
-  } catch {
-    ok = false
-  }
-
-  if (selection) {
-    selection.removeAllRanges()
-    if (previousRange) selection.addRange(previousRange)
-  }
-  document.body.removeChild(span)
-
-  if (ok) return
-  throw new Error(t('common.copyFailed'))
-}
+// copyToClipboard is provided by ./composables/useClipboard.js (iOS-Safari-safe).
 
 const getEntryLevel = (line) => {
   if (/\bE\s*\(/.test(line) || /\bERROR\b/i.test(line)) return 'E'
