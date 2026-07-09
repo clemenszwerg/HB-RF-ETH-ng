@@ -2010,11 +2010,11 @@ body.newdesign-active .newdesign-shell .form-check-input:not(.form-switch .form-
 }
 
 /* Generic links: accent colour, no underline by default. */
-body.newdesign-active .newdesign-shell a:not(.btn):not(.nav-link):not(.brand):not(.follow-x-btn):not(.sponsor-btn):not(.mobile-link):not(.utility-row) {
+body.newdesign-active .newdesign-shell a:not(.btn):not(.nav-link):not(.nav-item):not(.brand):not(.follow-x-btn):not(.sponsor-btn):not(.mobile-link):not(.utility-row):not(.supporter-chip):not(.status-chip):not(.mobile-locale) {
   color: var(--newdesign-primary) !important;
   text-decoration: none !important;
 }
-body.newdesign-active .newdesign-shell a:not(.btn):not(.nav-link):not(.brand):not(.follow-x-btn):not(.sponsor-btn):not(.mobile-link):not(.utility-row):hover {
+body.newdesign-active .newdesign-shell a:not(.btn):not(.nav-link):not(.nav-item):not(.brand):not(.follow-x-btn):not(.sponsor-btn):not(.mobile-link):not(.utility-row):not(.supporter-chip):not(.status-chip):not(.mobile-locale):hover {
   text-decoration: underline !important;
 }
 
