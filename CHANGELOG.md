@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.1] - 2026-07-09
+
+### Fixed
+- **CPU-Last ~50 % bei aktivem System-Log-Capture:** der projekteigene `log_vprintf`-Hook formatierte jede Log-Zeile zweimal (ein `vsnprintf(NULL,0,…)` zur Längenmessung + ein `vsnprintf(buf,…)` zum Formatieren) sobald der Ring-Buffer aktiv war — selbst wenn niemand die Logs las. Bei chattigen Subsystemen (Raw-UART-Bridge, Netzwerk-Events) summierte sich das zu ~50 % CPU-Last. Der Capture-Pfad formatiert jetzt einmal in einen festen 256-B-Stack-Buffer und reicht das Ergebnis an Ring-Buffer/Subscriber weiter; die teure Längenmessung und der `malloc`-Fallback für überlange Zeilen entfallen. UART erhält weiterhin die ungekürzte Originalzeile.
+
+### Changed
+- **ESP-IDF 6.0.1 → 6.0.2:** Bugfix-Release. CI, `dependencies.lock`, `sdkconfig.defaults` und Doku auf 6.0.2 aktualisiert. Alle Component-Constraints (`>=6.0` oder niedriger) sind semver-kompatibel, keine Blocker. `sdkconfig` (`CONFIG_IDF_INIT_VERSION`, Header-Kommentar) und der `manifest_hash` in `dependencies.lock` werden beim ersten CI-Build mit 6.0.2 automatisch regeneriert.
+
 ## [2.2.3] - 2026-07-09
 
 ### Breaking Changes

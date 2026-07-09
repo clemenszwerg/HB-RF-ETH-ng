@@ -62,7 +62,7 @@ HB-RF-ETH-ng/
 
 | Tool | Version |
 |------|---------|
-| ESP-IDF | v6.0.1 (cloned fresh in CI from `espressif/esp-idf`) |
+| ESP-IDF | v6.0.2 (cloned fresh in CI from `espressif/esp-idf`) |
 | IDF target | `esp32` |
 | SDK config | `sdkconfig.defaults;sdkconfig.hb-rf-eth-ng` |
 
@@ -391,7 +391,7 @@ Follow conventional commits format used in auto-changelog:
 feat: add GPS time sync support
 fix: resolve MQTT reconnect race condition
 docs: update API reference
-chore: bump ESP-IDF to 6.0.1
+chore: bump ESP-IDF to 6.0.2
 ```
 
 ### Branch Strategy

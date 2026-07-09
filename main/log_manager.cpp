@@ -56,47 +56,25 @@ int log_vprintf(const char *fmt, va_list args) {
         return manager._orig_vprintf ? manager._orig_vprintf(fmt, args) : vprintf(fmt, args);
     }
 
-    // FIX: va_list can only be consumed once. We need two copies:
-    // one for measuring length + formatting, one for forwarding to UART.
+    // Capture path. We must format once for the ring buffer / subscribers,
+    // and the UART sink needs the original (fmt, va_list). To avoid the
+    // expensive double-formatting of the previous implementation (a
+    // vsnprintf(NULL,0,...) length probe + a malloc fallback for oversized
+    // lines, both running on EVERY log line while capture was merely
+    // enabled), we format into a fixed stack buffer exactly once and feed
+    // that to write(). Truncation beyond 256 bytes is acceptable: the ring
+    // buffer and the WebSocket / syslog forwarders are diagnostic-only and
+    // already cap their payloads (log_stream: 256, syslog: 384). The UART
+    // copy below still receives the full, untruncated line.
     va_list args_for_uart;
     va_copy(args_for_uart, args);
 
-    // Estimate length using the original args
-    va_list args_for_len;
-    va_copy(args_for_len, args);
-    int len = vsnprintf(NULL, 0, fmt, args_for_len);
-    va_end(args_for_len);
-
-    if (len < 0) {
-        // Still forward to UART even if we can't capture
-        int ret = manager._orig_vprintf ? manager._orig_vprintf(fmt, args_for_uart) : vprintf(fmt, args_for_uart);
-        va_end(args_for_uart);
-        return ret;
+    char buf[256];
+    int len = vsnprintf(buf, sizeof(buf), fmt, args);
+    if (len > 0) {
+        size_t capped = (size_t)len < sizeof(buf) ? (size_t)len : sizeof(buf) - 1;
+        manager.write(buf, capped);
     }
-
-    // Use a small stack buffer for formatting to avoid malloc for typical log lines
-    char stack_buf[256];
-    char *buf = stack_buf;
-    bool heap_alloc = false;
-
-    if ((size_t)(len + 1) > sizeof(stack_buf)) {
-        buf = (char*)malloc(len + 1);
-        if (!buf) {
-            // OOM, skip ring buffer but still forward to UART
-            int ret = manager._orig_vprintf ? manager._orig_vprintf(fmt, args_for_uart) : vprintf(fmt, args_for_uart);
-            va_end(args_for_uart);
-            return ret;
-        }
-        heap_alloc = true;
-    }
-
-    // Format using original args (consumed after this)
-    vsnprintf(buf, len + 1, fmt, args);
-
-    // Write to ring buffer
-    manager.write(buf, len);
-
-    if (heap_alloc) free(buf);
 
     // Forward to the previous ESP-IDF log sink using the copy.
     int ret = manager._orig_vprintf ? manager._orig_vprintf(fmt, args_for_uart) : vprintf(fmt, args_for_uart);
