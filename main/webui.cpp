@@ -783,14 +783,25 @@ esp_err_t post_settings_json_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
-    char *buffer = (char *)malloc(4096);
+    // 8192 leaves comfortable headroom over the ~700-byte settings payload
+    // (monitoring handler uses 16384). recv_full_body rejects content_len >=
+    // buf_size, so an oversized POST now gets a clear error instead of being
+    // silently truncated to "No data received".
+    char *buffer = (char *)malloc(8192);
     if (!buffer) {
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
     }
 
-    int len = recv_full_body(req, buffer, 4096);
+    int len = recv_full_body(req, buffer, 8192);
 
-    if (len <= 0) {
+    if (len < 0) {
+        // content_len >= buffer — payload too large to fit.
+        free(buffer);
+        httpd_resp_set_status(req, "413 Payload Too Large");
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Request body too large");
+    }
+
+    if (len == 0) {
         free(buffer);
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No data received");
     }
@@ -804,7 +815,14 @@ esp_err_t post_settings_json_handler_func(httpd_req_t *req)
     }
 
     char *hostname = cJSON_GetStringValue(cJSON_GetObjectItem(root, "hostname"));
-    bool useDHCP = cJSON_GetBoolValue(cJSON_GetObjectItem(root, "useDHCP"));
+    // Presence guard mirrors the IPv6 fields below: without it,
+    // cJSON_GetBoolValue silently returns false on a missing key, and a
+    // partial payload reaching setNetworkSettings() would turn DHCP off.
+    // buildSettingsPayload() always sends useDHCP so this rarely matters,
+    // but the guard makes the contract explicit and future-proof.
+    bool useDHCP = cJSON_GetObjectItem(root, "useDHCP")
+                       ? cJSON_GetBoolValue(cJSON_GetObjectItem(root, "useDHCP"))
+                       : _settings->getUseDHCP();
     ip4_addr_t localIP = cJSON_GetIPAddrValue(cJSON_GetObjectItem(root, "localIP"));
     ip4_addr_t netmask = cJSON_GetIPAddrValue(cJSON_GetObjectItem(root, "netmask"));
     ip4_addr_t gateway = cJSON_GetIPAddrValue(cJSON_GetObjectItem(root, "gateway"));
@@ -1080,14 +1098,22 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
-    char *buffer = (char*)malloc(4096);
+    char *buffer = (char*)malloc(8192);
     if (!buffer) {
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Memory allocation failed");
     }
 
-    int len = recv_full_body(req, buffer, 4096);
+    int len = recv_full_body(req, buffer, 8192);
 
-    if (len <= 0)
+    if (len < 0)
+    {
+        // content_len >= buffer — backup/restore payload too large to fit.
+        free(buffer);
+        httpd_resp_set_status(req, "413 Payload Too Large");
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Request body too large");
+    }
+
+    if (len == 0)
     {
         free(buffer);
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No data received");
@@ -1104,7 +1130,14 @@ esp_err_t post_restore_handler_func(httpd_req_t *req)
     char *adminPassword = cJSON_GetStringValue(cJSON_GetObjectItem(root, "adminPassword"));
 
     char *hostname = cJSON_GetStringValue(cJSON_GetObjectItem(root, "hostname"));
-    bool useDHCP = cJSON_GetBoolValue(cJSON_GetObjectItem(root, "useDHCP"));
+    // Presence guard mirrors the IPv6 fields below: without it,
+    // cJSON_GetBoolValue silently returns false on a missing key, and a
+    // partial payload reaching setNetworkSettings() would turn DHCP off.
+    // buildSettingsPayload() always sends useDHCP so this rarely matters,
+    // but the guard makes the contract explicit and future-proof.
+    bool useDHCP = cJSON_GetObjectItem(root, "useDHCP")
+                       ? cJSON_GetBoolValue(cJSON_GetObjectItem(root, "useDHCP"))
+                       : _settings->getUseDHCP();
     ip4_addr_t localIP = cJSON_GetIPAddrValue(cJSON_GetObjectItem(root, "localIP"));
     ip4_addr_t netmask = cJSON_GetIPAddrValue(cJSON_GetObjectItem(root, "netmask"));
     ip4_addr_t gateway = cJSON_GetIPAddrValue(cJSON_GetObjectItem(root, "gateway"));
