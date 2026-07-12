@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.5] - 2026-07-12
+
+### Changes
+- fix(webui): prevent aggressive browser caching on sysinfo and settings json endpoints
+- fix(system): release ethernet and radio reset pins before esp_restart to prevent boot hangs
+
+### Fixed
+- **Einstellungen: Änderungen erst nach Neuladen sichtbar:** Ein Bug durch aggressives Browser-Caching wurde behoben. Die WebUI ergänzt nun dynamische Parameter (`?t=...`) bei Abfragen an `/settings.json` und `/sysinfo.json`, und der Webserver sendet striktere Cache-Control Header (`Pragma: no-cache`, `Expires: 0`). Gespeicherte Änderungen sind nun sofort in der WebUI sichtbar.
+- **Neustart: Boot-Hänger nach OTA oder Neustart:** Bei aktiviertem Link-Down-Pause (Neustart-Sync) oder regulären Reboots konnte der Ethernet PHY im Reset-Zustand stecken bleiben, da die Reset-Pins während des `esp_restart()` auf LOW gehalten wurden. Die Pins werden nun unmittelbar vor dem Neustart wieder freigegeben (HIGH). Ein Kaltstart (stromlos machen) nach Firmware-Updates ist nicht mehr nötig.
 ## [2.2.4-Beta.4] - 2026-07-12
 
 ### Changes

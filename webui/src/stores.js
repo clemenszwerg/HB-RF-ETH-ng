@@ -348,7 +348,7 @@ export const useSysInfoStore = defineStore('sysInfo', {
       try {
         // silent: polled periodically - failures must not flood the UI with
         // connection-error toasts while the device reboots or is offline.
-        const response = await axios.get("/sysinfo.json", { timeout: 5000, silent: true })
+        const response = await axios.get(`/sysinfo.json?t=${Date.now()}`, { timeout: 5000, silent: true })
         if (response.data?.sysInfo) {
           const { supporter, ...rest } = response.data.sysInfo
           Object.assign(this.$state, rest)
@@ -436,7 +436,7 @@ export const useSettingsStore = defineStore('settings', {
       if (this._loadInFlight) return this._loadInFlight
       this._loadInFlight = (async () => {
         try {
-          const response = await axios.get("/settings.json", { timeout: 5000 })
+          const response = await axios.get(`/settings.json?t=${Date.now()}`, { timeout: 5000 })
           if (response.data?.settings) {
             const incoming = { ...response.data.settings }
             // The test-design toggle is owned by useExperimentalStore. Pull it

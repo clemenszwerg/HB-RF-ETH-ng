@@ -86,6 +86,11 @@ void full_system_restart() {
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 
+    ESP_LOGI(TAG, "Releasing peripheral reset pins before ESP32 restart...");
+    gpio_set_level(ETH_POWER_PIN, 1);
+    gpio_set_level(HM_RST_PIN, 1);
+    vTaskDelay(pdMS_TO_TICKS(50));
+
     ESP_LOGI(TAG, "Peripherals reset complete. Restarting ESP32...");
     esp_restart();
 }

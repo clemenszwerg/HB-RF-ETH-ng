@@ -536,6 +536,8 @@ esp_err_t get_sysinfo_json_handler_func(httpd_req_t *req)
     add_security_headers(req);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    httpd_resp_set_hdr(req, "Pragma", "no-cache");
+    httpd_resp_set_hdr(req, "Expires", "0");
 
     // Determine Radio Module Type String
     const char* radioModuleTypeStr = "-";
@@ -730,6 +732,8 @@ esp_err_t get_settings_json_handler_func(httpd_req_t *req)
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    httpd_resp_set_hdr(req, "Pragma", "no-cache");
+    httpd_resp_set_hdr(req, "Expires", "0");
     cJSON *root = cJSON_CreateObject();
 
     add_settings(root);
