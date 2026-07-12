@@ -530,7 +530,7 @@
 
     <!-- Floating Action Bar for Save -->
     <Transition name="slide-up">
-      <div v-if="hasUnsavedChanges || showError" class="floating-footer">
+      <div v-if="loadedSnapshot || showError" class="floating-footer">
         <div class="footer-container">
           <BAlert
             variant="danger"
@@ -977,10 +977,7 @@ const buildSettingsPayload = () => ({
 
 const serializeSettings = () => JSON.stringify(buildSettingsPayload())
 
-const serializedCurrent = ref('')
-watch(serializeSettings, (newVal) => {
-  serializedCurrent.value = newVal
-})
+const serializedCurrent = computed(serializeSettings)
 
 const hasUnsavedChanges = computed(() => loadedSnapshot.value !== '' && serializedCurrent.value !== '' && serializedCurrent.value !== loadedSnapshot.value)
 const adminUsernameChanged = computed(() => adminUsername.value !== (settingsStore.adminUsername || 'admin'))
@@ -1037,7 +1034,6 @@ const loadSettings = () => {
   sysInfoStore.update().catch(() => {})
 
   loadedSnapshot.value = serializeSettings()
-  serializedCurrent.value = loadedSnapshot.value
   showError.value = null
   v$.value.$reset()
 }

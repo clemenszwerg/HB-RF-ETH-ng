@@ -83,10 +83,14 @@ test('settings save/discard state follows the edited form immediately', async ({
   const footer = page.locator('.floating-footer')
 
   await expect(hostname).toHaveValue('hb-rf-eth')
-  await expect(footer).toBeHidden()
+  await expect(footer).toBeVisible()
+  await expect(footer.locator('.discard-btn')).toBeDisabled()
+  await expect(footer.locator('.save-btn')).toBeDisabled()
 
   await hostname.fill('changed-host')
   await expect(footer).toBeVisible()
+  await expect(footer.locator('.discard-btn')).toBeEnabled()
+  await expect(footer.locator('.save-btn')).toBeEnabled()
 
   let discardDialogShown = false
   page.once('dialog', dialog => {
@@ -95,13 +99,17 @@ test('settings save/discard state follows the edited form immediately', async ({
   })
   await footer.locator('.discard-btn').click()
   await expect(hostname).toHaveValue('hb-rf-eth')
-  await expect(footer).toBeHidden()
+  await expect(footer).toBeVisible()
+  await expect(footer.locator('.discard-btn')).toBeDisabled()
+  await expect(footer.locator('.save-btn')).toBeDisabled()
   expect(discardDialogShown).toBe(false)
 
   await hostname.fill('saved-host')
   await expect(footer).toBeVisible()
   await footer.locator('.save-btn').click()
-  await expect(footer).toBeHidden()
+  await expect(footer).toBeVisible()
+  await expect(footer.locator('.discard-btn')).toBeDisabled()
+  await expect(footer.locator('.save-btn')).toBeDisabled()
   expect(persisted.hostname).toBe('saved-host')
   expect(getUrls.length).toBeGreaterThan(0)
   expect(getUrls.every(url => new URL(url).searchParams.has('t'))).toBe(true)
@@ -198,7 +206,8 @@ for (const scenario of [
     await page.locator('.floating-footer .save-btn').click()
 
     await expect.poll(() => postCount).toBe(1)
-    await expect(page.locator('.floating-footer')).toBeHidden()
+    await expect(page.locator('.floating-footer')).toBeVisible()
+    await expect(page.locator('.floating-footer .save-btn')).toBeDisabled()
   })
 }
 
