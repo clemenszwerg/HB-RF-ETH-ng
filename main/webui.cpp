@@ -525,7 +525,6 @@ esp_err_t post_password_reset_complete_handler_func(httpd_req_t *req)
     ESP_LOGW(TAG, "Admin password reset via physical board button");
     return ESP_OK;
 }
-
 httpd_uri_t post_password_reset_complete_handler = {
     .uri = "/api/password-reset/complete",
     .method = HTTP_POST,
@@ -563,85 +562,98 @@ esp_err_t get_sysinfo_json_handler_func(httpd_req_t *req)
     char fwVersionStr[16];
     snprintf(fwVersionStr, sizeof(fwVersionStr), "%d.%d.%d", fwVersion[0], fwVersion[1], fwVersion[2]);
 
-    cJSON *root = cJSON_CreateObject();
-    cJSON *sysInfo = cJSON_AddObjectToObject(root, "sysInfo");
+    char buf[256];
 
-    cJSON_AddStringToObject(sysInfo, "serial", _sysInfo->getSerialNumber());
-    cJSON_AddStringToObject(sysInfo, "hostname", _settings->getHostname());
-    cJSON_AddStringToObject(sysInfo, "currentVersion", _sysInfo->getCurrentVersion());
-    cJSON_AddStringToObject(sysInfo, "latestVersion", _updateCheck->getLatestVersion());
-    cJSON_AddNumberToObject(sysInfo, "memoryUsage", _sysInfo->getMemoryUsage());
-    cJSON_AddNumberToObject(sysInfo, "cpuUsage", _sysInfo->getCpuUsage());
-    // The HB-RF-ETH board exposes neither a supply-voltage divider on GPIO37
-    // nor a temperature sensor. Keep the legacy keys for API compatibility,
-    // but never report floating ADC readings or sentinel temperatures.
-    cJSON_AddNullToObject(sysInfo, "supplyVoltage");
-    cJSON_AddNullToObject(sysInfo, "temperature");
-    cJSON_AddNumberToObject(sysInfo, "uptimeSeconds", _sysInfo->getUptimeSeconds());
-    cJSON_AddStringToObject(sysInfo, "boardRevision", _sysInfo->getBoardRevisionString());
-    // Raw board-revision ADC voltage in millivolts. Surfaced for diagnostics:
-    // when `boardRevision` resolves to "Unknown (...)" the user can read the
-    // measured divider voltage directly off the WebUI and compare it against
-    // the four known nominal values (≈ 550 / 1650 / 2750 / 3050 mV).
-    cJSON_AddNumberToObject(sysInfo, "boardSenseVoltage", _sysInfo->getBoardSenseVoltage());
-    cJSON_AddStringToObject(sysInfo, "resetReason", _sysInfo->getResetReason());
-    cJSON_AddBoolToObject(sysInfo, "ethernetConnected", _ethernet->isConnected());
-    cJSON_AddNumberToObject(sysInfo, "ethernetSpeed", _ethernet->getLinkSpeedMbps());
-    cJSON_AddStringToObject(sysInfo, "ethernetDuplex", _ethernet->getDuplexMode());
+    // Start sysInfo object
+    snprintf(buf, sizeof(buf), "{\"sysInfo\":{");
+    httpd_resp_send_chunk(req, buf, strlen(buf));
 
-    // Current live network configuration (DHCP-assigned or static).
+    snprintf(buf, sizeof(buf), "\"serial\":\"%s\",\"hostname\":\"%s\",\"currentVersion\":\"%s\",",
+             _sysInfo->getSerialNumber(), _settings->getHostname(), _sysInfo->getCurrentVersion());
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
+    snprintf(buf, sizeof(buf), "\"latestVersion\":\"%s\",\"memoryUsage\":%.1f,\"cpuUsage\":%.1f,",
+             _updateCheck->getLatestVersion(), _sysInfo->getMemoryUsage(), _sysInfo->getCpuUsage());
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
+    snprintf(buf, sizeof(buf), "\"supplyVoltage\":null,\"temperature\":null,\"uptimeSeconds\":%" PRIu32 ",",
+             (uint32_t)_sysInfo->getUptimeSeconds());
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
+    snprintf(buf, sizeof(buf), "\"boardRevision\":\"%s\",\"boardSenseVoltage\":%" PRIu32 ",\"resetReason\":\"%s\",",
+             _sysInfo->getBoardRevisionString(), (uint32_t)_sysInfo->getBoardSenseVoltage(), _sysInfo->getResetReason());
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
+    snprintf(buf, sizeof(buf), "\"ethernetConnected\":%s,\"ethernetSpeed\":%d,\"ethernetDuplex\":\"%s\",",
+             _ethernet->isConnected() ? "true" : "false", _ethernet->getLinkSpeedMbps(), _ethernet->getDuplexMode());
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
     ip4_addr_t currentIP, currentNM, currentGW, currentDNS1, currentDNS2;
     _ethernet->getNetworkSettings(&currentIP, &currentNM, &currentGW, &currentDNS1, &currentDNS2);
-    cJSON_AddStringToObject(sysInfo, "localIP", ip2str(currentIP));
-    cJSON_AddStringToObject(sysInfo, "netmask", ip2str(currentNM));
-    cJSON_AddStringToObject(sysInfo, "gateway", ip2str(currentGW));
-    cJSON_AddStringToObject(sysInfo, "dns1", ip2str(currentDNS1));
-    cJSON_AddStringToObject(sysInfo, "dns2", ip2str(currentDNS2));
 
-    // IPv6 addresses (link-local + global)
-    char ipv6_addrs[4][48];
-    int ipv6_count = _ethernet->getIPv6AddressStrings(ipv6_addrs, 4);
-    cJSON *ipv6Array = cJSON_AddArrayToObject(sysInfo, "ipv6Addresses");
-    for (int i = 0; i < ipv6_count; i++) {
-        cJSON_AddItemToArray(ipv6Array, cJSON_CreateString(ipv6_addrs[i]));
+    // Format IPs individually to avoid lwIP ip4addr_ntoa static buffer overlap
+    snprintf(buf, sizeof(buf), "\"localIP\":\"%s\",", ip2str(currentIP));
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+    snprintf(buf, sizeof(buf), "\"netmask\":\"%s\",", ip2str(currentNM));
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+    snprintf(buf, sizeof(buf), "\"gateway\":\"%s\",", ip2str(currentGW));
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+    snprintf(buf, sizeof(buf), "\"dns1\":\"%s\",", ip2str(currentDNS1));
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+    snprintf(buf, sizeof(buf), "\"dns2\":\"%s\",", ip2str(currentDNS2));
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
+    // ipv6Array
+    snprintf(buf, sizeof(buf), "\"ipv6Addresses\":[");
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+    bool first_ip6 = true;
+    for (int i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+        ip6_addr_t ip6;
+        if (_ethernet->getIpv6Address(i, &ip6)) {
+            snprintf(buf, sizeof(buf), "%s\"%s\"", first_ip6 ? "" : ",", ip6addr_ntoa(&ip6));
+            httpd_resp_send_chunk(req, buf, strlen(buf));
+            first_ip6 = false;
+        }
     }
+    snprintf(buf, sizeof(buf), "],");
+    httpd_resp_send_chunk(req, buf, strlen(buf));
 
-    cJSON_AddStringToObject(sysInfo, "rawUartRemoteAddress", ip2str(_rawUartUdpListener->getConnectedRemoteAddress()));
-    cJSON_AddStringToObject(sysInfo, "radioModuleType", radioModuleTypeStr);
-    cJSON_AddStringToObject(sysInfo, "radioModuleSerial", _radioModuleDetector->getSerial());
-    cJSON_AddStringToObject(sysInfo, "radioModuleFirmwareVersion", fwVersionStr);
-    cJSON_AddStringToObject(sysInfo, "radioModuleBidCosRadioMAC", bidCosMAC);
-    cJSON_AddStringToObject(sysInfo, "radioModuleHmIPRadioMAC", hmIPMAC);
-    cJSON_AddStringToObject(sysInfo, "radioModuleSGTIN", _radioModuleDetector->getSGTIN());
+    // radio module
+    snprintf(buf, sizeof(buf), "\"rawUartRemoteAddress\":\"%s\",\"radioModuleType\":\"%s\",\"radioModuleSerial\":\"%s\",",
+             ip2str(_rawUartUdpListener->getConnectedRemoteAddress()), radioModuleTypeStr, _radioModuleDetector->getSerial());
+    httpd_resp_send_chunk(req, buf, strlen(buf));
 
-    // Supporter badge status (computed from the stored key on every poll, so
-    // expiry is re-evaluated as the clock advances without a restart).
-    {
+    snprintf(buf, sizeof(buf), "\"radioModuleFirmwareVersion\":\"%s\",\"radioModuleBidCosRadioMAC\":\"%s\",",
+             fwVersionStr, bidCosMAC);
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
+    snprintf(buf, sizeof(buf), "\"radioModuleHmIPRadioMAC\":\"%s\",\"radioModuleSGTIN\":\"%s\"",
+             hmIPMAC, _radioModuleDetector->getSGTIN());
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
+    // Supporter key logic
+    if (_settings->getSupporterKey() && strlen(_settings->getSupporterKey()) > 0) {
         SupporterKeyStatus sk;
         bool skValid = supporter_key_validate(_settings->getSupporterKey(), sk);
-        // A structurally valid key may still have been revoked by the
-        // maintainer (its fingerprint is on the fetched CRL). The CRL check
-        // is RAM-only and instant — the fetch happens in the background.
         if (skValid && supporter_crl_is_revoked(_settings->getSupporterKey())) {
             sk.revoked = true;
             sk.active = false;
         }
-        cJSON *sup = cJSON_AddObjectToObject(sysInfo, "supporter");
-        cJSON_AddBoolToObject(sup, "active", skValid && sk.active);
-        cJSON_AddBoolToObject(sup, "valid", skValid);
-        cJSON_AddBoolToObject(sup, "expired", skValid && sk.expired);
-        cJSON_AddBoolToObject(sup, "revoked", skValid && sk.revoked);
-        cJSON_AddStringToObject(sup, "expiresAt", skValid ? sk.expiresAt : "");
+        snprintf(buf, sizeof(buf), ",\"supporter\":{\"active\":%s,\"valid\":%s,\"expired\":%s,\"revoked\":%s,\"expiresAt\":\"%s\"}",
+                 (skValid && sk.active) ? "true" : "false",
+                 skValid ? "true" : "false",
+                 (skValid && sk.expired) ? "true" : "false",
+                 (skValid && sk.revoked) ? "true" : "false",
+                 skValid ? sk.expiresAt : "");
+        httpd_resp_send_chunk(req, buf, strlen(buf));
     }
 
-    const char *json = cJSON_PrintUnformatted(root);
-    if (json) {
-        httpd_resp_sendstr(req, json);
-        free((void *)json);
-    } else {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON alloc failed");
-    }
-    cJSON_Delete(root);
+    // Close sysInfo and root
+    snprintf(buf, sizeof(buf), "}}");
+    httpd_resp_send_chunk(req, buf, strlen(buf));
+
+    // End chunked response
+    httpd_resp_send_chunk(req, NULL, 0);
 
     return ESP_OK;
 }
@@ -1604,8 +1616,6 @@ static esp_err_t get_ota_status_handler_func(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, NULL);
     }
 
-    cJSON *root = cJSON_CreateObject();
-
     const char *status_str;
     const ota_status_t status = _ota_status.load();
     switch (status) {
@@ -1615,30 +1625,35 @@ static esp_err_t get_ota_status_handler_func(httpd_req_t *req)
         default:              status_str = "idle"; break;
     }
 
-    cJSON_AddStringToObject(root, "status", status_str);
-    cJSON_AddNumberToObject(root, "progress", _ota_progress.load());
-    cJSON_AddBoolToObject(root, "flashPause", _settings && _settings->getFlashPause());
+    const char* flashPause = (_settings && _settings->getFlashPause()) ? "true" : "false";
+    char buf[256];
+
     if (status == OTA_FAILED) {
         char error[sizeof(_ota_error)];
         copy_ota_error(error, sizeof(error));
         if (error[0] != '\0') {
-            cJSON_AddStringToObject(root, "error", error);
+            // Escape any quotes in the error string just in case
+            char esc_error[sizeof(_ota_error) * 2] = {0};
+            int j = 0;
+            for (int i = 0; error[i] && j < sizeof(esc_error) - 2; i++) {
+                if (error[i] == '"' || error[i] == '\\') {
+                    esc_error[j++] = '\\';
+                }
+                esc_error[j++] = error[i];
+            }
+            snprintf(buf, sizeof(buf), "{\"status\":\"%s\",\"progress\":%d,\"flashPause\":%s,\"error\":\"%s\"}",
+                     status_str, _ota_progress.load(), flashPause, esc_error);
+        } else {
+            snprintf(buf, sizeof(buf), "{\"status\":\"%s\",\"progress\":%d,\"flashPause\":%s}",
+                     status_str, _ota_progress.load(), flashPause);
         }
+    } else {
+        snprintf(buf, sizeof(buf), "{\"status\":\"%s\",\"progress\":%d,\"flashPause\":%s}",
+                 status_str, _ota_progress.load(), flashPause);
     }
-
-    char *json_string = cJSON_Print(root);
-    cJSON_Delete(root);
 
     httpd_resp_set_type(req, "application/json");
-    if (json_string)
-    {
-        httpd_resp_sendstr(req, json_string);
-        free(json_string);
-    }
-    else
-    {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON allocation failed");
-    }
+    httpd_resp_sendstr(req, buf);
 
     return ESP_OK;
 }
