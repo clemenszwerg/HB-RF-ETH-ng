@@ -1042,11 +1042,6 @@ const loadSettings = () => {
   v$.value.$reset()
 }
 
-// Watch store changes
-watch(() => settingsStore.$state, () => {
-  loadSettings()
-}, { deep: true })
-
 onMounted(async () => {
   await settingsStore.load()
   loadSettings()
@@ -1119,7 +1114,6 @@ const saveSettingsClick = async () => {
 
 const resetToLoadedState = () => {
   if (!hasUnsavedChanges.value) return
-  if (!window.confirm(t('settings.discardConfirm'))) return
   loadSettings()
 }
 

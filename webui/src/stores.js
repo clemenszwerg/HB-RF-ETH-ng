@@ -419,19 +419,21 @@ export const useSettingsStore = defineStore('settings', {
       booting: 4,
       update_in_progress: 5
     },
+    // Tracks whether the device settings have been fetched at least once. Shell
+    // components only need an initialized snapshot; settings.vue may still call
+    // load() explicitly when the user opens the settings page.
+    hasLoaded: false,
     // Internal: in-flight load() promise to dedupe concurrent callers.
-    // Underscore-prefixed so Pinia does not expose it as a getter; not reactive.
     _loadInFlight: null,
   }),
   actions: {
-    // settingsStore.load() is called by BOTH the app header (header.vue /
-    // NewDesignHeader.vue onMounted) AND the page component (settings.vue,
-    // firmwareupdate.vue onMounted) during the same mount cycle. Without a
-    // guard this fires two concurrent GET /settings.json requests whose
-    // responses overwrite each other on $state. The in-flight promise
-    // deduplicates them onto a single network round-trip: concurrent callers
-    // await the same promise and observe the same result. Stays null between
-    // loads so a later explicit reload still hits the network.
+    async ensureLoaded() {
+      if (this.hasLoaded) return
+      return this.load()
+    },
+    // The in-flight promise deduplicates concurrent callers. Once a request has
+    // completed, shell components use ensureLoaded() so a delayed header mount
+    // cannot overwrite edits already being made on the settings page.
     async load() {
       if (this._loadInFlight) return this._loadInFlight
       this._loadInFlight = (async () => {
@@ -446,6 +448,7 @@ export const useSettingsStore = defineStore('settings', {
             const serverTestDesign = incoming.testDesignEnabled
             delete incoming.testDesignEnabled
             Object.assign(this.$state, incoming)
+            this.hasLoaded = true
             if (serverTestDesign !== undefined) {
               useExperimentalStore().syncFromServer(!!serverTestDesign)
             }

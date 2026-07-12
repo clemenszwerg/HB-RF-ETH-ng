@@ -88,10 +88,15 @@ test('settings save/discard state follows the edited form immediately', async ({
   await hostname.fill('changed-host')
   await expect(footer).toBeVisible()
 
-  page.once('dialog', dialog => dialog.accept())
+  let discardDialogShown = false
+  page.once('dialog', dialog => {
+    discardDialogShown = true
+    dialog.dismiss()
+  })
   await footer.locator('.discard-btn').click()
   await expect(hostname).toHaveValue('hb-rf-eth')
   await expect(footer).toBeHidden()
+  expect(discardDialogShown).toBe(false)
 
   await hostname.fill('saved-host')
   await expect(footer).toBeVisible()
@@ -101,6 +106,46 @@ test('settings save/discard state follows the edited form immediately', async ({
   expect(getUrls.length).toBeGreaterThan(0)
   expect(getUrls.every(url => new URL(url).searchParams.has('t'))).toBe(true)
   expect(postUrls).toEqual([`${BASE_URL}/settings.json`])
+})
+
+test('late header initialization does not discard settings edits', async ({ page }) => {
+  let releaseUpdateCheck
+  const updateCheckGate = new Promise(resolve => {
+    releaseUpdateCheck = resolve
+  })
+  let settingsGetCount = 0
+
+  await page.route('**/api/check_update**', async route => {
+    await updateCheckGate
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ latestVersion: '2.2.4-Beta.3', updateAvailable: false })
+    })
+  })
+  await page.route('**/settings.json**', async route => {
+    if (route.request().method() === 'GET') settingsGetCount++
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ settings })
+    })
+  })
+
+  const updateResponse = page.waitForResponse(response => response.url().includes('/api/check_update'))
+  await page.goto(`${BASE_URL}/settings`)
+  await page.getByRole('button', { name: 'Network' }).click()
+
+  const hostname = page.locator('.form-group', { hasText: 'Hostname' }).locator('input')
+  await expect(hostname).toHaveValue('hb-rf-eth')
+  await hostname.fill('edit-must-survive')
+  await expect(page.locator('.floating-footer')).toBeVisible()
+
+  releaseUpdateCheck()
+  await updateResponse
+  await page.waitForTimeout(150)
+
+  expect(settingsGetCount).toBe(1)
+  await expect(hostname).toHaveValue('edit-must-survive')
+  await expect(page.locator('.floating-footer')).toBeVisible()
 })
 
 for (const scenario of [

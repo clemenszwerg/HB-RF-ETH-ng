@@ -846,7 +846,7 @@ onMounted(async () => {
   }
 
   try {
-    await settingsStore.load()
+    await settingsStore.ensureLoaded()
   } catch (e) {
     console.warn('Failed to load settings for restart sync state:', e.response?.status || e.message)
   }

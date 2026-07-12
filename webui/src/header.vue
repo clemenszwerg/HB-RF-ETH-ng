@@ -299,7 +299,7 @@ onMounted(async () => {
 
   if (loginStore.isLoggedIn) {
     try {
-      await settingsStore.load()
+      await settingsStore.ensureLoaded()
     } catch (e) {
       console.error('Failed to load settings for restart sync state', e)
     }
