@@ -1,5 +1,5 @@
 # HB-RF-ETH Default Configuration
-# Compatible with ESP-IDF 6.0.2
+# Compatible with ESP-IDF v6.1-beta1
 
 # Partition Table
 CONFIG_PARTITION_TABLE_CUSTOM=y

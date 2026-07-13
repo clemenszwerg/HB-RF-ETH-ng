@@ -2,7 +2,7 @@
 
 # HB-RF-ETH-ng
 
-**Modernisierte HomeMatic Netzwerk-Firmware | ESP-IDF 6.0**
+**Modernisierte HomeMatic Netzwerk-Firmware | ESP-IDF 6.1-beta1**
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
@@ -17,7 +17,7 @@
 
 ## Modernisierte Fork von Xerolux (2025)
 
-Diese Version ist eine modernisierte und aktualisierte Fork der originalen HB-RF-ETH Firmware von Alexander Reinert. Die Firmware basiert auf ESP-IDF 6.0 und ist für moderne Toolchains optimiert.
+Diese Version ist eine modernisierte und aktualisierte Fork der originalen HB-RF-ETH Firmware von Alexander Reinert. Die Firmware basiert auf ESP-IDF 6.1-beta1 und ist für moderne Toolchains optimiert.
 
 > Alle detaillierten Änderungen pro Version finden Sie im [CHANGELOG.md](CHANGELOG.md).
 
@@ -40,7 +40,7 @@ Hierbei gilt, dass bei einer debmatic oder piVCCU3 Installation immer nur ein Fu
 - System-Log bleibt nach Aktivierung auch über einen Reboot aktiv; beim Deaktivieren bleibt es nach dem nächsten Start wieder aus.
 - **Monitoring via MQTT** (mit Home Assistant Auto-Discovery, TLS/mTLS, Kommando-Token) und CheckMK
 - OTA-Updates per Datei-Upload, URL-Download oder direkt aus Home Assistant heraus
-- ESP-IDF 6.0 Toolchain (native `idf.py` Builds), GCC 14.2 (xtensa-esp-elf)
+- ESP-IDF 6.1-beta1 Toolchain (native `idf.py` Builds), GCC 15.2 (xtensa-esp-elf)
 
 ### Login nach Update
 Nach dem Update auf eine Version mit Benutzername-Pflicht muss die Anmeldung einmalig mit dem Standard-Benutzernamen `admin` und dem bisherigen Administrator-Passwort erfolgen. Alte gespeicherte Browser-Sessions werden dabei aus Sicherheitsgründen ungültig. Der Benutzername kann anschließend unter **Einstellungen > Allgemein > Sicherheit** geändert werden, z.B. für Passwortmanager oder Installationen mit mehreren Geräten.
@@ -52,7 +52,7 @@ Backups enthalten den konfigurierten Administrator-Benutzernamen und die System-
 > HA-Entitäten, TLS-Konfiguration, Sicherheitsmodell) findet sich im
 > [Wiki – MQTT-Sektion](docs/WIKI.md#home-assistant-mqtt-integration).
 
-### Entwickler-Build (ESP-IDF 6.0)
+### Entwickler-Build (ESP-IDF 6.1-beta1)
 ```bash
 ./scripts/setup_esp_idf.sh
 . ~/esp-idf/export.sh

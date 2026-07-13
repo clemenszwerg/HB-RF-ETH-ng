@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.10] - 2026-07-13
+
+### Changes
+- chore: upgrade ESP-IDF from v6.0.2 to v6.1-beta1 in CI workflows
+
+### Changed
+- **ESP-IDF auf v6.1-beta1 aktualisiert:** Alle Build-Pipelines (build, release, pr-check, security, newdesign) verwenden jetzt ESP-IDF v6.1-beta1 statt v6.0.2. Diese Version bringt unter anderem Bugfixes für lwIP, MbedTLS 4.1 und den GPIO/SPI-Flash-Treiber sowie eine neu strukturierte MQTT-Komponente. Da wir MQTT bereits über den ESP Component Manager (`espressif/mqtt: ^1.0.0` in `main/idf_component.yml`) beziehen, ist die wichtigste in 6.1 enthaltene Breaking Change (MQTT wurde aus dem IDF-Kern in den Component Manager verschoben) für uns automatisch abgedeckt. Alle anderen für den ESP32 relevanten Breaking Changes (GPIO ROM-Prefix, SPI-Flash private Header, UART-Header-Pfad) wurden geprüft und im Projekt nicht verwendet.
+- **Dokumentation aktualisiert:** CLAUDE.md, README.md, sdkconfig.defaults und sdkconfig.hb-rf-eth-ng referenzieren jetzt v6.1-beta1.
+- **Toolchain:** GCC 15.2 (xtensa-esp-elf) löst GCC 14.2 ab.
+
+### Hinweise
+- Diese Beta ist ein **Kompatibilitätstest** für ESP-IDF 6.1. Die Stabilitäts-Fixes aus Beta.9 (TLS-Leck, Syslog-Persistenz-Session, CheckMK-Socket-Leck, Crash-Log-NVS-Persistenz, Socket-Limit-Fix) sind alle enthalten.
+- Falls beim Build mit 6.1-beta1 neue Inkompatibilitäten auftreten, wird der Build-Workflow fehlschlagen — in diesem Fall bleibt Beta.9 die letzte funktionierende Version.
+
 ## [2.2.4-Beta.9] - 2026-07-13
 
 ### Changes
