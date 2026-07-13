@@ -27,6 +27,7 @@
 #include "syslog.h"
 #include "events.h"
 #include "settings.h"
+#include "log_manager.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "nvs.h"
@@ -75,6 +76,14 @@ static std::atomic<bool> checkmk_running{false};
 static std::atomic<bool> update_in_progress{false};
 static std::atomic<TaskHandle_t> checkmk_task_handle{NULL};
 static std::atomic<int> checkmk_listen_sock{-1};
+// Currently-connected client socket, or -1. Tracked atomically so that
+// checkmk_stop() can close it before force-deleting the task. Without this,
+// if vTaskDelete() strikes between accept() returning a fd and close() being
+// called on it, the fd leaks. lwIP has a small fd table; over repeated
+// monitoring config saves (which stop/start the agent) the table fills and
+// socket() starts failing firmware-wide (WebUI, MQTT, syslog, OTA) —
+// presenting exactly as "device becomes unreachable after some time".
+static std::atomic<int> checkmk_client_sock{-1};
 
 enum OtaPausedService : uint32_t {
     OTA_PAUSED_CHECKMK    = 1u << 0,
@@ -253,6 +262,10 @@ static void checkmk_agent_task(void *pvParameters)
             continue;
         }
 
+        // Publish the fd so checkmk_stop() can close it before force-deleting
+        // us. Cleared back to -1 once we close() the socket ourselves below.
+        checkmk_client_sock.store(client_sock);
+
         char client_ip[16];
         inet_ntoa_r(client_addr.sin_addr, client_ip, sizeof(client_ip));
         ESP_LOGI(TAG, "CheckMK client connected from %s", client_ip);
@@ -285,6 +298,7 @@ static void checkmk_agent_task(void *pvParameters)
 
         if (!allowed) {
             ESP_LOGW(TAG, "Client %s not in allowed hosts list", client_ip);
+            checkmk_client_sock.store(-1);
             close(client_sock);
             continue;
         }
@@ -348,6 +362,7 @@ static void checkmk_agent_task(void *pvParameters)
             }
         }
 
+        checkmk_client_sock.store(-1);
         close(client_sock);
         ESP_LOGI(TAG, "CheckMK client disconnected");
     }
@@ -422,6 +437,14 @@ esp_err_t checkmk_stop(void)
     TaskHandle_t cmk_handle = checkmk_task_handle.load();
     if (cmk_handle != NULL) {
         ESP_LOGW(TAG, "CheckMK task did not exit cleanly, force deleting");
+        // Before force-deleting, claim and close any in-flight client socket.
+        // If the task is wedged in send()/recv() on client_sock right now,
+        // vTaskDelete would leak that fd into the lwIP table permanently.
+        int cs = checkmk_client_sock.exchange(-1);
+        if (cs >= 0) {
+            shutdown(cs, SHUT_RDWR);
+            close(cs);
+        }
         checkmk_task_handle.store(NULL);
         vTaskDelete(cmk_handle);
     }
@@ -821,9 +844,22 @@ static void heap_watchdog_task(void *pvParameters)
 
             if (low_heap_streak >= HEAP_WATCHDOG_CONSECUTIVE_HITS)
             {
-                ESP_LOGE(TAG, "Heap critically low for %d consecutive checks - restarting",
-                         low_heap_streak);
-                ResetInfo::storeResetReason(RESET_REASON_WATCHDOG);
+                size_t largest = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
+                size_t min_ever = heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT);
+                uint32_t secs = (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS / 1000ULL);
+                char diag[200];
+                snprintf(diag, sizeof(diag),
+                         "low heap: free=%u largest=%u min_ever=%u uptime=%us",
+                         (unsigned)free_heap, (unsigned)largest,
+                         (unsigned)min_ever, (unsigned)secs);
+                ESP_LOGE(TAG, "Heap critically low for %d consecutive checks - restarting (%s)",
+                         low_heap_streak, diag);
+                // Persist a tail of the in-memory log so the user can see
+                // what led to the restart. Best-effort: if NVS or heap is
+                // too tight to format, the diag string above still carries
+                // the headline numbers.
+                LogManager::instance().saveCrashTailNvs("heap_watchdog");
+                ResetInfo::storeResetReason(RESET_REASON_WATCHDOG, diag);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 esp_restart();
             }

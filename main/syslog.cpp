@@ -327,6 +327,122 @@ done:
 }
 
 // ---------------------------------------------------------------------------
+// Persistent TLS session for the syslog forwarder.
+//
+// Originally the TLS transport did a fresh mbedtls_ssl_setup + handshake for
+// every single log line. Each cycle allocates ~6-8 KB for the SSL context,
+// returns it, allocates again on the next line — textbook small-block heap
+// fragmentation. On the WROOM-32 (no PSRAM, ~250 KB internal heap, allocator
+// with limited coalescing) this drives the *largest contiguous free block*
+// steadily downward even though total free heap looks fine, until the next
+// OTA/UpdateCheck/TLS consumer cannot satisfy mbedtls_ssl_setup and panics
+// deep inside the handshake. The heap watchdog eventually catches the
+// sustained pressure and restarts the device.
+//
+// This wrapper keeps the SSL context alive across messages (mirroring how the
+// TCP transport already keeps its socket). Reconnect/rehandshake happens only
+// on write failure or idle timeout. The g_net_fetch_mutex is still taken per
+// send to keep the cross-subsystem handshake-serialisation invariant.
+// ---------------------------------------------------------------------------
+struct syslog_tls_session {
+    bool                 initialised = false;   // ssl/conf/net init done
+    bool                 handshake_ok = false;  // ready to write
+    mbedtls_ssl_context  ssl;
+    mbedtls_ssl_config   conf;
+    mbedtls_net_context  net_fd;
+    int                  last_use_tick_ms = 0;
+};
+
+// Tear down everything but keep the struct alive (caller frees the struct).
+static void syslog_tls_teardown(syslog_tls_session *s)
+{
+    if (!s || !s->initialised) return;
+    if (s->handshake_ok) {
+        mbedtls_ssl_close_notify(&s->ssl);
+    }
+    mbedtls_ssl_free(&s->ssl);
+    mbedtls_ssl_config_free(&s->conf);
+    // mbedtls_net_free closes the underlying socket.
+    mbedtls_net_free(&s->net_fd);
+    s->handshake_ok = false;
+    s->initialised = false;
+}
+
+// Bring up (or re-bring-up) the session. Returns true on a usable session.
+static bool syslog_tls_connect(syslog_tls_session *s, const char *host, uint16_t port)
+{
+    if (!s) return false;
+    syslog_tls_teardown(s);
+
+    int sock = resolve_and_connect_tcp(host, port);
+    if (sock < 0) return false;
+
+    mbedtls_ssl_init(&s->ssl);
+    mbedtls_ssl_config_init(&s->conf);
+    mbedtls_net_init(&s->net_fd);
+    s->initialised = true;
+    s->net_fd.fd = sock;
+
+    if (mbedtls_ssl_config_defaults(&s->conf, MBEDTLS_SSL_IS_CLIENT,
+                                    MBEDTLS_SSL_TRANSPORT_STREAM,
+                                    MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
+        syslog_tls_teardown(s);
+        return false;
+    }
+    mbedtls_ssl_conf_authmode(&s->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
+    esp_crt_bundle_attach(&s->conf);
+    if (mbedtls_ssl_setup(&s->ssl, &s->conf) != 0) {
+        syslog_tls_teardown(s);
+        return false;
+    }
+    mbedtls_ssl_set_bio(&s->ssl, &s->net_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
+    mbedtls_ssl_set_hostname(&s->ssl, host);
+
+    int r;
+    while ((r = mbedtls_ssl_handshake(&s->ssl)) != 0) {
+        if (r != MBEDTLS_ERR_SSL_WANT_READ && r != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            syslog_tls_teardown(s);
+            return false;
+        }
+    }
+    s->handshake_ok = true;
+    s->last_use_tick_ms = (int)xTaskGetTickCount() * portTICK_PERIOD_MS;
+    return true;
+}
+
+static bool syslog_tls_send(syslog_tls_session *s, const char *host, uint16_t port,
+                            const char *buf, size_t len)
+{
+    if (!s) return false;
+
+    if (!s->handshake_ok) {
+        if (!syslog_tls_connect(s, host, port)) return false;
+    }
+
+    size_t written = 0;
+    while (written < len) {
+        int w = mbedtls_ssl_write(&s->ssl, (const unsigned char *)buf + written, len - written);
+        if (w == MBEDTLS_ERR_SSL_WANT_READ || w == MBEDTLS_ERR_SSL_WANT_WRITE) continue;
+        if (w <= 0) {
+            // Session is broken (peer reset, idle close, alert). Drop it so
+            // the next send rebuilds a fresh one.
+            syslog_tls_teardown(s);
+            return false;
+        }
+        written += (size_t)w;
+    }
+    s->last_use_tick_ms = (int)xTaskGetTickCount() * portTICK_PERIOD_MS;
+    return true;
+}
+
+// Idle close threshold for a kept-alive TLS session. Without idle teardown
+// the server side (or a stateful firewall) will eventually drop the session
+// silently and the next write returns a fatal error — which syslog_tls_send
+// already handles by tearing down and reconnecting, so this is only an
+// optimisation to free ~6-8 KB of heap when syslog has been quiet.
+static constexpr int SYSLOG_TLS_IDLE_CLOSE_MS = 5 * 60 * 1000;  // 5 min
+
+// ---------------------------------------------------------------------------
 // Worker task.
 // ---------------------------------------------------------------------------
 static void syslog_task(void *pv)
@@ -334,12 +450,25 @@ static void syslog_task(void *pv)
     ESP_LOGI(TAG, "syslog forwarder started -> %s:%u transport=%u",
              s_cfg.server, s_cfg.port, s_cfg.transport);
 
-    // Persistent TCP/TLS socket for non-UDP transports.
+    // Persistent TCP socket for the TCP transport.
     int tcp_sock = -1;
+
+    // Persistent TLS session for the TLS transport. Allocated once on the
+    // worker's stack; mbedtls contexts inside it are set up lazily.
+    syslog_tls_session tls;
 
     while (s_running.load()) {
         struct syslog_entry e;
         if (xQueueReceive(s_queue, &e, pdMS_TO_TICKS(500)) != pdTRUE) {
+            // Idle: opportunistically release the TLS session's mbedtls
+            // contexts if it has been quiet for a while, so the ~6-8 KB
+            // returns to the heap. Re-connected on the next log line.
+            if (tls.handshake_ok) {
+                int now_ms = (int)xTaskGetTickCount() * portTICK_PERIOD_MS;
+                if (now_ms - tls.last_use_tick_ms > SYSLOG_TLS_IDLE_CLOSE_MS) {
+                    syslog_tls_teardown(&tls);
+                }
+            }
             continue;
         }
         if (e.len == 0) continue;
@@ -364,21 +493,23 @@ static void syslog_task(void *pv)
                 }
             }
         } else {
-            // TLS — fresh handshake per message under the net-fetch mutex.
-            // Syslog volumes are modest; a persistent TLS session is not
-            // worth the heap on this device.
+            // TLS — persistent session, reconnect on failure.
             //
             // Skip while an OTA firmware download is in progress: the OTA
             // owns g_net_fetch_mutex for the whole download, and contending
             // for it (or opening a second TLS context) risks starving the
             // OTA of heap. The log line is dropped; the queue keeps moving.
-            if (!net_fetch_ota_active()) {
-                send_tls(s_cfg.server, s_cfg.port, e.buf, e.len);
+            if (!net_fetch_ota_active() && g_net_fetch_mutex) {
+                if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(15000)) == pdTRUE) {
+                    syslog_tls_send(&tls, s_cfg.server, s_cfg.port, e.buf, e.len);
+                    xSemaphoreGive(g_net_fetch_mutex);
+                }
             }
         }
     }
 
     if (tcp_sock >= 0) close(tcp_sock);
+    syslog_tls_teardown(&tls);
     ESP_LOGI(TAG, "syslog forwarder stopped");
     s_running.store(false);
     s_task.store(NULL);

@@ -317,7 +317,7 @@ export default {
     otaSuccess: 'Download erfolgreich. Installation...',
     currentVersion: 'Aktuelle Version',
     installedVersion: 'Installierte Version',
-    versionInfo: 'Modernisierte Fork v2.2.4-Beta.8 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
+    versionInfo: 'Modernisierte Fork v2.2.4-Beta.9 von Xerolux (2025) - Basierend auf der Original-Arbeit von Alexander Reinert.',
     updateAvailableMessage: 'Ein Update auf Version {latestVersion} ist verfügbar.',
     newVersionAvailable: 'Neue Version {version} ist verfügbar!',
     viewUpdate: 'Ansehen',
@@ -658,7 +658,9 @@ export default {
     refresh: 'Aktualisieren',
     clear: 'Leeren',
     download: 'Download',
-    empty: 'Noch keine Log-Einträge vorhanden.'
+    empty: 'Noch keine Log-Einträge vorhanden.',
+    crashTitle: 'Absturzprotokoll wiederhergestellt',
+    crashHint: 'Das Gerät wurde nach einem Watchdog-Reset oder Systemfehler neu gestartet. Dieser Ausschnitt der letzten Protokollzeilen wurde unmittelbar vor dem Neustart gerettet und ist nach dem Schließen nicht mehr verfügbar.'
   },
 
   // Privacy

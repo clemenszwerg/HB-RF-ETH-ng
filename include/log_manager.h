@@ -70,6 +70,17 @@ public:
     std::string getLogContent(size_t offset = 0);
     size_t getTotalWritten() const;
 
+    // Persist a tail of the in-memory ring buffer to NVS so it survives the
+    // reboot that follows a watchdog/panic. `tag` is a small label stored
+    // alongside (e.g. "heap_watchdog"). Safe to call from a low-heap context:
+    // it caps the copy by the current largest free block and never allocates
+    // more than CRASH_TAIL_MAX bytes. Returns true on success.
+    static constexpr size_t CRASH_TAIL_MAX = 1024;
+    bool saveCrashTailNvs(const char *tag);
+    // Read back the persisted crash tail (one-shot: cleared after read).
+    // Returns an empty string if nothing was stored.
+    static std::string loadCrashTailNvs();
+
 private:
     LogManager();
 

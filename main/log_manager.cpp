@@ -25,6 +25,8 @@
 #include <esp_log.h>
 #include <esp_timer.h>
 #include <esp_heap_caps.h>
+#include <nvs.h>
+#include <nvs_flash.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -356,4 +358,62 @@ size_t LogManager::getTotalWritten() const {
         xSemaphoreGive(_mutex);
     }
     return result;
+}
+
+// NVS keys for the crash-tail snapshot. The namespace is shared with
+// reset_info so a single erase on read cleans the whole post-mortem state.
+static const char *CRASH_TAIL_NVS_NS  = "reset_info";
+static const char *CRASH_TAIL_NVS_KEY = "clog";   // 4 chars, within NVS limit
+
+bool LogManager::saveCrashTailNvs(const char *tag) {
+    // Pull a tail of the ring buffer. getLogContent() already caps the
+    // returned size by the largest free block, so this is safe to call from
+    // the low-heap path that triggered the watchdog.
+    std::string tail = instance().getLogContent(0);
+    if (tail.empty()) {
+        // No ring buffer active — nothing to persist, but not an error.
+        return false;
+    }
+
+    // Trim to the last CRASH_TAIL_MAX bytes (the most recent lines), because
+    // that is what reveals *why* the device is restarting.
+    if (tail.size() > CRASH_TAIL_MAX) {
+        tail = tail.substr(tail.size() - CRASH_TAIL_MAX);
+    }
+
+    // Prefix with a short tag + newline so the WebUI can show context.
+    char header[48];
+    snprintf(header, sizeof(header), "[%s] ", tag ? tag : "crash");
+    std::string blob;
+    blob.reserve(strlen(header) + tail.size() + 1);
+    blob.append(header);
+    blob.append(tail);
+
+    nvs_handle_t h;
+    if (nvs_open(CRASH_TAIL_NVS_NS, NVS_READWRITE, &h) != ESP_OK) return false;
+    esp_err_t err = nvs_set_blob(h, CRASH_TAIL_NVS_KEY, blob.data(), blob.size());
+    if (err == ESP_OK) err = nvs_commit(h);
+    nvs_close(h);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "saveCrashTailNvs: failed (%s)", esp_err_to_name(err));
+        return false;
+    }
+    return true;
+}
+
+std::string LogManager::loadCrashTailNvs() {
+    nvs_handle_t h;
+    if (nvs_open(CRASH_TAIL_NVS_NS, NVS_READONLY, &h) != ESP_OK) return "";
+
+    std::string out;
+    size_t len = 0;
+    if (nvs_get_blob(h, CRASH_TAIL_NVS_KEY, NULL, &len) == ESP_OK && len > 0) {
+        out.resize(len);
+        if (nvs_get_blob(h, CRASH_TAIL_NVS_KEY, &out[0], &len) != ESP_OK) {
+            out.clear();
+        }
+    }
+    nvs_close(h);
+    return out;
 }

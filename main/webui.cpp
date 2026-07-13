@@ -49,6 +49,8 @@
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
 #include "esp_crt_bundle.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 #include "ota_config.h"
 #include "semver.h"
 #include "validation.h"
@@ -2499,6 +2501,71 @@ httpd_uri_t get_log_status_handler = {
     .handler = get_log_status_handler_func,
     .user_ctx = NULL};
 
+// /api/crash_log — returns the persisted log tail captured just before the
+// last watchdog/panic restart (see LogManager::saveCrashTailNvs). Returns a
+// JSON object {"available":bool, "tail":string}. The snapshot is cleared
+// from NVS after the first successful read so a normal reboot does not show
+// stale data. This is the answer to "the user has no log because the device
+// restarted": the few hundred bytes that matter now survive the reboot.
+esp_err_t get_crash_log_handler_func(httpd_req_t *req)
+{
+    add_security_headers(req);
+    if (validate_auth(req) != ESP_OK)
+    {
+        httpd_resp_set_status(req, "401 Not authorized");
+        httpd_resp_sendstr(req, "401 Not authorized");
+        return ESP_OK;
+    }
+
+    std::string tail = LogManager::loadCrashTailNvs();
+    httpd_resp_set_type(req, "application/json");
+
+    if (tail.empty()) {
+        httpd_resp_sendstr(req, "{\"available\":false,\"tail\":\"\"}");
+        return ESP_OK;
+    }
+
+    // JSON-escape the tail. It is plain text from the log ring buffer, so
+    // backslash and double-quote must be escaped and control chars dropped.
+    std::string esc;
+    esc.reserve(tail.size() + 16);
+    for (char c : tail) {
+        switch (c) {
+            case '\\': esc += "\\\\"; break;
+            case '"':  esc += "\\\""; break;
+            case '\r': break;  // ignore
+            case '\n': esc += "\\n"; break;
+            case '\t': esc += "\\t"; break;
+            default:
+                if ((unsigned char)c < 0x20) break;  // drop other ctrl
+                esc += c;
+        }
+    }
+
+    std::string body;
+    body.reserve(esc.size() + 32);
+    body += "{\"available\":true,\"tail\":\"";
+    body += esc;
+    body += "\"}";
+    httpd_resp_send(req, body.data(), (ssize_t)body.size());
+
+    // Best-effort erase: the snapshot has now been delivered to the UI; we
+    // do not want it to reappear on every reload.
+    nvs_handle_t h;
+    if (nvs_open("reset_info", NVS_READWRITE, &h) == ESP_OK) {
+        nvs_erase_key(h, "clog");
+        nvs_commit(h);
+        nvs_close(h);
+    }
+    return ESP_OK;
+}
+
+httpd_uri_t get_crash_log_handler = {
+    .uri = "/api/crash_log",
+    .method = HTTP_GET,
+    .handler = get_crash_log_handler_func,
+    .user_ctx = NULL};
+
 static void emit_log_enable_snapshot()
 {
     ESP_LOGI(TAG, "System log capture enabled via WebUI");
@@ -3158,6 +3225,7 @@ void WebUI::start()
         httpd_register_uri_handler(_httpd_handle, &post_log_enable_handler);
         httpd_register_uri_handler(_httpd_handle, &post_log_disable_handler);
         httpd_register_uri_handler(_httpd_handle, &get_log_download_handler);
+        httpd_register_uri_handler(_httpd_handle, &get_crash_log_handler);
         httpd_register_uri_handler(_httpd_handle, &post_share_log_handler);
 
         httpd_register_uri_handler(_httpd_handle, &main_js_gz_handler);

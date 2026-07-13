@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.9] - 2026-07-13
+
+### Changes
+- fix(system): close mbedtls TLS leak in SMTP STARTTLS path
+- fix(syslog): keep persistent TLS session instead of handshake per log line
+- fix(monitoring): close CheckMK client socket before force-deleting the task
+- feat(log): persist crash log tail to NVS and surface via WebUI modal
+- feat(reset): auto-classify panic/task-WDT/brownout resets and store diagnostics
+- fix(sdkconfig): restore LWIP_MAX_SOCKETS=16 and TCP_MSL=15000 after silent regression
+- chore(sdkconfig): remove deprecated ESP-IDF 5.5 symbols from sdkconfig.hb-rf-eth-ng
+
+### Fixed
+- **Speicherverlust bei E-Mail-Benachrichtigung mit STARTTLS:** Bei jedem fehlerhaften STARTTLS-Handshake (z.B. bei Erreichbarkeitsproblemen des SMTP-Servers) sind bisher die mbedtls-TLS-Kontexte (~6–8 KB pro Versuch) nicht freigegeben worden. Über Tage/Wochen häufte sich das an, der freie Heap sank unter die Watchdog-Schwelle und das Gerät startete neu — ohne dass die Ursache im Log sichtbar wurde, weil der Ringpuffer im RAM liegt. Die Aufräum-Logik ist jetzt an einem eigenen Flag `tls_setup` orientiert, das bereits vor dem Handshake gesetzt wird, sodass jeder Fehlversuch sauber aufgeräumt wird.
+- **Heap-Fragmentierung durch Syslog-over-TLS:** Bisher wurde für **jede einzelne Log-Zeile** ein vollständiger TLS-Handshake durchgeführt (6–8 KB Allokation + Freigabe pro Zeile). Auf dem WROOM-32 ohne PSRAM führt das zu starker Fragmentierung des Heaps — der größte zusammenhängende freie Block schrumpft stetig, obwohl der Gesamt-Heap noch gut aussieht. Irgendwann schlägt dann der nächste TLS-Handshake (OTA, Update-Check) fehl und das Gerät startet. Syslog-over-TLS nutzt jetzt eine **persistente TLS-Session** wie TCP auch — Reconnect nur bei Fehler oder nach 5 Minuten Inaktivität.
+- **Socket-Leck im CheckMK-Agent:** Wenn der CheckMK-Task per `vTaskDelete()` abgebrochen wurde, während gerade ein Client verbunden war (z.B. bei Speichern der Monitoring-Konfiguration), ist der Client-Socket in die lwIP-FD-Tabelle eingegangen. Bei nur 10–16 verfügbaren Sockets firmwareweit führte das nach mehreren Config-Speicherzyklen dazu, dass `socket()` überall im System fehlschlug (WebUI, MQTT, Syslog, OTA) — das Gerät wurde unbrauchbar. Der Client-Socket wird jetzt atomar getrackt und vor `vTaskDelete()` explizit geschlossen.
+- **Socket-Limit und TIME_WAIT nachgestellt:** Die aktive Build-Konfiguration war unbemerkt auf die ESP-IDF-Defaults zurückgefallen (`LWIP_MAX_SOCKETS=10` statt 16, `LWIP_TCP_MSL=60000` statt 15000). Mit nur 10 Sockets firmwareweit und 60 Sekunden TIME_WAIT pro geschlossenem Socket war das System bei jeder HTTPS-Aktivität (Update-Check alle 24 h, OTA, CRL-Refresh) am Limit — WebUI und MQTT kamen sich in die Quere. Beide Werte sind wieder korrekt auf 16 bzw. 15 s gesetzt und in allen drei Config-Dateien (`sdkconfig.defaults`, `sdkconfig.hb-rf-eth-ng`, `sdkconfig`) synchronisiert.
+- **Veraltete ESP-IDF-5.5-Konfigurationssymbole:** Die Datei `sdkconfig.hb-rf-eth-ng` stammte noch aus ESP-IDF 5.5.3 und enthielt Symbole, die in 6.0 nicht mehr existieren (`CONFIG_ADC_CAL_EFUSE_TP_ENABLE`, `CONFIG_ADC_CAL_LUT_ENABLE`, `CONFIG_ADC2_DISABLE_DAC`, `CONFIG_OPTIMIZATION_LEVEL_RELEASE`, `CONFIG_LOG_BOOTLOADER_LEVEL_WARN`). Bei einem `idf.py fullclean` oder einem Neu-Klon konnten diese veralteten Defaults zu unerwartetem Runtime-Verhalten führen. Alle deprecated Symbole sind entfernt bzw. auf ihre 6.0-Äquivalente umbenannt.
+
+### Added
+- **Absturzprotokoll überlebt jetzt den Neustart:** Der häufigste Schmerzpunkt bei der Diagnose war bisher, dass der Log-Ringpuffer im RAM liegt und beim Restart verloren geht. Der Heap-Watchdog speichert jetzt unmittelbar vor dem Restart einen **Tail der letzten ~1024 Bytes** (die letzten Log-Zeilen) ins NVS. Nach dem Reboot öffnet sich auf der System-Log-Seite automatisch ein Modal mit diesen Zeilen — einmalig, danach wird der Snapshot gelöscht. So siehst du endlich, was unmittelbar vor dem Absturz passiert ist.
+- **Reset-Grund-Diagnose:** Bisher wurde nach einem Task-Watchdog-Timeout oder einem echten Panic (Exception) oft "Normaler Start" angezeigt, weil die Software den Reset-Grund nicht selbst gesetzt hatte. Jetzt wertet `ResetInfo` automatisch den Hardware-Reset-Grund (`esp_reset_reason()`) aus und klassifiziert: Panic → "Systemfehler (Exception/Panic)", Task/Interrupt-WDT → "Watchdog Reset", Brownout → "Spannungsabfall". Zusätzlich wird ein Diagnose-String im NVS abgelegt (z.B. `low heap: free=18432 largest=16384 min_ever=16384 uptime=84213s`), der im Reset-Details-Feld angezeigt wird.
+- **Neue API `/api/crash_log`:** Liefert den persistierten Log-Tail als JSON und löscht ihn nach dem ersten Lesen. Wird von der WebUI automatisch beim Öffnen der System-Log-Seite abgefragt.
+
 ## [2.2.4-Beta.8] - 2026-07-12
 
 ### Changes

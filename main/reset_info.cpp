@@ -31,9 +31,14 @@
 static const char *TAG = "ResetInfo";
 static const char *NVS_NAMESPACE = "reset_info";
 static const char *NVS_KEY = "reason";
+static const char *NVS_DIAG_KEY = "diag";
 
 // Buffer for reset reason text
 static char reset_text_buffer[256];
+// Buffer for the diagnostic string of the last non-normal reset. Filled by
+// getLastDiag() on first access and cleared from NVS so a normal reboot does
+// not show stale data.
+static char last_diag_buffer[256];
 
 static const char* get_reason_text(reset_reason_type_t reason) {
     switch (reason) {
@@ -70,6 +75,10 @@ void ResetInfo::init() {
 }
 
 void ResetInfo::storeResetReason(reset_reason_type_t reason) {
+    storeResetReason(reason, NULL);
+}
+
+void ResetInfo::storeResetReason(reset_reason_type_t reason, const char *diag) {
     nvs_handle_t nvs_handle;
     esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs_handle);
     if (err != ESP_OK) {
@@ -81,14 +90,40 @@ void ResetInfo::storeResetReason(reset_reason_type_t reason) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to store reset reason: %s", esp_err_to_name(err));
     } else {
+        // Optional diagnostic string. Truncated to fit the NVS entry and the
+        // internal buffer. Cleared whenever the reason is cleared.
+        if (diag && diag[0]) {
+            char tmp[sizeof(last_diag_buffer)];
+            snprintf(tmp, sizeof(tmp), "%s", diag);
+            nvs_set_str(nvs_handle, NVS_DIAG_KEY, tmp);
+        } else {
+            nvs_erase_key(nvs_handle, NVS_DIAG_KEY);
+        }
         err = nvs_commit(nvs_handle);
         if (err != ESP_OK) {
             ESP_LOGW(TAG, "Failed to commit reset reason: %s", esp_err_to_name(err));
         } else {
-            ESP_LOGI(TAG, "Stored reset reason: %d", reason);
+            ESP_LOGI(TAG, "Stored reset reason: %d%s%s", reason,
+                     diag ? " (" : "", diag ? diag : "");
         }
     }
     nvs_close(nvs_handle);
+}
+
+const char *ResetInfo::getLastDiag() {
+    // Lazily read + clear on first access so the value is shown once for the
+    // post-reset WebUI render but does not linger forever.
+    if (last_diag_buffer[0] == '\0') {
+        nvs_handle_t nvs_handle;
+        if (nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs_handle) == ESP_OK) {
+            size_t len = sizeof(last_diag_buffer);
+            if (nvs_get_str(nvs_handle, NVS_DIAG_KEY, last_diag_buffer, &len) != ESP_OK) {
+                last_diag_buffer[0] = '\0';
+            }
+            nvs_close(nvs_handle);
+        }
+    }
+    return last_diag_buffer;
 }
 
 reset_reason_type_t ResetInfo::getResetReasonType() {
@@ -150,10 +185,37 @@ const char* ResetInfo::getResetDetails() {
         initialized = true;
         reset_reason_type_t stored_reason = getResetReasonType();
         const char* esp_reason = getEspResetReason();
+        esp_reset_reason_t hw = esp_reset_reason();
+
+        // Auto-classify crashes the software did NOT tag itself. If the
+        // hardware reports a panic or watchdog but our NVS reason is still
+        // NORMAL (i.e. no subsystem called storeResetReason before the
+        // crash), surface it as SYSTEM_ERROR / WATCHDOG so the user is not
+        // told "Normaler Start" right after an unexplained reboot. This is
+        // the path that catches task-watchdog timeouts and unhandled
+        // exceptions — both of which look like "device crashed after some
+        // time" with no prior log.
+        if (stored_reason == RESET_REASON_NORMAL) {
+            if (hw == ESP_RST_PANIC) {
+                stored_reason = RESET_REASON_SYSTEM_ERROR;
+            } else if (hw == ESP_RST_TASK_WDT || hw == ESP_RST_INT_WDT ||
+                       hw == ESP_RST_WDT) {
+                stored_reason = RESET_REASON_WATCHDOG;
+            } else if (hw == ESP_RST_BROWNOUT) {
+                stored_reason = RESET_REASON_BROWNOUT;
+            }
+        }
 
         if (stored_reason != RESET_REASON_NORMAL) {
-            snprintf(reset_text_buffer, sizeof(reset_text_buffer), "%s (%s)",
-                     get_reason_text(stored_reason), esp_reason);
+            const char *diag = getLastDiag();
+            if (diag && diag[0]) {
+                snprintf(reset_text_buffer, sizeof(reset_text_buffer),
+                         "%s (%s) — %s",
+                         get_reason_text(stored_reason), esp_reason, diag);
+            } else {
+                snprintf(reset_text_buffer, sizeof(reset_text_buffer), "%s (%s)",
+                         get_reason_text(stored_reason), esp_reason);
+            }
             clearResetReason();
         } else {
             snprintf(reset_text_buffer, sizeof(reset_text_buffer), "%s", esp_reason);
@@ -174,6 +236,8 @@ void ResetInfo::clearResetReason() {
     if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOGW(TAG, "Failed to erase reset reason: %s", esp_err_to_name(err));
     }
+    // Best-effort erase of the diagnostic string; ignore not-found.
+    nvs_erase_key(nvs_handle, NVS_DIAG_KEY);
     nvs_commit(nvs_handle);
     nvs_close(nvs_handle);
 }

@@ -126,6 +126,27 @@
       </div>
       <div v-else class="text-danger">{{ t('systemlog.shareFailed') }}</div>
     </BModal>
+
+    <!--
+      Crash recovery snapshot. When the device restarted due to a watchdog
+      or panic, a tail of the in-memory log was saved to NVS right before
+      the restart. The snapshot is delivered once (the backend clears it
+      after the first read), so this modal auto-opens exactly once after a
+      real crash — making "the log was wiped" debuggable for the first time.
+    -->
+    <BModal
+      v-model="showCrashModal"
+      :title="t('systemlog.crashTitle')"
+      :ok-title="t('common.close')"
+      ok-only
+      size="lg"
+      scrollable
+    >
+      <div class="alert alert-warning" role="alert">
+        {{ t('systemlog.crashHint') }}
+      </div>
+      <pre class="crash-tail-pre">{{ crashTail }}</pre>
+    </BModal>
   </div>
 </template>
 
@@ -149,6 +170,10 @@ const offset = ref(0)
 const searchQuery = ref('')
 const levelFilter = ref('all')
 const newEntriesCount = ref(0)
+// Last-crash tail recovered from NVS after a watchdog/panic restart.
+// Empty when no snapshot was stored (normal reboot, first boot, etc.).
+const crashTail = ref('')
+const showCrashModal = ref(false)
 let pollTimer = null
 // Suppresses the logEnabled watcher while we sync the toggle from the backend
 // status on mount (so the initial state does not trigger a redundant enable
@@ -498,6 +523,20 @@ onMounted(async () => {
   if (logEnabled.value) {
     startPolling()
   }
+
+  // Check whether the device stored a log tail right before the last
+  // watchdog/panic restart. The endpoint returns {available, tail} and
+  // clears the snapshot after the first successful read, so this only
+  // surfaces once after a real crash — not on every page load.
+  try {
+    const r = await axios.get('/api/crash_log', { silent: true })
+    if (r.data && r.data.available && r.data.tail) {
+      crashTail.value = r.data.tail
+      showCrashModal.value = true
+    }
+  } catch (e) {
+    // ignore — older firmware versions do not expose this endpoint
+  }
 })
 
 onUnmounted(() => {
@@ -754,5 +793,20 @@ onUnmounted(() => {
   .log-line code {
     font-size: 0.78rem;
   }
+}
+
+.crash-tail-pre {
+  max-height: 60vh;
+  overflow: auto;
+  background: var(--color-bg-secondary, #1e1e1e);
+  color: var(--color-text-inverse, #e0e0e0);
+  padding: 12px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
 }
 </style>

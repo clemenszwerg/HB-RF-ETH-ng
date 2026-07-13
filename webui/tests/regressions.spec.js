@@ -284,3 +284,47 @@ test('firmware archive loads only from the manifest embedded in the device', asy
   await expect(page.locator('.archive-refresh')).toHaveCount(0)
   await expect(page.locator('.archive-error')).toBeHidden()
 })
+
+test('crash log modal shows recovered tail once after a crash', async ({ page }) => {
+  await page.route('**/settings.json**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ settings })
+  }))
+  await page.route('**/api/log/status**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ enabled: false, persistent: false })
+  }))
+  await page.route('**/api/crash_log**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      available: true,
+      tail: '[heap_watchdog] low heap: free=18432 largest=16384 uptime=84213s\nI (84213) mqtt: published status'
+    })
+  }))
+
+  await page.goto(`${BASE_URL}/systemlog`)
+
+  // The crash recovery modal auto-opens and shows the recovered tail.
+  const modal = page.locator('.modal.show')
+  await expect(modal).toBeVisible({ timeout: 5000 })
+  await expect(modal).toContainText('[heap_watchdog] low heap')
+  await expect(modal).toContainText('published status')
+
+  // Close it.
+  await modal.locator('.btn-primary', { hasText: /close/i }).click()
+  await expect(modal).toBeHidden()
+
+  // The backend clears the snapshot after the first read — a reload without
+  // re-stubbing must not re-show it. The page falls back to the default
+  // (empty) route handler here, which returns a 404-ish body; the modal
+  // stays hidden.
+  await page.unroute('**/api/crash_log**')
+  await page.route('**/api/crash_log**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ available: false, tail: '' })
+  }))
+  await page.goto(`${BASE_URL}/systemlog`)
+  await page.waitForTimeout(400)
+  await expect(page.locator('.modal.show')).toHaveCount(0)
+})
+

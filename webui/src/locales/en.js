@@ -317,7 +317,7 @@ export default {
     otaSuccess: 'Download successful. Installing...',
     currentVersion: 'Current Version',
     installedVersion: 'Installed version',
-    versionInfo: 'Modernized fork v2.2.4-Beta.8 by Xerolux (2025) - Based on the original work by Alexander Reinert.',
+    versionInfo: 'Modernized fork v2.2.4-Beta.9 by Xerolux (2025) - Based on the original work by Alexander Reinert.',
     updateAvailableMessage: 'An update to version {latestVersion} is available.',
     newVersionAvailable: 'New version {version} is available!',
     viewUpdate: 'View',
@@ -658,7 +658,9 @@ export default {
     refresh: 'Refresh',
     clear: 'Clear',
     download: 'Download',
-    empty: 'No log entries yet.'
+    empty: 'No log entries yet.',
+    crashTitle: 'Crash log recovered',
+    crashHint: 'The device restarted after a watchdog reset or system error. This tail of the last log lines was saved just before the restart and will not be available again after closing.'
   },
 
   // Privacy

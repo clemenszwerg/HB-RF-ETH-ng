@@ -46,6 +46,13 @@ public:
     // Store reset reason before restart
     static void storeResetReason(reset_reason_type_t reason);
 
+    // Store reset reason plus a short diagnostic string (free heap, largest
+    // block, uptime, ...) so that after the reboot the user can see WHY the
+    // device restarted. The diagnostic survives the reboot in NVS and is
+    // surfaced through the WebUI "last reset details" field. Max ~240 chars
+    // — longer strings are truncated.
+    static void storeResetReason(reset_reason_type_t reason, const char *diag);
+
     // Get detailed reset reason description
     static const char* getResetReasonText();
 
@@ -57,6 +64,11 @@ public:
 
     // Get combined detailed message
     static const char* getResetDetails();
+
+    // Returns the stored diagnostic string for the last non-normal reset, or
+    // an empty string if none was stored. The buffer is internal and valid
+    // until the next call.
+    static const char* getLastDiag();
 
     // Clear stored reset reason (call after reading)
     static void clearResetReason();

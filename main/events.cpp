@@ -336,25 +336,36 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
         }
         if (flags >= 0) fcntl(sock, F_SETFL, flags);  // restore blocking
 
+        // Whether mbedtls_ssl_setup() has succeeded. Once it has, BOTH ssl and
+        // conf must be torn down on every exit path - even on handshake failure
+        // - or every failed STARTTLS/implicit-TLS attempt leaks the full
+        // mbedtls context (~6-8 KB plus allocation chains). Over hours/days of
+        // link flaps or an unreachable SMTP server this drives free heap below
+        // the watchdog threshold and forces a restart, with the log wiped
+        // because it lives in RAM only. tls_active (data path enabled) is a
+        // separate flag set only after a SUCCESSFUL handshake.
+        bool tls_setup = false;
+
         // For implicit TLS we wrap the socket in mbedtls before SMTP talk.
         if (use_tls) {
             net_fd.fd = sock;
             if (mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_CLIENT,
                                             MBEDTLS_SSL_TRANSPORT_STREAM,
                                             MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
-                mbedtls_ssl_free(&ssl); mbedtls_ssl_config_free(&conf);
-                close(sock); goto release_mutex;
+                goto smtp_fail;
             }
             mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
             esp_crt_bundle_attach(&conf);
-            mbedtls_ssl_setup(&ssl, &conf);
+            if (mbedtls_ssl_setup(&ssl, &conf) != 0) {
+                goto smtp_fail;
+            }
+            tls_setup = true;
             mbedtls_ssl_set_bio(&ssl, &net_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
             snprintf(hostbuf, sizeof(hostbuf), "%s", s_cfg.smtp_server);
             mbedtls_ssl_set_hostname(&ssl, hostbuf);
             while ((r = mbedtls_ssl_handshake(&ssl)) != 0) {
                 if (r != MBEDTLS_ERR_SSL_WANT_READ && r != MBEDTLS_ERR_SSL_WANT_WRITE) {
-                    mbedtls_ssl_free(&ssl); mbedtls_ssl_config_free(&conf);
-                    close(sock); goto release_mutex;
+                    goto smtp_fail;
                 }
             }
             tls_active = true;
@@ -418,7 +429,8 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
                                             MBEDTLS_SSL_PRESET_DEFAULT) != 0) goto smtp_fail;
             mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
             esp_crt_bundle_attach(&conf);
-            mbedtls_ssl_setup(&ssl, &conf);
+            if (mbedtls_ssl_setup(&ssl, &conf) != 0) goto smtp_fail;
+            tls_setup = true;
             mbedtls_ssl_set_bio(&ssl, &net_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
             snprintf(hostbuf, sizeof(hostbuf), "%s", s_cfg.smtp_server);
             mbedtls_ssl_set_hostname(&ssl, hostbuf);
@@ -476,13 +488,23 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
 
         ok = true;
     smtp_fail:
-        if (tls_active) {
-            mbedtls_ssl_close_notify(&ssl);
+        // Defensive teardown keyed on tls_setup, NOT tls_active: a failed
+        // handshake leaves tls_active=false but ssl_setup() has already
+        // allocated ~6-8 KB on the heap via mbedtls_ssl_setup(). The previous
+        // branch here only ran close(sock) in that case, leaking the entire
+        // mbedtls context on every STARTTLS/implicit-TLS failure - the slow
+        // drip that eventually pushes free heap below the watchdog floor and
+        // restarts the device. mbedtls_net_free is safe to call (it just
+        // closes the fd) whenever net_fd.fd was assigned.
+        if (tls_setup) {
+            if (tls_active) {
+                mbedtls_ssl_close_notify(&ssl);
+            }
             mbedtls_ssl_free(&ssl);
             mbedtls_ssl_config_free(&conf);
             // mbedtls_net_free closes the underlying socket.
             mbedtls_net_free(&net_fd);
-        } else {
+        } else if (sock >= 0) {
             close(sock);
         }
     release_mutex:
