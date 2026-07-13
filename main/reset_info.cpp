@@ -209,9 +209,15 @@ const char* ResetInfo::getResetDetails() {
         if (stored_reason != RESET_REASON_NORMAL) {
             const char *diag = getLastDiag();
             if (diag && diag[0]) {
+                // Copy diag into a short local buffer so the compiler can
+                // prove the snprintf below cannot overflow reset_text_buffer
+                // (which is also 256 bytes). Without this, -Wformat-truncation
+                // fires because getLastDiag() can return up to 255 bytes.
+                char diag_short[96];
+                snprintf(diag_short, sizeof(diag_short), "%s", diag);
                 snprintf(reset_text_buffer, sizeof(reset_text_buffer),
-                         "%s (%s) — %s",
-                         get_reason_text(stored_reason), esp_reason, diag);
+                         "%s (%s) - %s",
+                         get_reason_text(stored_reason), esp_reason, diag_short);
             } else {
                 snprintf(reset_text_buffer, sizeof(reset_text_buffer), "%s (%s)",
                          get_reason_text(stored_reason), esp_reason);

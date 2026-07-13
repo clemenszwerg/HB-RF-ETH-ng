@@ -382,8 +382,12 @@ bool LogManager::saveCrashTailNvs(const char *tag) {
     }
 
     // Prefix with a short tag + newline so the WebUI can show context.
+    // Defensive bound: copy tag into a short local buffer first so the
+    // compiler can prove the snprintf cannot overflow header.
+    char tag_short[24];
+    snprintf(tag_short, sizeof(tag_short), "%s", tag ? tag : "crash");
     char header[48];
-    snprintf(header, sizeof(header), "[%s] ", tag ? tag : "crash");
+    snprintf(header, sizeof(header), "[%s] ", tag_short);
     std::string blob;
     blob.reserve(strlen(header) + tail.size() + 1);
     blob.append(header);
