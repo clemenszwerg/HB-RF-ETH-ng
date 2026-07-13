@@ -299,6 +299,18 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
         mbedtls_ssl_config conf;
         mbedtls_net_context net_fd;
         bool tls_active = false;
+        // Whether mbedtls_ssl_setup() has succeeded. Once it has, BOTH ssl and
+        // conf must be torn down on every exit path - even on handshake failure
+        // - or every failed STARTTLS/implicit-TLS attempt leaks the full
+        // mbedtls context (~6-8 KB plus allocation chains). Over hours/days of
+        // link flaps or an unreachable SMTP server this drives free heap below
+        // the watchdog threshold and forces a restart, with the log wiped
+        // because it lives in RAM only. tls_active (data path enabled) is a
+        // separate flag set only after a SUCCESSFUL handshake.
+        // Declared up here so the early `goto release_mutex` paths above do
+        // not cross its initialization (C++ forbids jumping over a decl with
+        // an initializer).
+        bool tls_setup = false;
         char line[256];
         int code = 0;
         char hostbuf[65];
@@ -335,16 +347,6 @@ static bool send_email(const EventEntry &e, const EventMeta &m)
             close(sock); goto release_mutex;
         }
         if (flags >= 0) fcntl(sock, F_SETFL, flags);  // restore blocking
-
-        // Whether mbedtls_ssl_setup() has succeeded. Once it has, BOTH ssl and
-        // conf must be torn down on every exit path - even on handshake failure
-        // - or every failed STARTTLS/implicit-TLS attempt leaks the full
-        // mbedtls context (~6-8 KB plus allocation chains). Over hours/days of
-        // link flaps or an unreachable SMTP server this drives free heap below
-        // the watchdog threshold and forces a restart, with the log wiped
-        // because it lives in RAM only. tls_active (data path enabled) is a
-        // separate flag set only after a SUCCESSFUL handshake.
-        bool tls_setup = false;
 
         // For implicit TLS we wrap the socket in mbedtls before SMTP talk.
         if (use_tls) {
