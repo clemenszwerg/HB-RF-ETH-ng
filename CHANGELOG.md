@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.11] - 2026-07-13
+
+### Changes
+- fix(webui): repair normalizeSupporterKey so the settings save bar renders
+
+### Fixed
+- **Speichern-/Verwerfen-Buttons fehlten auf der Einstellungs-Seite:** Die Funktion `normalizeSupporterKey` endete mit `.split('').filter().slice()`, was ein Array zurückgibt, und rief dann `.match()` darauf auf — eine String-Methode, die auf Arrays nicht existiert. Der resultierende `TypeError: ...match is not a function` wurde während der Settings-Initialisierung geworfen und hat das Setzen von `loadedSnapshot` abgebrochen. Damit blieb die Bedingung `loadedSnapshot || showError` permanent false und die schwebende Speichern-/Verwerfen-Leiste wurde gar nicht erst ins DOM gerendert — auf keinem Tab, insbesondere nicht unter Netzwerk. Der Aufruf wird jetzt zu einem String zusammengeführt, bevor `.match()` angewendet wird; die Leiste erscheint wieder, sobald Änderungen vorliegen.
+
 ## [2.2.4-Beta.10] - 2026-07-13
 
 ### Changes

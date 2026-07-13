@@ -95,7 +95,13 @@ export function validateSupporterKey(rawKey) {
 // Pretty-print a key with dashes as the user types, ignoring existing dashes.
 export function normalizeSupporterKey(value) {
   if (!value) return ''
-  const clean = String(value).replace(/[\s-]/g, '').toUpperCase().split('').filter(c => ALPHABET.includes(c))
-  const capped = clean.slice(0, 16)
+  // Build the cleaned string directly (no intermediate array). The previous
+  // implementation ended with .split('').filter().slice(), which yields an
+  // Array — and then called .match() on it, which threw
+  // "Array.prototype.match is not a function" because match is a String
+  // method. That exception aborted the settings page's setup, leaving
+  // loadedSnapshot empty and the floating save/discard bar unrendered.
+  const clean = String(value).replace(/[\s-]/g, '').toUpperCase()
+  const capped = clean.split('').filter(c => ALPHABET.includes(c)).slice(0, 16).join('')
   return capped.match(/.{1,4}/g)?.join('-') ?? ''
 }
