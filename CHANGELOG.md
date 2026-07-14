@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.15] - 2026-07-14
+
+### Changes
+- feat: remove unreliable paste-service log sharing
+- chore: update manifests for v2.2.4-Beta.14
+
 ## [2.2.4-Beta.14] - 2026-07-14
 
 ### Changed
