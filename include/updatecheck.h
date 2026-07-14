@@ -119,10 +119,6 @@ private:
     void _setOtaStateLocked(ota_state_t state);
     void _setOtaProgressLocked(int percent);
     void _setOtaErrorLocked(int code, const char* text);
-    // Compares the cached release against the running version and drives the
-    // status LED (update-available blink). Extracted from the former _taskFunc
-    // loop so the periodic on-demand task can call it after refresh().
-    void _evaluateReleaseInfo();
 
 public:
     UpdateCheck(Settings* settings, SysInfo* sysInfo, LED *statusLED);
@@ -134,9 +130,14 @@ public:
     // progress. Respects the configured beta channel setting.
     bool refresh();
 
-    // True while a network fetch is in progress (started by the background
-    // task or by refresh()). Used by the HTTP layer to await concurrent
-    // "Check now" requests without spawning redundant fetches.
+    // Compares the cached release against the running version and drives the
+    // status LED (update-available blink). Public because it is called by the
+    // free-function _periodic_check_task trampoline in updatecheck.cpp after
+    // refresh() completes.
+    void _evaluateReleaseInfo();
+
+    // True while a network fetch is in progress (started by the periodic
+    // timer or by refresh()). Used by the HTTP layer to check fetch state.
     bool isFetchInProgress();
 
     // Returns a thread-safe snapshot of the currently cached release info.
