@@ -46,6 +46,6 @@ bool syslog_is_running(void);
 // `L (ts) TAG: message` prefix into (severity, tag, message), wraps it in
 // RFC 5424 framing and pushes it on the forwarder queue. Non-blocking; if
 // the queue is full the line is dropped (best-effort).
-void syslog_subscriber(const char *line, size_t len);
+void syslog_subscriber(const char *line, size_t len, uint64_t end_offset);
 
 #endif // SYSLOG_H

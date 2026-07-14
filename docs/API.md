@@ -881,13 +881,32 @@ log line that enters the on-device ring buffer is sent immediately as a
 WebSocket TEXT frame. Up to 4 concurrent subscribers are supported.
 
 The browser cannot attach `Authorization` headers to a WebSocket upgrade,
-so the auth token is passed in the query string:
+so the auth token is passed in the query string and validated before the
+protocol upgrade is accepted:
 
 ```
-ws://<device>/api/log/stream?token=<token>
+ws://<device>/api/log/stream?token=<token>&offset=<absolute-byte-offset>
 ```
 
-Frame format: plain text, one log line per frame (may include trailing `\n`).
+After a successful upgrade, the server sends an atomic catch-up snapshot as
+four application-level frames:
+
+1. `stream snapshot <end-offset>\n`
+2. `stream backlog <byte-count>\n`
+3. the raw backlog (omitted when byte-count is zero)
+4. `stream connected <end-offset>\n`
+
+Clients mark the stream ready only after the final frame. Subsequent log frames
+use `stream data <end-offset>\n<raw-log-bytes>`. The absolute byte range lets a
+client discard stale queued frames and detect a dropped range; reconnecting
+with its last offset retrieves that range from the ring buffer without
+duplicating already displayed lines.
+
+The server unregisters subscribers when the underlying HTTP session closes;
+queue overflow closes affected streams so clients recover from the ring
+snapshot instead of silently losing data. The firmware supports up to four
+acknowledged subscribers at once.
+
 Older firmware versions do not have this endpoint — clients should fall
 back to polling `GET /api/log` if the upgrade fails.
 

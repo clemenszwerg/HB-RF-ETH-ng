@@ -204,65 +204,153 @@ const appendChunk = (chunk) => {
   }
 }
 
-const startPolling = () => {
-  stopPolling()
-  fetchLog()
-  // Try to upgrade to a live WebSocket. If it connects, polling is throttled
-  // to a slow reconciliation rate (so the persisted ring buffer stays in
-  // sync even if the WS drops a frame).
-  openLogStream()
-  pollTimer = setInterval(() => {
-    if (!wsConnected.value) fetchLog()
-    else                    fetchLog()  // periodic catch-up even on WS
+// ---- WebSocket live stream (Phase E) -------------------------------------
+// The browser cannot attach Authorization headers to a WebSocket upgrade, so
+// the token is passed via ?token=. The backend validates it before upgrading.
+const WS_SNAPSHOT_PREFIX = 'stream snapshot '
+const WS_BACKLOG_PREFIX = 'stream backlog '
+const WS_READY_PREFIX = 'stream connected '
+const WS_DATA_PREFIX = 'stream data '
+const WS_HANDSHAKE_TIMEOUT_MS = 5000
+const WS_RECONNECT_DELAY_MS = 2000
+let ws = null
+let wsReconnectTimer = null
+let wsHandshakeTimer = null
+let wsSnapshotOffset = null
+let wsBacklogBytes = null
+const wsConnected = ref(false)
+
+const clearWsHandshakeTimer = () => {
+  if (wsHandshakeTimer) {
+    clearTimeout(wsHandshakeTimer)
+    wsHandshakeTimer = null
+  }
+}
+
+const scheduleNextPoll = () => {
+  if (pollTimer) clearTimeout(pollTimer)
+  pollTimer = null
+  // The acknowledged WebSocket snapshot/live offsets are authoritative.
+  // Poll only as a fallback while no application-level stream is ready.
+  if (!logEnabled.value || wsConnected.value) return
+
+  pollTimer = setTimeout(async () => {
+    pollTimer = null
+    await fetchLog()
+    scheduleNextPoll()
   }, wsConnected.value ? 30000 : 5000)
 }
 
-const stopPolling = () => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-  closeLogStream()
+const scheduleWsReconnect = () => {
+  if (!logEnabled.value || wsReconnectTimer) return
+  wsReconnectTimer = setTimeout(() => {
+    wsReconnectTimer = null
+    if (logEnabled.value) openLogStream()
+  }, WS_RECONNECT_DELAY_MS)
 }
-
-// ---- WebSocket live stream (Phase E) -------------------------------------
-// The browser cannot attach Authorization headers to a WebSocket upgrade, so
-// the token is passed via ?token=. The backend's log_stream_handler accepts
-// either that or the header.
-let ws = null
-let wsReconnectTimer = null
-const wsConnected = ref(false)
 
 const openLogStream = () => {
   closeLogStream()
   try {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const token = sessionStorage.getItem('hb-rf-eth-ng-pw') || ''
-    const url = `${proto}//${window.location.host}/api/log/stream?token=${encodeURIComponent(token)}`
-    ws = new WebSocket(url)
-    ws.binaryType = 'arraybuffer'
+    const url = `${proto}//${window.location.host}/api/log/stream?token=${encodeURIComponent(token)}&offset=${offset.value}`
+    const socket = new WebSocket(url)
+    ws = socket
+    wsSnapshotOffset = null
+    wsBacklogBytes = null
+    socket.binaryType = 'arraybuffer'
 
-    ws.onopen = () => { wsConnected.value = true }
-    ws.onclose = () => {
+    // A successful protocol upgrade is not enough: wait for the server's
+    // post-handshake acknowledgement before treating the stream as live.
+    socket.onopen = () => {
+      if (ws !== socket) return
+      clearWsHandshakeTimer()
+      wsHandshakeTimer = setTimeout(() => {
+        if (ws === socket && !wsConnected.value) socket.close()
+      }, WS_HANDSHAKE_TIMEOUT_MS)
+    }
+    socket.onclose = async () => {
+      // Ignore a late close event from a socket that closeLogStream() already
+      // replaced. Otherwise it can null the new socket and start two loops.
+      if (ws !== socket) return
+      clearWsHandshakeTimer()
       wsConnected.value = false
       ws = null
-      // Reconnect while capture is still enabled.
-      if (logEnabled.value && !wsReconnectTimer) {
-        wsReconnectTimer = setTimeout(() => {
-          wsReconnectTimer = null
-          if (logEnabled.value) openLogStream()
-        }, 2000)
-      }
+      wsSnapshotOffset = null
+      wsBacklogBytes = null
+      await fetchLog()
+      scheduleNextPoll()
+      scheduleWsReconnect()
     }
-    ws.onerror = () => { /* close handler will reconnect */ }
-    ws.onmessage = (ev) => {
+    socket.onerror = () => { /* close handler will reconnect */ }
+    socket.onmessage = (ev) => {
+      if (ws !== socket) return
       // ev.data is a string text frame from the device.
       if (typeof ev.data !== 'string') return
-      // Split into lines; the device sends one frame per log line, but
-      // older firmwares may batch.
-      const lines = ev.data.split(/\r?\n/).filter(l => l.length > 0)
-      if (lines.length) {
-        appendChunk(lines.join('\n'))
+
+      if (!wsConnected.value) {
+        if (ev.data.startsWith(WS_SNAPSHOT_PREFIX)) {
+          const value = Number(ev.data.slice(WS_SNAPSHOT_PREFIX.length).trim())
+          if (!Number.isSafeInteger(value) || value < 0) return socket.close()
+          wsSnapshotOffset = value
+          wsBacklogBytes = null
+          return
+        }
+
+        if (ev.data.startsWith(WS_BACKLOG_PREFIX) && wsSnapshotOffset !== null) {
+          const value = Number(ev.data.slice(WS_BACKLOG_PREFIX.length).trim())
+          if (!Number.isSafeInteger(value) || value < 0) return socket.close()
+          wsBacklogBytes = value
+          return
+        }
+
+        if (wsBacklogBytes > 0) {
+          const actualBytes = new TextEncoder().encode(ev.data).length
+          if (actualBytes !== wsBacklogBytes) return socket.close()
+          appendChunk(ev.data)
+          wsBacklogBytes = 0
+          return
+        }
+
+        if (ev.data.startsWith(WS_READY_PREFIX) &&
+            wsSnapshotOffset !== null && wsBacklogBytes === 0) {
+          const value = Number(ev.data.slice(WS_READY_PREFIX.length).trim())
+          if (!Number.isSafeInteger(value) || value !== wsSnapshotOffset) return socket.close()
+          offset.value = value
+          clearWsHandshakeTimer()
+          wsConnected.value = true
+          wsSnapshotOffset = null
+          wsBacklogBytes = null
+          scheduleNextPoll()
+          if (autoScroll.value) {
+            newEntriesCount.value = 0
+            nextTick(() => scrollToBottom())
+          }
+        }
+        return
+      }
+
+      if (!ev.data.startsWith(WS_DATA_PREFIX)) return
+      const headerEnd = ev.data.indexOf('\n')
+      if (headerEnd < 0) return socket.close()
+
+      const endOffset = Number(ev.data.slice(WS_DATA_PREFIX.length, headerEnd).trim())
+      const payload = ev.data.slice(headerEnd + 1)
+      const encodedPayload = new TextEncoder().encode(payload)
+      if (!Number.isSafeInteger(endOffset) || endOffset < encodedPayload.length) return socket.close()
+
+      const startOffset = endOffset - encodedPayload.length
+      if (endOffset <= offset.value) return // stale queued frame from before the snapshot
+      if (startOffset > offset.value) return socket.close() // queue gap; reconnect for a snapshot
+
+      const overlap = Math.max(0, offset.value - startOffset)
+      const newPayload = overlap > 0
+        ? new TextDecoder().decode(encodedPayload.slice(overlap))
+        : payload
+      offset.value = endOffset
+      if (newPayload) {
+        appendChunk(newPayload)
         if (autoScroll.value) {
           newEntriesCount.value = 0
           nextTick(() => scrollToBottom())
@@ -271,6 +359,7 @@ const openLogStream = () => {
     }
   } catch (e) {
     console.warn('WebSocket log stream unavailable, falling back to polling', e)
+    scheduleWsReconnect()
   }
 }
 
@@ -279,11 +368,33 @@ const closeLogStream = () => {
     clearTimeout(wsReconnectTimer)
     wsReconnectTimer = null
   }
-  if (ws) {
-    try { ws.close() } catch (e) {}
-    ws = null
-  }
+  clearWsHandshakeTimer()
+  const socket = ws
+  // Clear identity before close so its asynchronous onclose cannot schedule
+  // a reconnect after polling was intentionally stopped.
+  ws = null
   wsConnected.value = false
+  wsSnapshotOffset = null
+  wsBacklogBytes = null
+  if (socket) {
+    try { socket.close() } catch (e) {}
+  }
+}
+
+const startPolling = async () => {
+  stopPolling()
+  await fetchLog()
+  if (!logEnabled.value) return
+  openLogStream()
+  scheduleNextPoll()
+}
+
+const stopPolling = () => {
+  if (pollTimer) {
+    clearTimeout(pollTimer)
+    pollTimer = null
+  }
+  closeLogStream()
 }
 
 watch(logEnabled, async (enabled) => {
@@ -441,13 +552,17 @@ onMounted(async () => {
     const response = await axios.get('/api/log/status', { silent: true })
     syncingFromBackend = true
     logEnabled.value = !!response.data.enabled
+    // Vue batches watchers until the next tick. Keep the guard set until the
+    // watcher has observed this backend-driven assignment, otherwise both the
+    // watcher and the explicit start below create a WebSocket.
+    await nextTick()
     syncingFromBackend = false
   } catch (e) {
     syncingFromBackend = false
     logEnabled.value = false
   }
   if (logEnabled.value) {
-    startPolling()
+    await startPolling()
   }
 
   // Check whether the device stored a log tail right before the last

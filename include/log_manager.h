@@ -31,10 +31,10 @@
 
 // Subscriber hook signature. Called for every formatted log line that passes
 // through LogManager::write(). `line` is NUL-terminated, `len` excludes the
-// terminator. Subscribers must not block — they should enqueue and defer I/O
-// to a worker task (this is how syslog.cpp and log_stream.cpp implement
-// their forwarders).
-typedef void (*log_line_subscriber_t)(const char *line, size_t len);
+// terminator, and `end_offset` is the absolute ring-stream offset immediately
+// after this line (zero while the ring buffer is disabled). Subscribers must
+// not block — they should enqueue and defer I/O to a worker task.
+typedef void (*log_line_subscriber_t)(const char *line, size_t len, uint64_t end_offset);
 
 class LogManager {
 public:
@@ -67,8 +67,12 @@ public:
     int subscriberCount() const;
 
     // Instance methods
-    std::string getLogContent(size_t offset = 0);
-    size_t getTotalWritten() const;
+    std::string getLogContent(uint64_t offset = 0);
+    // Return a body and its absolute end offset from the same locked snapshot.
+    // This keeps HTTP/WebSocket clients from advancing past data that was not
+    // actually included in the returned body.
+    std::string getLogSnapshot(uint64_t offset, uint64_t *total_written);
+    uint64_t getTotalWritten() const;
 
     // Persist a tail of the in-memory ring buffer to NVS so it survives the
     // reboot that follows a watchdog/panic. `tag` is a small label stored

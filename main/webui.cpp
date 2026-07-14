@@ -2374,25 +2374,27 @@ esp_err_t get_log_handler_func(httpd_req_t *req)
         return ESP_OK;
     }
 
-    size_t offset = 0;
+    uint64_t offset = 0;
     char query[32];
     if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
-        char param[16];
+        char param[24];
         if (httpd_query_key_value(query, "offset", param, sizeof(param)) == ESP_OK) {
-            offset = strtoul(param, NULL, 10);
+            offset = strtoull(param, NULL, 10);
         }
     }
 
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
 
-    // Send totalWritten so frontend can sync its offset after ring buffer overflow
-    size_t totalWritten = LogManager::instance().getTotalWritten();
+    // Body and absolute end offset come from one locked snapshot. A log line
+    // arriving between two independent reads must not make the client skip or
+    // duplicate bytes on its next request.
+    uint64_t totalWritten = 0;
+    std::string content = LogManager::instance().getLogSnapshot(offset, &totalWritten);
     char totalWrittenStr[24];
-    snprintf(totalWrittenStr, sizeof(totalWrittenStr), "%zu", totalWritten);
+    snprintf(totalWrittenStr, sizeof(totalWrittenStr), "%" PRIu64, totalWritten);
     httpd_resp_set_hdr(req, "X-Log-Total", totalWrittenStr);
 
-    std::string content = LogManager::instance().getLogContent(offset);
     httpd_resp_send(req, content.c_str(), content.length());
 
     return ESP_OK;
@@ -2705,6 +2707,7 @@ void WebUI::start()
     config.lru_purge_enable = true;
     config.max_uri_handlers = 40;
     config.uri_match_fn = httpd_uri_match_wildcard;
+    config.close_fn = log_stream_close_socket;
     // Increase stack: POST handlers allocate content buffers + config structs
     // that together exceed the default 4096-byte stack, causing overflow/corruption.
     config.stack_size = 8192;

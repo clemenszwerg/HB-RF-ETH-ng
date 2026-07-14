@@ -36,21 +36,23 @@
 // Initialise internal state. Idempotent; safe to call once at boot.
 void log_stream_init(void);
 
-// GET /api/log/stream — WebSocket upgrade handler. Auth is checked via the
-// same validate_auth() helper used by the other endpoints; the token is
-// passed either as ?token=... in the upgrade URL (front-end fallback) or as
-// the standard Sec-WebSocket-Protocol header.
+// GET /api/log/stream — handler for frames received after the authenticated
+// WebSocket handshake. Pre/post callbacks on log_stream_ws_uri authenticate
+// and register the subscriber before this handler can run.
 esp_err_t log_stream_handler(httpd_req_t *req);
 
-// Push a single log line to every connected subscriber. Non-blocking; if a
-// subscriber's send queue is full the line is dropped for that subscriber
-// (live log is best-effort; the persisted ring buffer remains authoritative).
-//
-// `level` is the ESP-IDF log level (0..4), `tag` the ESP log tag, `message`
-// is a single NUL-terminated line without trailing LF.
-void log_stream_publish(int level, const char *tag, const char *message);
+// HTTP server close callback. It unregisters WebSocket subscribers before the
+// socket is closed, then performs the close required by ESP-IDF's close_fn
+// contract. Safe for non-WebSocket HTTP sessions as well.
+void log_stream_close_socket(httpd_handle_t handle, int fd);
 
-// Number of currently connected WebSocket subscribers. Exposed via
+// Queue a captured log line for every connected subscriber. `end_offset` is
+// the absolute LogManager ring-stream position immediately after the line.
+// A full queue forces clients to reconnect and recover from the ring snapshot
+// instead of silently losing data.
+void log_stream_publish(const char *message, size_t len, uint64_t end_offset);
+
+// Number of currently snapshot-synchronised WebSocket subscribers. Exposed via
 // /api/log/status so the UI can show "live" indicator.
 int log_stream_subscriber_count(void);
 

@@ -328,3 +328,103 @@ test('crash log modal shows recovered tail once after a crash', async ({ page })
   await expect(page.locator('.modal.show')).toHaveCount(0)
 })
 
+test('live log waits for the authenticated WebSocket acknowledgement and closes cleanly', async ({ page }) => {
+  await page.addInitScript(() => {
+    class FakeWebSocket {
+      static instances = []
+
+      constructor(url) {
+        this.url = url
+        this.readyState = 0
+        FakeWebSocket.instances.push(this)
+        queueMicrotask(() => {
+          if (this.readyState !== 0) return
+          this.readyState = 1
+          this.onopen?.({})
+        })
+      }
+
+      close() {
+        if (this.readyState === 3) return
+        this.readyState = 3
+        queueMicrotask(() => this.onclose?.({ code: 1000 }))
+      }
+
+      emit(data) {
+        this.onmessage?.({ data })
+      }
+    }
+
+    window.WebSocket = FakeWebSocket
+    window.__fakeWebSockets = FakeWebSocket.instances
+  })
+
+  let logGetCount = 0
+  await page.route('**/api/log/status**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ enabled: true, persistent: true, subscribers: 0 })
+  }))
+  await page.route(/\/api\/log(?:\?.*)?$/, route => {
+    logGetCount++
+    return route.fulfill({
+      contentType: 'text/plain',
+      headers: { 'X-Log-Total': '0' },
+      body: ''
+    })
+  })
+  await page.route('**/api/log/disable**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ enabled: false })
+  }))
+  await page.route('**/api/crash_log**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ available: false, tail: '' })
+  }))
+
+  await page.goto(`${BASE_URL}/systemlog`)
+  const logSocketCount = () => page.evaluate(() =>
+    window.__fakeWebSockets.filter(socket => socket.url.includes('/api/log/stream')).length
+  )
+  await expect.poll(logSocketCount).toBe(1)
+  expect(await page.evaluate(() =>
+    window.__fakeWebSockets.find(socket => socket.url.includes('/api/log/stream')).url
+  )).toContain(
+    '/api/log/stream?token=device-secret-token&offset=0'
+  )
+
+  // A transport-level open or arbitrary data must not mark the application
+  // stream ready. Only the server's post-handshake acknowledgement does.
+  await page.evaluate(() =>
+    window.__fakeWebSockets.find(socket => socket.url.includes('/api/log/stream')).emit('I (1) premature: ignored\n')
+  )
+  await expect(page.locator('.log-container')).not.toContainText('premature')
+
+  await page.evaluate(() => {
+    const socket = window.__fakeWebSockets.find(socket => socket.url.includes('/api/log/stream'))
+    const backlog = 'I (1) app: snapshot backlog\n'
+    const backlogBytes = new TextEncoder().encode(backlog).length
+    socket.emit(`stream snapshot ${backlogBytes}\n`)
+    socket.emit(`stream backlog ${backlogBytes}\n`)
+    socket.emit(backlog)
+    socket.emit(`stream connected ${backlogBytes}\n`)
+
+    const live = 'I (2) app: live frame\n'
+    const liveEnd = backlogBytes + new TextEncoder().encode(live).length
+    socket.emit(`stream data ${liveEnd}\n${live}`)
+  })
+  await expect(page.locator('.log-container')).toContainText('snapshot backlog')
+  await expect(page.locator('.log-container')).toContainText('live frame')
+  await expect(page.locator('.log-container')).not.toContainText('stream connected')
+  await expect(page.locator('.log-container')).not.toContainText('stream snapshot')
+
+  // Once acknowledged, the offset-aware stream is authoritative. The old
+  // setInterval captured the initial false state and kept polling every 5s.
+  await page.waitForTimeout(5500)
+  expect(logGetCount).toBe(1)
+
+  // Intentional shutdown must not let the socket's late close event create a
+  // new reconnect loop.
+  await page.locator('.toggle-chip input').uncheck()
+  await page.waitForTimeout(2200)
+  expect(await logSocketCount()).toBe(1)
+})

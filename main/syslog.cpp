@@ -159,8 +159,9 @@ static void format_rfc5424(char *out, size_t cap, size_t *out_len,
 // ---------------------------------------------------------------------------
 // Subscriber hook called from LogManager::write().
 // ---------------------------------------------------------------------------
-void syslog_subscriber(const char *line, size_t len)
+void syslog_subscriber(const char *line, size_t len, uint64_t end_offset)
 {
+    (void)end_offset;
     if (!s_running.load() || !s_queue) return;
 
     // Severity filter (cheap pre-check before formatting)

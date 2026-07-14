@@ -247,51 +247,58 @@ void LogManager::_clear() {
 void LogManager::write(const char* data, size_t len) {
     if (len == 0 || !_mutex) return;
 
-    // Snapshot the subscriber list under the lock, then call them unlocked.
-    // Subscribers are expected to be non-blocking (they enqueue internally),
-    // but a snapshot avoids holding the lock during their execution so a
-    // slow subscriber cannot stall the ring-buffer write below.
+    const char *subscriber_data = data;
+    const size_t subscriber_len = len;
+
+    // Update the ring and snapshot subscribers under one lock so every
+    // subscriber receives the exact absolute offset for this line. The
+    // callbacks themselves still run unlocked and must remain non-blocking.
     log_line_subscriber_t snap[LOG_MAX_SUBSCRIBERS];
     int snap_count = 0;
-    if (xSemaphoreTake(_mutex, pdMS_TO_TICKS(2)) == pdTRUE) {
-        snap_count = _subscriber_count;
-        for (int i = 0; i < snap_count; i++) snap[i] = _subscribers[i];
-        xSemaphoreGive(_mutex);
-    }
-    for (int i = 0; i < snap_count; i++) {
-        snap[i](data, len);
-    }
-
-    if (!log_buffer || log_buffer_size == 0) return;
+    uint64_t end_offset = 0;
 
     // Use timeout to avoid blocking logging if something is stuck
     if (xSemaphoreTake(_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-        // Only the tail of an oversized log entry can fit in the ring.
-        // Advance total_written for the skipped bytes so client offsets
-        // still reflect the full stream of log data that passed through.
-        if (len > log_buffer_size) {
-            size_t skipped = len - log_buffer_size;
-            data += skipped;
-            len = log_buffer_size;
-            total_written += skipped;
-        }
+        snap_count = _subscriber_count;
+        for (int i = 0; i < snap_count; i++) snap[i] = _subscribers[i];
 
-        size_t current_idx = total_written % log_buffer_size;
-        size_t space_at_end = log_buffer_size - current_idx;
+        if (log_buffer && log_buffer_size > 0) {
+            // Only the tail of an oversized log entry can fit in the ring.
+            // Advance total_written for the skipped bytes so client offsets
+            // still reflect the full stream of log data that passed through.
+            if (len > log_buffer_size) {
+                size_t skipped = len - log_buffer_size;
+                data += skipped;
+                len = log_buffer_size;
+                total_written += skipped;
+            }
 
-        if (len <= space_at_end) {
-            memcpy(log_buffer + current_idx, data, len);
-        } else {
-            // Wrap around
-            memcpy(log_buffer + current_idx, data, space_at_end);
-            memcpy(log_buffer, data + space_at_end, len - space_at_end);
+            size_t current_idx = total_written % log_buffer_size;
+            size_t space_at_end = log_buffer_size - current_idx;
+
+            if (len <= space_at_end) {
+                memcpy(log_buffer + current_idx, data, len);
+            } else {
+                memcpy(log_buffer + current_idx, data, space_at_end);
+                memcpy(log_buffer, data + space_at_end, len - space_at_end);
+            }
+            total_written += len;
+            end_offset = total_written;
         }
-        total_written += len;
         xSemaphoreGive(_mutex);
+    }
+
+    for (int i = 0; i < snap_count; i++) {
+        snap[i](subscriber_data, subscriber_len, end_offset);
     }
 }
 
-std::string LogManager::getLogContent(size_t offset) {
+std::string LogManager::getLogContent(uint64_t offset) {
+    return getLogSnapshot(offset, nullptr);
+}
+
+std::string LogManager::getLogSnapshot(uint64_t offset, uint64_t *snapshot_total) {
+    if (snapshot_total) *snapshot_total = 0;
     if (!log_buffer) return "";
 
     std::string result;
@@ -299,6 +306,7 @@ std::string LogManager::getLogContent(size_t offset) {
     if (_mutex) {
         if (xSemaphoreTake(_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
             uint64_t local_total = total_written;
+            if (snapshot_total) *snapshot_total = local_total;
 
             // If client asks for future data (shouldn't happen), return empty
             if (offset >= local_total) {
@@ -306,13 +314,13 @@ std::string LogManager::getLogContent(size_t offset) {
                 return "";
             }
 
-            size_t data_len = local_total - offset;
+            uint64_t wanted_len = local_total - offset;
 
             // If the client is asking for data that has been overwritten (lagging behind)
-            if (data_len > log_buffer_size) {
+            if (wanted_len > log_buffer_size) {
                 // Return the entire valid buffer to catch them up (partially)
                 offset = local_total - log_buffer_size;
-                data_len = log_buffer_size;
+                wanted_len = log_buffer_size;
             }
 
             // FIX: Check heap before allocating to prevent OOM crash.
@@ -321,15 +329,17 @@ std::string LogManager::getLogContent(size_t offset) {
             // keep a safety margin for the HTTP server / TLS while streaming.
             size_t largest_block = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
             size_t max_alloc = (largest_block > 1536) ? (largest_block - 1536) : 0;
-            if (data_len > max_alloc) {
-                data_len = max_alloc;
-                if (data_len > log_buffer_size) data_len = log_buffer_size;
-                if (data_len == 0) {
+            if (wanted_len > max_alloc) {
+                wanted_len = max_alloc;
+                if (wanted_len > log_buffer_size) wanted_len = log_buffer_size;
+                if (wanted_len == 0) {
                     xSemaphoreGive(_mutex);
                     return "";
                 }
-                offset = local_total - data_len;
+                offset = local_total - wanted_len;
             }
+
+            size_t data_len = static_cast<size_t>(wanted_len);
 
             // Pre-allocate to avoid reallocations
             result.resize(data_len);
@@ -351,8 +361,8 @@ std::string LogManager::getLogContent(size_t offset) {
     return result;
 }
 
-size_t LogManager::getTotalWritten() const {
-    size_t result = 0;
+uint64_t LogManager::getTotalWritten() const {
+    uint64_t result = 0;
     if (_mutex && xSemaphoreTake(_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
         result = total_written;
         xSemaphoreGive(_mutex);
