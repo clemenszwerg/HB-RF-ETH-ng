@@ -11,14 +11,12 @@ Die Firmware wurde kürzlich mit wichtigen neuen Funktionen und Verbesserungen a
 - **Hostname im Dashboard**: Der konfigurierte Hostname wird im Systemstatus prominent angezeigt
 - **Session-Persistierung**: Login bleibt nach Neustarts erhalten
 - **OTA Success Feedback**: Visueller Bestätigungs-Dialog nach erfolgreichen Updates
-- **System Log Sharing**: Debug-Reports mit automatischer Maskierung sensibler Daten
 - **Verbesserte TLS-Sicherheit**: Vollständiges Mozilla CA-Bundle für GitHub/Let's Encrypt
 
 ### Behobene Probleme
 - Watchdog-Resets bei großen Release-Notes (Stack-Overflow)
 - Sofortiges Logout bei Seitenladung (bei Boot-Zeit-Synchronisation)
 - MQTT-Verbindungsstabilität und Reconnect-Logik
-- Multipart-Upload für Debug-Reports
 
 ---
 
@@ -204,31 +202,6 @@ Firmware Updates sind fertig kompiliert in den [Releases](https://github.com/Xer
 - Die Firmware validiert alle Updates vor der Installation
 - Bei fehlerhaften Updates wird die OTA-Operation korrekt abgebrochen
 - TLS/Zertifikat-Verifikation (ab v2.2.0-Beta.10): Vollständiges Mozilla CA-Bundle für Kompatibilität mit Let's Encrypt / GitHub CDN
-
-## Systemlog & Debug-Informationen (ab v2.2.0-Beta.8)
-
-### System Log Sharing
-Die WebUI bietet eine "Share"-Funktion um einen umfassenden Debug-Report zu erstellen:
-
-**Inhalte des Debug-Reports:**
-- Systeminfo (Version, Board-Revision, Seriennummer)
-- Netzwerk-Konfiguration (IP, DNS, Ethernet-Status)
-- Funkmodul-Status (Typ, Seriennummer, Firmware)
-- Monitoring-Konfiguration (MQTT/CheckMK Settings)
-- LED-Programme und Status
-- Vollständiges Systemlog
-
-**Sicherheit beim Sharing:**
-- **Automatische Maskierung** sensibler Daten:
-  - Passwörter werden als `****` maskiert
-  - MQTT Command Tokens als `****` maskiert
-  - TLS-Keys/Zertifikate als `<set>` gekennzeichnet
-  - IP-Adressen und Hostnames bleiben für Debugging erhalten
-
-**Upload-Dienst:**
-- Reports werden zu MicroBin Paste-Dienst hochgeladen
-- Teilbarer Link wird generiert und in die Zwischenablage kopiert
-- Ideal für Support-Anfragen und Fehlerberichte
 
 ## Notfall-Wiederherstellung (Rescue Script)
 Sollte die WebUI nicht mehr erreichbar sein, aber die Platine noch im Netzwerk antworten (Ping), kann die Firmware über das mitgelieferte Python-Script `test_ota_function.py` neu installiert werden.

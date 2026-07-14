@@ -159,7 +159,7 @@ The firmware runs on FreeRTOS with separate tasks per subsystem. Key source file
 | `rawuartudplistener.cpp` | UDP↔UART bridge (the core protocol relay) |
 | `webui.cpp` | HTTP server + all REST API endpoint handlers (largest file) |
 | `settings.cpp` | Persistent config via NVS Flash |
-| `monitoring.cpp` | CheckMK agent and MQTT monitoring; owns `g_net_fetch_mutex`, which serializes TLS fetches (UpdateCheck, changelog proxy, log-share) so concurrent handshakes don't exhaust the ESP32 heap |
+| `monitoring.cpp` | CheckMK agent and MQTT monitoring; owns `g_net_fetch_mutex`, which serializes TLS fetches (UpdateCheck, changelog proxy) so concurrent handshakes don't exhaust the ESP32 heap |
 | `mqtt_handler.cpp` | MQTT client, reconnect logic, message dispatch, remote commands (`restart`, `factory_reset`, `update`, `check_update`) |
 | `monitoring_api.cpp` | REST endpoints for monitoring config |
 | `ntpclient.cpp` | NTP time sync client |
@@ -189,7 +189,7 @@ The firmware runs on FreeRTOS with separate tasks per subsystem. Key source file
 - HTTP handler functions in `webui.cpp` follow the pattern `esp_err_t <name>_handler_func(httpd_req_t *req)`, registered via a matching `httpd_uri_t` struct.
 - Settings persistence uses `settings.cpp` — avoid direct NVS calls elsewhere.
 - **`vTaskDelay(pdMS_TO_TICKS(ms))` overflows for large `ms` values.** `pdMS_TO_TICKS` multiplies `ms * configTICK_RATE_HZ` in 32-bit `TickType_t` arithmetic before dividing by 1000; a 24h value (86,400,000 ms) overflows `uint32_t` and silently wraps to a much shorter delay. For long delays, loop in smaller chunks (e.g. N × 1h) instead of passing the full duration directly.
-- Any code performing an outbound TLS/HTTPS request (GitHub API, paste service, etc.) should serialize via `g_net_fetch_mutex` (declared in `monitoring.h`) — see `updatecheck.cpp::_doFetch` for the pattern.
+- Any code performing an outbound TLS/HTTPS request (GitHub API, etc.) should serialize via `g_net_fetch_mutex` (declared in `monitoring.h`) — see `updatecheck.cpp::_doFetch` for the pattern.
 
 ---
 
@@ -226,7 +226,7 @@ full normative spec.
 | `monitoring.vue` | MQTT / CheckMK configuration |
 | `firmwareupdate.vue` | OTA firmware update UI |
 | `sysinfo.vue` | System information display |
-| `systemlog.vue` | Live system log viewer (search/filter, copy, download, share-to-paste) |
+| `systemlog.vue` | Live system log viewer (search/filter, copy, download) |
 | `about.vue` | About / version info page |
 | `change-password.vue` | Password change form |
 | `header.vue` | Navigation header component |
@@ -284,7 +284,6 @@ Key endpoint categories:
 - `/api/log/enable` — enable log capture
 - `/api/log/disable` — disable log capture
 - `/api/log/download` — full log download
-- `/api/log/share` — POST to upload log + system report to paste.blueml.eu
 
 ---
 
@@ -425,7 +424,7 @@ chore: bump ESP-IDF to 6.1-beta1
 - Thread safety is critical — all monitoring state access must be guarded by the monitoring mutex
 - See `main/monitoring.cpp` for the mutex pattern
 - Both MQTT and CheckMK share the same configuration structure
-- Outbound TLS fetches elsewhere in the firmware (UpdateCheck, log-share) take `g_net_fetch_mutex` (declared in `monitoring.h`, created in `monitoring.cpp`) to avoid concurrent TLS handshakes exhausting heap — keep new HTTPS call sites consistent with this
+- Outbound TLS fetches elsewhere in the firmware (UpdateCheck) take `g_net_fetch_mutex` (declared in `monitoring.h`, created in `monitoring.cpp`) to avoid concurrent TLS handshakes exhausting heap — keep new HTTPS call sites consistent with this
 
 ### Updating the WebUI
 

@@ -563,7 +563,6 @@ The script will authenticate, trigger the OTA update, and monitor progress until
 
 4. **System Log**
    - Check device system log for MQTT errors
-   - Share log via WebUI (System Log → Share button)
    - Review for connection errors or failed publishes
 
 ---
@@ -759,39 +758,6 @@ When reporting issues, include:
    - Open DevTools (F12)
    - Screenshot Console tab
 
-### Automated Log Sharing (v2.2.0-Beta.8+)
-
-**Easiest way to gather diagnostics:**
-
-1. Open the WebUI and log in
-2. Go to **System Log** page
-3. Click the **Share** button (top right)
-4. A comprehensive debug report is uploaded to MicroBin paste service
-5. Share link is automatically copied to clipboard
-
-**What's included in the report:**
-- Complete system log
-- System info (version, board revision, serial)
-- Network configuration
-- Ethernet status
-- Radio module information
-- MQTT/CheckMK configuration
-- LED programs
-- All diagnostic data needed for support
-
-**Privacy:**
-- Passwords, tokens, TLS keys are automatically redacted
-- IP addresses and hostnames retained (needed for debugging)
-- You can review the link before sharing
-
-**Alternative (Manual API Call):**
-```bash
-curl -X POST http://192.168.1.100/api/log/share \
-  -H "Authorization: Token YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
 ### Common Error Messages
 
 | Error Message | Meaning | Solution |
@@ -801,7 +767,6 @@ curl -X POST http://192.168.1.100/api/log/share \
 | `ETH_START_BIT not found` | Ethernet PHY issue | Check hardware |
 | `httpd_uri: uri /... not found` | WebUI routing error | Re-flash firmware |
 | `OTA: Firmware too large` | OTA partition full | Check firmware size |
-| `Failed to upload log` | Network/paste service issue | Check internet connectivity |
 
 ---
 

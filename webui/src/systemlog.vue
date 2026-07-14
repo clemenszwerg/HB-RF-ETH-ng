@@ -54,10 +54,6 @@
             <AppIcon name="download" />
             {{ t('systemlog.download') }}
           </button>
-          <button class="btn btn-primary btn-sm" type="button" :disabled="shareLoading" @click="shareLog">
-            <AppIcon name="share" />
-            {{ t('systemlog.share') }}
-          </button>
         </div>
       </div>
 
@@ -99,33 +95,6 @@
         </div>
       </div>
     </div>
-
-    <BModal
-      v-model="showShareModal"
-      :title="t('systemlog.shareTitle')"
-      :ok-title="t('systemlog.shareCopy')"
-      :cancel-title="t('common.close')"
-      @ok="copyShareUrl"
-    >
-      <p v-if="shareLoading" class="text-muted">{{ t('systemlog.shareLoading') }}</p>
-      <div v-else-if="shareUrl">
-        <div class="input-group mb-2">
-          <input
-            type="text"
-            class="form-control"
-            :value="shareUrl"
-            readonly
-            ref="shareUrlInput"
-            @focus="$event.target.select()"
-          >
-          <BButton variant="outline-secondary" @click="copyShareUrl">
-            <AppIcon name="copy" />
-          </BButton>
-        </div>
-        <small class="text-muted">{{ t('systemlog.shareHint') }}</small>
-      </div>
-      <div v-else class="text-danger">{{ t('systemlog.shareFailed') }}</div>
-    </BModal>
 
     <!--
       Crash recovery snapshot. When the device restarted due to a watchdog
@@ -457,49 +426,6 @@ const togglePaused = () => {
   if (!paused.value) {
     newEntriesCount.value = 0
     fetchLog()
-  }
-}
-
-const showShareModal = ref(false)
-const shareUrl = ref('')
-const shareLoading = ref(false)
-const shareUrlInput = ref(null)
-
-const shareLog = async () => {
-  shareUrl.value = ''
-  shareLoading.value = true
-  showShareModal.value = true
-  try {
-    const response = await axios.post('/api/log/share', {}, { timeout: 20000 })
-    const data = response.data
-    if (data.success && data.url) {
-      shareUrl.value = data.url
-    } else {
-      shareUrl.value = ''
-      uiStore.pushToast({ type: 'error', title: t('common.error'), message: data.error || t('systemlog.shareFailed') })
-    }
-  } catch (error) {
-    shareUrl.value = ''
-    uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('systemlog.shareFailed') })
-  } finally {
-    shareLoading.value = false
-  }
-}
-
-const copyShareUrl = async () => {
-  if (!shareUrl.value) return
-  try {
-    await copyToClipboard(shareUrl.value)
-    uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('systemlog.shareCopied'), duration: 1800 })
-  } catch (error) {
-    // Programmatic copy was blocked by the browser. Select the visible link
-    // field so the user can copy it manually (Ctrl+C / long-press) - the link
-    // must not be lost.
-    if (shareUrlInput.value) {
-      shareUrlInput.value.focus()
-      shareUrlInput.value.select()
-    }
-    uiStore.pushToast({ type: 'warning', title: t('common.error'), message: t('systemlog.shareCopyManual'), duration: 4000 })
   }
 }
 
