@@ -782,13 +782,6 @@ static bool refresh_restart_sync_from_settings()
     return enabled;
 }
 
-void delayed_restart_task(void *pvParameter) {
-    vTaskDelay(pdMS_TO_TICKS(3000));
-    refresh_restart_sync_from_settings();
-    full_system_restart();
-    vTaskDelete(NULL);
-}
-
 esp_err_t post_settings_json_handler_func(httpd_req_t *req)
 {
     add_security_headers(req);
@@ -1522,13 +1515,18 @@ esp_err_t post_ota_update_handler_func(httpd_req_t *req)
     // Store reset reason for successful firmware update
     ResetInfo::storeResetReason(RESET_REASON_FIRMWARE_UPDATE);
 
-    // Automatic restart after successful OTA update
-    if (xTaskCreate(delayed_restart_task, "restart_task", 2048, NULL, 5, NULL) != pdPASS) {
-        ESP_LOGE(TAG, "Could not create delayed restart task after successful OTA");
-        _updateCheck->finishOtaOperation();
-    }
-
+    // Release the upload buffer before entering the restart path.
     free(ota_buff);
+    ota_buff = NULL;
+
+    // Restart on the existing 8 KiB httpd task. The previous dedicated 2 KiB
+    // task overflowed while stopping Ethernet; simply enlarging it is not
+    // reliable either because a contiguous stack allocation can fail on the
+    // fragmented post-OTA heap. The response has already been sent, matching
+    // the proven manual-restart handler below.
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    refresh_restart_sync_from_settings();
+    full_system_restart();
     return ESP_OK;
 
 err:
