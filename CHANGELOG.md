@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.13] - 2026-07-14
+
+### Changes
+- fix: stabilize log sharing and MQTT update checks (#369)
+
+### Fixed
+- **Absturz (Exception/Panic) beim MQTT-Kommando "Check Update" aus Home Assistant:** Der durch `check_update` gestartete Task `mqtt_chkupd` hatte nur 8192 Bytes Stack, rief aber `UpdateCheck::refresh()` auf, das einen `ReleaseInfo`-Struct (~4,9 KB, davon `body[4096]`) auf den Stack legt und anschließend einen HTTPS-TLS-Handshake durchführt (~2–4 KB zusätzlicher Stack). Der Gesamtbedarf überstieg die 8 KB → Stack-Overflow → `ESP_RST_PANIC`. Der Hintergrund-Task `UpdateCheck`, der denselben `refresh()`-Aufruf durchführt, nutzt bereits 12 KB — der MQTT-Task war der inkonsistente Ausreißer. Beide MQTT-Tasks (`mqtt_chkupd` für Check-Update und `mqtt_ota` für OTA-Installation) wurden über die Konstante `MQTT_UPDATE_TASK_STACK_BYTES = 12288` auf 12 KB angehoben.
+- **Share-Log ("Log teilen") schlug mit `ESP_ERR_HTTP_CONNECT` bzw. Timeout fehl:** Der Upload-Timer wurde von 20 s auf 45 s erhöht, damit auch große Logs vollständig übertragen werden. Zudem wird die vom MicroBin-Service in `Location` zurückgegebene URL nun unverändert übernommen, statt sie clientseitig von `/upload/<id>` nach `/p/<id>` umzuschreiben — das Service besitzt das URL-Format und kann Aliase unabhängig ändern.
+
 ## [2.2.4-Beta.12] - 2026-07-13
 
 ### Changes
