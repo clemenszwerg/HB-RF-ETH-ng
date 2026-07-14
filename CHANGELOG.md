@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.16] - 2026-07-14
+
+### Changes
+- fix(ota): prevent panic after file update
+- chore: update manifests for v2.2.4-Beta.15
+
 ### Fixed
 - **Datei-Firmwareupdate endete trotz erfolgreicher Installation mit `Exception/Panic`:** Der verzögerte Neustart lief in einem nur 2 KB großen Task, obwohl der aktive Neustart-Sync darin auch den Ethernet-Treiber stoppt. Der Neustart läuft nun nach dem bereits gesendeten HTTP-Erfolg auf dem vorhandenen 8-KB-Webserver-Stack; der 4-KB-Uploadpuffer wird vorher freigegeben. Das vermeidet sowohl den Stacküberlauf als auch eine zusätzliche, auf dem fragmentierten Post-OTA-Heap unzuverlässige Task-Allokation.
 
