@@ -2246,8 +2246,8 @@ static esp_err_t start_async_proxy(httpd_req_t *req, const char *url, const char
 }
 
 // Build and send a JSON snapshot of the currently cached GitHub release.
-// Used by both GET (cached) and POST (after refresh) variants of
-// /api/check_update so the response shape is identical.
+// Served by GET /api/check_update — the release snapshot is refreshed
+// automatically every 24 h by the UpdateCheck esp_timer (see updatecheck.cpp).
 static void send_release_info_response(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "application/json");
@@ -2312,73 +2312,6 @@ httpd_uri_t get_check_update_handler = {
     .uri = "/api/check_update",
     .method = HTTP_GET,
     .handler = get_check_update_handler_func,
-    .user_ctx = NULL};
-
-// POST /api/check_update: triggers an immediate update-manifest fetch.
-// Runs in a detached task because the fetch can take up to 10 s and the
-// httpd task must stay responsive.
-struct RefreshJob {
-    httpd_req_t *req;
-};
-
-static void _refresh_task(void *arg)
-{
-    RefreshJob *job = (RefreshJob *)arg;
-
-    // refresh() is non-blocking on contention - if a fetch is already
-    // running (background timer or another "Check now"), it returns
-    // false immediately. We then poll isFetchInProgress() until the
-    // in-flight request finishes so the client still gets fresh data.
-    _updateCheck->refresh();
-
-    for (int i = 0; i < 30 && _updateCheck->isFetchInProgress(); i++) {
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
-
-    add_security_headers(job->req);
-    send_release_info_response(job->req);
-
-    httpd_req_async_handler_complete(job->req);
-    free(job);
-    vTaskDelete(NULL);
-}
-
-esp_err_t post_check_update_handler_func(httpd_req_t *req)
-{
-    add_security_headers(req);
-
-    if (validate_auth(req) != ESP_OK)
-    {
-        httpd_resp_set_status(req, "401 Not authorized");
-        httpd_resp_sendstr(req, "401 Not authorized");
-        return ESP_OK;
-    }
-
-    httpd_req_t *async_req;
-    if (httpd_req_async_handler_begin(req, &async_req) != ESP_OK) {
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-    }
-
-    RefreshJob *job = (RefreshJob *)calloc(1, sizeof(RefreshJob));
-    if (!job) {
-        httpd_req_async_handler_complete(async_req);
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-    }
-    job->req = async_req;
-
-    if (xTaskCreate(_refresh_task, "rel_refresh", 16384, job, 5, NULL) != pdPASS) {
-        ESP_LOGE(TAG, "Failed to create refresh task");
-        httpd_resp_send_err(async_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
-        httpd_req_async_handler_complete(async_req);
-        free(job);
-    }
-    return ESP_OK;
-}
-
-httpd_uri_t post_check_update_handler = {
-    .uri = "/api/check_update",
-    .method = HTTP_POST,
-    .handler = post_check_update_handler_func,
     .user_ctx = NULL};
 
 esp_err_t get_changelog_handler_func(httpd_req_t *req)
@@ -3213,7 +3146,6 @@ void WebUI::start()
         httpd_register_uri_handler(_httpd_handle, &get_backup_handler);
         httpd_register_uri_handler(_httpd_handle, &post_restore_handler);
         httpd_register_uri_handler(_httpd_handle, &get_check_update_handler);
-        httpd_register_uri_handler(_httpd_handle, &post_check_update_handler);
         httpd_register_uri_handler(_httpd_handle, &get_changelog_handler);
         httpd_register_uri_handler(_httpd_handle, &get_firmware_archive_handler);
         httpd_register_uri_handler(_httpd_handle, &get_log_handler);

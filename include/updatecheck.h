@@ -26,6 +26,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
+#include "esp_timer.h"
 #include "sysinfo.h"
 #include "led.h"
 #include "settings.h"
@@ -83,12 +84,19 @@ private:
     SysInfo* _sysInfo;
     LED *_statusLED;
     Settings* _settings;
-    TaskHandle_t _tHandle = NULL;
+    // Periodic 24 h timer that replaces the former always-sleeping background
+    // task. Keeping a task alive only to vTaskDelay for 24 h wasted 12 KB of
+    // precious ESP32 (no PSRAM) heap permanently. The timer fires every 24 h,
+    // spawns a short-lived "upd_chk" task (12 KB) that runs refresh() +
+    // _evaluateReleaseInfo() and self-deletes, so the 12 KB stack is only
+    // resident for the ~5 s of the actual check.
+    esp_timer_handle_t _periodicTimer = NULL;
+    esp_timer_handle_t _initialTimer = NULL;
 
     // Serializes writes/reads of the cached _release snapshot.
     SemaphoreHandle_t _stateMutex = NULL;
     // Held while a network fetch is in progress; prevents concurrent fetches
-    // from the background task and from manual "Check now" requests.
+    // from the background timer and from the OTA path.
     SemaphoreHandle_t _fetchLock = NULL;
 
     ReleaseInfo _release{};
@@ -111,6 +119,10 @@ private:
     void _setOtaStateLocked(ota_state_t state);
     void _setOtaProgressLocked(int percent);
     void _setOtaErrorLocked(int code, const char* text);
+    // Compares the cached release against the running version and drives the
+    // status LED (update-available blink). Extracted from the former _taskFunc
+    // loop so the periodic on-demand task can call it after refresh().
+    void _evaluateReleaseInfo();
 
 public:
     UpdateCheck(Settings* settings, SysInfo* sysInfo, LED *statusLED);
@@ -153,8 +165,6 @@ public:
     // Legacy accessor: returns a pointer to the cached version string
     // ("n/a" if never fetched). Valid until the next refresh().
     const char* getLatestVersion();
-
-    void _taskFunc();
 };
 
 // ---- Testable helpers (no ESP-IDF dependencies) ---------------------------

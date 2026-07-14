@@ -60,9 +60,35 @@ static const size_t MANIFEST_RESPONSE_CAP = 4 * 1024;
 // a private application code to report a download that ended prematurely.
 #define OTA_ERR_DOWNLOAD_INCOMPLETE 0x10001
 
-void _update_check_task_func(void *parameter)
+// Short-lived task spawned by the periodic esp_timer every 24 h. It runs a
+// single refresh() + LED/version evaluation and then self-deletes, so the
+// 12 KB stack is only resident for the ~5 s of the actual check instead of
+// being blocked in vTaskDelay for 24 h like the former background task.
+static void _periodic_check_task(void *parameter)
 {
-  ((UpdateCheck *)parameter)->_taskFunc();
+  UpdateCheck *uc = static_cast<UpdateCheck *>(parameter);
+  ESP_LOGI(TAG, "Periodic update check starting (heap free: %u KB)",
+           (unsigned)(heap_caps_get_free_size(MALLOC_CAP_DEFAULT) / 1024));
+  uc->refresh();
+  uc->_evaluateReleaseInfo();
+  vTaskDelete(NULL);
+}
+
+// esp_timer callback — runs in the high-priority timer task which only has
+// ~3-4 KB of stack, far too little for refresh() (ReleaseInfo alone is ~5 KB).
+// So we only spawn the real worker task here and return immediately.
+static void _periodic_timer_callback(void *arg)
+{
+  UpdateCheck *uc = static_cast<UpdateCheck *>(arg);
+  // refresh() allocates a ReleaseInfo struct (~4.9 KB, the bulk being
+  // body[4096]) on the stack and then performs an HTTPS fetch whose TLS
+  // handshake consumes another 2-4 KB. 12 KB matches the stack budget the
+  // former background UpdateCheck task used for the same call.
+  BaseType_t created = xTaskCreate(_periodic_check_task, "upd_chk", 12288,
+                                   uc, 3, NULL);
+  if (created != pdPASS) {
+    ESP_LOGE(TAG, "Failed to create periodic update-check task");
+  }
 }
 
 // ---- Testable helpers ------------------------------------------------------
@@ -254,22 +280,49 @@ UpdateCheck::UpdateCheck(Settings* settings, SysInfo* sysInfo, LED *statusLED)
 
 void UpdateCheck::start()
 {
-    if (_tHandle) return;
-    // ReleaseInfo body is 4 KB – the struct exceeds 5 KB on the stack when
-    // copied by getReleaseInfo() / refresh(). 12 KB gives the task comfortable
-    // headroom and avoids stack-overflow → watchdog-reset loops.
-    if (xTaskCreate(_update_check_task_func, "UpdateCheck", 12288,
-                    this, 3, &_tHandle) != pdPASS) {
-        _tHandle = NULL;
-        ESP_LOGE(TAG, "Failed to create UpdateCheck task");
+    if (_periodicTimer) return;
+
+    // One-shot timer: fire the first check 30 s after boot so the network /
+    // Ethernet link is up. Subsequent checks run on the periodic timer below.
+    if (!_initialTimer) {
+        esp_timer_create_args_t initArgs = {};
+        initArgs.callback = _periodic_timer_callback;
+        initArgs.arg = this;
+        initArgs.name = "updchk_init";
+        if (esp_timer_create(&initArgs, &_initialTimer) == ESP_OK) {
+            esp_timer_start_once(_initialTimer, 30 * 1000000ULL);  // 30 s
+        } else {
+            ESP_LOGE(TAG, "Failed to create initial update-check timer");
+        }
+    }
+
+    // Periodic timer: re-check every 24 h. Replaces the former always-running
+    // background task that spent 12 KB of stack permanently in vTaskDelay.
+    esp_timer_create_args_t periodicArgs = {};
+    periodicArgs.callback = _periodic_timer_callback;
+    periodicArgs.arg = this;
+    periodicArgs.name = "updchk_24h";
+    if (esp_timer_create(&periodicArgs, &_periodicTimer) == ESP_OK) {
+        // 24 h in microseconds.
+        esp_timer_start_periodic(_periodicTimer, 24ULL * 60 * 60 * 1000000ULL);
+    } else {
+        ESP_LOGE(TAG, "Failed to create periodic update-check timer");
     }
 }
 
 void UpdateCheck::stop()
 {
-    if (_tHandle) {
-        vTaskDelete(_tHandle);
-        _tHandle = NULL;
+    if (_periodicTimer) {
+        esp_timer_stop(_periodicTimer);
+        esp_timer_delete(_periodicTimer);
+        _periodicTimer = NULL;
+    }
+    // The one-shot initial timer may still be pending if stop() is called
+    // very early (e.g. OTA heap preparation right after boot).
+    if (_initialTimer) {
+        esp_timer_stop(_initialTimer);
+        esp_timer_delete(_initialTimer);
+        _initialTimer = NULL;
     }
 }
 
@@ -597,24 +650,9 @@ cleanup:
     return parsedOk;
 }
 
-void UpdateCheck::_taskFunc()
+void UpdateCheck::_evaluateReleaseInfo()
 {
-  // some time for initial network connection
-  vTaskDelay(pdMS_TO_TICKS(30000));
-
-  for (;;)
-  {
-    size_t free_heap = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
-    ESP_LOGI(TAG, "Stack high water: %u B, heap free: %u KB",
-             (unsigned)uxTaskGetStackHighWaterMark(NULL),
-             (unsigned)(free_heap / 1024));
-    ESP_LOGI(TAG, "Checking for firmware updates...");
     ESP_LOGI(TAG, "Current version: %s", _sysInfo->getCurrentVersion());
-
-    // refresh() is non-blocking: it returns false when a fetch is already in
-    // progress (coalesced) - that is NOT an error. Use info.valid as the
-    // authoritative signal so we don't log a bogus error during the boot race.
-    refresh();
     VersionSnapshot info = getVersionSnapshot();
 
     if (info.valid)
@@ -645,19 +683,6 @@ void UpdateCheck::_taskFunc()
       // Cache empty and no error yet - a fetch is in progress or has not run.
       ESP_LOGI(TAG, "Release info not available yet (fetch in progress).");
     }
-
-    // 24h, split into 1h chunks: pdMS_TO_TICKS((TickType_t)ms * configTICK_RATE_HZ)
-    // overflows 32-bit TickType_t arithmetic for a 24h millisecond value
-    // (86,400,000 ms * 100 Hz > UINT32_MAX), which silently wrapped this
-    // delay down to ~500 s - hammering the update manifest every ~8 minutes
-    // instead of once a day. 1h chunks stay well within range.
-    for (int hour = 0; hour < 24; hour++)
-    {
-      vTaskDelay(pdMS_TO_TICKS(60 * 60000));
-    }
-  }
-
-  vTaskDelete(NULL);
 }
 
 void UpdateCheck::performOnlineUpdate()

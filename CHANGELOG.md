@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.14] - 2026-07-14
+
+### Changed
+- **UpdateCheck: permanenter Hintergrund-Task durch esp_timer ersetzt.** Der bisherige `UpdateCheck`-Task belegte 12 KB Stack dauerhaft, schlief darin aber 24 Stunden lang (`vTaskDelay`), bis zur nächsten Prüfung. Ersetzt durch einen `esp_timer`, der alle 24 h (sowie einmalig 30 s nach dem Boot) einen kurzlebigen `upd_chk`-Task (12 KB) startet, der `refresh()` ausführt und sich sofort wieder beendet. Die 12 KB Stack sind damit nur noch für die ~5 Sekunden des eigentlichen Checks resident statt 24 Stunden lang blockiert — ca. 12 KB zusätzlicher freier Heap.
+- **Manuelle „Nach Update suchen"-Funktion vollständig entfernt.** Die Buttons im WebUI und via MQTT (`command/check_update`) sowie der zugehörige HA-Discovery-Button wurden gestrichen. Release-Informationen werden ausschließlich automatisch alle 24 h aktualisiert. Dies eliminiert zusätzlich den 16 KB on-demand Task `rel_refresh` (WebUI POST) und den 12 KB on-demand Task `mqtt_chkupd` (MQTT), die beide bei Knopfdruck entstanden und bei niedrigem Heap zum `Out of memory` (HTTP 500) führten. Der `GET /api/check_update`-Endpoint bleibt erhalten und liefert die zwischengespeicherten Daten des 24 h-Timers.
+
+### Fixed
+- **WebUI Update-Check lieferte HTTP 500 „Out of memory":** Bei ca. 30 KB freiem Heap schlug die Task-Erstellung (`rel_refresh`, 16 KB Stack) fehl. Durch die Umstellung auf den esp_timer und die Entfernung der manuellen Trigger entfallen diese on-demand Tasks vollständig. Erwarteter freier Heap nach dem Update: ~46 KB.
+
 ## [2.2.4-Beta.13] - 2026-07-14
 
 ### Changes

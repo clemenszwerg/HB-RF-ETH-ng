@@ -37,10 +37,6 @@
     </div>
 
     <div class="quick-actions">
-      <button class="chip-btn" type="button" @click="manualCheckForUpdate" :disabled="firmwareLookupBusy">
-        <AppIcon name="refresh" />
-        {{ updateStore.isChecking ? t('firmware.checking') : t('firmware.checkNow') }}
-      </button>
       <span class="chip-btn static">
         <AppIcon name="clock" />
         {{ updateStore.lastCheck ? t('firmware.lastCheckAt', { time: formatLastCheck(updateStore.lastCheck) }) : t('firmware.noRecentCheck') }}
@@ -146,10 +142,6 @@
               <span class="check-icon"><AppIcon name="alert" /></span>
               <span>{{ t('firmware.checkFailed') }}: {{ updateStore.checkError }}</span>
             </div>
-            <button class="check-btn" @click="manualCheckForUpdate" :disabled="firmwareLookupBusy">
-              <span v-if="updateStore.isChecking" class="spinner-border spinner-border-sm"></span>
-              {{ updateStore.isChecking ? t('firmware.checking') : t('firmware.retry') }}
-            </button>
             <div v-if="updateStore.lastCheck" class="last-check">
               {{ t('firmware.lastCheck') }}: {{ formatLastCheck(updateStore.lastCheck) }}
             </div>
@@ -159,10 +151,6 @@
               <span class="check-icon"><AppIcon name="check" /></span>
               <span>{{ t('firmware.upToDate') }}</span>
             </div>
-            <button class="check-btn" @click="manualCheckForUpdate" :disabled="firmwareLookupBusy">
-              <span v-if="updateStore.isChecking" class="spinner-border spinner-border-sm"></span>
-              {{ updateStore.isChecking ? t('firmware.checking') : t('firmware.checkNow') }}
-            </button>
             <div class="form-text mt-2 text-muted" style="font-size: 0.75rem; line-height: 1.2;">
                {{ t('privacy.updateCheck') }}
             </div>
@@ -483,8 +471,8 @@ const onBetaToggle = async (event) => {
       message: enabled ? t('firmware.betaChannelOn') : t('firmware.betaChannelOff'),
       duration: 2000
     })
-    // Re-check immediately so the user sees the effect of the toggle.
-    await updateStore.checkForUpdate(sysInfoStore.currentVersion)
+    // The new channel takes effect on the next automatic 24 h update check.
+    // No manual trigger available — show the cached snapshot for now.
   } catch (error) {
     // Revert checkbox on error.
     event.target.checked = !enabled
@@ -814,19 +802,6 @@ const factoryResetClick = async () => {
   }
 }
 
-const manualCheckForUpdate = async () => {
-  if (!sysInfoStore.currentVersion) {
-    await sysInfoStore.update()
-  }
-  await updateStore.checkForUpdate(sysInfoStore.currentVersion)
-
-  if (updateStore.checkError) {
-    uiStore.pushToast({ type: 'error', title: t('common.error'), message: `${t('firmware.checkFailed')}: ${updateStore.checkError}` })
-  } else {
-    uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('firmware.checkSuccess'), duration: 2200 })
-  }
-}
-
 const formatLastCheck = (dateStr) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
@@ -859,7 +834,7 @@ onMounted(async () => {
     // manifest request. If the cache is still empty (e.g. fresh
     // boot before the background task ran), the page shows "n/a" until the
     // background task populates it, which the cached poll below picks up.
-    await updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })
+    await updateStore.checkForUpdate(sysInfoStore.currentVersion)
   } catch (e) {
     console.warn('Initial cached update read failed:', e.response?.status || e.message)
   }
@@ -872,7 +847,7 @@ onMounted(async () => {
   // no GitHub call).
   updateCheckInterval = setInterval(() => {
     if (sysInfoStore.currentVersion) {
-      updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })
+      updateStore.checkForUpdate(sysInfoStore.currentVersion)
     }
   }, 60 * 1000)
 })

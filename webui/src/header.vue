@@ -291,7 +291,7 @@ onMounted(async () => {
     // /api/check_update requires auth - calling it logged out triggers a 401
     // that force-redirects visitors away from the public pages (/, /about).
     if (loginStore.isLoggedIn) {
-      await updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })
+      await updateStore.checkForUpdate(sysInfoStore.currentVersion)
     }
   } catch (e) {
     console.error('Failed to load sys info for update check', e)
@@ -311,7 +311,7 @@ onMounted(async () => {
 
   updateCheckTimer = setInterval(() => {
     if (loginStore.isLoggedIn && sysInfoStore.currentVersion) {
-      updateStore.checkForUpdate(sysInfoStore.currentVersion, { cached: true })
+      updateStore.checkForUpdate(sysInfoStore.currentVersion)
     }
   }, 24 * 60 * 60 * 1000)
 })

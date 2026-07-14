@@ -199,20 +199,6 @@ static void handle_mqtt_command(const char* command, const char* payload, int pa
             ESP_LOGW(TAG, "UpdateCheck not available");
             mqtt_handler_publish_event("event/update_failed", "updatecheck_unavailable");
         }
-    } else if (strcmp(command, "check_update") == 0) {
-        // Refresh release info from GitHub without flashing.
-        ESP_LOGI(TAG, "Check-update command received via MQTT");
-        UpdateCheck* updateCheck = monitoring_get_updatecheck();
-        if (updateCheck) {
-            BaseType_t created = xTaskCreate([](void *p) {
-                static_cast<UpdateCheck *>(p)->refresh();
-                vTaskDelete(NULL);
-            }, "mqtt_chkupd", MQTT_UPDATE_TASK_STACK_BYTES, updateCheck, 4, NULL);
-            mqtt_handler_publish_event("event/check_update",
-                                       created == pdPASS ? "requested" : "task_create_failed");
-        } else {
-            mqtt_handler_publish_event("event/check_update", "updatecheck_unavailable");
-        }
     } else {
         ESP_LOGW(TAG, "Unknown MQTT command: %s", command);
     }
@@ -594,7 +580,6 @@ void mqtt_handler_publish_ha_discovery(void)
     const char* restart_payload  = current_mqtt_config.command_token[0] ? current_mqtt_config.command_token : "restart";
     const char* reset_payload    = current_mqtt_config.command_token[0] ? current_mqtt_config.command_token : "factory_reset";
     const char* update_payload   = current_mqtt_config.command_token[0] ? current_mqtt_config.command_token : "update";
-    const char* chkupd_payload   = current_mqtt_config.command_token[0] ? current_mqtt_config.command_token : "check_update";
 
     // Device Info — use the configurable hostname as the HA device name so
     // multiple HB-RF-ETH boards can be told apart in the UI. Fall back to a
@@ -768,7 +753,6 @@ void mqtt_handler_publish_ha_discovery(void)
     if (current_mqtt_config.command_enabled) {
         publish_button("restart", "Restart", "restart", restart_payload, "restart", "mdi:restart");
         publish_button("factory_reset", "Factory Reset", "factory_reset", reset_payload, "restart", "mdi:lock-reset");
-        publish_button("check_update", "Check for Update", "check_update", chkupd_payload, "update", "mdi:refresh");
     }
 
     // ---- HA Update entity -----------------------------------------------

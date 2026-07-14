@@ -557,27 +557,19 @@ export const useUpdateStore = defineStore('update', {
     }
   },
   actions: {
-    // Refreshes the cached release info from the device. By default a POST
-    // triggers an immediate static-manifest fetch on the device. Pass
-    // { cached: true } to only read the cached state.
-    async checkForUpdate(currentVersion, options = {}) {
+    // Reads the cached release info from the device. The device refreshes its
+    // release snapshot automatically every 24 h (UpdateCheck esp_timer); there
+    // is no longer a manual "check now" trigger.
+    async checkForUpdate(currentVersion) {
       if (this.isChecking) return
-      const cached = options && options.cached === true
 
       this.isChecking = true
       this.checkError = null
 
       try {
-        // Worst case on the device: up to 15 s waiting for g_net_fetch_mutex
-        // (another TLS fetch already running) plus up to 10 s for the manifest
-        // request itself - give the client enough headroom to not time out
-        // while the device is still legitimately working.
-        const config = cached
-          ? { params: { t: Date.now() } }
-          : { timeout: 30000 }
-        const response = cached
-          ? await axios.get('/api/check_update', config)
-          : await axios.post('/api/check_update', {}, config)
+        const response = await axios.get('/api/check_update', {
+          params: { t: Date.now() },
+        })
 
         const data = response.data || {}
         this.latestVersion = (data.latestVersion || 'n/a').toString()
