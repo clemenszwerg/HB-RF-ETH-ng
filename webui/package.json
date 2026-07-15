@@ -1,6 +1,6 @@
 {
   "name": "webui",
-  "version": "2.2.4-Beta.18",
+  "version": "2.2.4-Beta.19",
   "description": "WebUI of HB-RF-ETH firmware",
   "scripts": {
     "dev": "vite",
@@ -27,6 +27,7 @@
     "@playwright/test": "^1.61.1",
     "@vitejs/plugin-vue": "^6.0.7",
     "esbuild": "^0.28.1",
-    "vite": "^8.1.4"
+    "vite": "^8.1.4",
+    "vite-plugin-compression2": "^2.5.3"
   }
 }

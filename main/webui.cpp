@@ -69,14 +69,14 @@ static inline int cJSON_GetIntValueSafe(cJSON *item, int defaultValue)
     return (item && cJSON_IsNumber(item)) ? item->valueint : defaultValue;
 }
 
-#define EMBED_HANDLER(_uri, _resource, _contentType)                   \
+#define EMBED_HANDLER(_uri, _resource, _contentType, _contentEncoding) \
     extern const char _resource[] asm("_binary_" #_resource "_start"); \
     extern const size_t _resource##_length asm(#_resource "_length");  \
     esp_err_t _resource##_handler_func(httpd_req_t *req)               \
     {                                                                  \
         add_security_headers(req);                                     \
         httpd_resp_set_type(req, _contentType);                        \
-        httpd_resp_set_hdr(req, "Content-Encoding", "gzip");           \
+        httpd_resp_set_hdr(req, "Content-Encoding", _contentEncoding); \
         httpd_resp_send(req, _resource, _resource##_length);           \
         return ESP_OK;                                                 \
     };                                                                 \
@@ -86,17 +86,17 @@ static inline int cJSON_GetIntValueSafe(cJSON *item, int defaultValue)
         .handler = _resource##_handler_func,                           \
         .user_ctx = NULL};
 
-EMBED_HANDLER("/*", index_html_gz, "text/html")
-EMBED_HANDLER("/main.js", main_js_gz, "application/javascript")
-EMBED_HANDLER("/main.css", main_css_gz, "text/css")
-EMBED_HANDLER("/favicon.ico", favicon_ico_gz, "image/x-icon")
+EMBED_HANDLER("/*", index_html_br, "text/html", "br")
+EMBED_HANDLER("/main.js", main_js_br, "application/javascript", "br")
+EMBED_HANDLER("/main.css", main_css_br, "text/css", "br")
+EMBED_HANDLER("/favicon.ico", favicon_ico_gz, "image/x-icon", "gzip")
 // PWA assets — make the WebUI installable. The single icon-256.png serves as
 // the standard icon, the maskable icon (declared in manifest.webmanifest with
 // purpose "any maskable"), and the iOS apple-touch-icon (referenced from the
 // apple-touch-icon <link> in index.html). Embedding one file instead of three
 // copies saves ~188 KB of flash on the memory-constrained WROOM-32.
-EMBED_HANDLER("/manifest.webmanifest", manifest_webmanifest_gz, "application/manifest+json")
-EMBED_HANDLER("/icon-256.png", icon_256_png_gz, "image/png")
+EMBED_HANDLER("/manifest.webmanifest", manifest_webmanifest_gz, "application/manifest+json", "gzip")
+EMBED_HANDLER("/icon-256.png", icon_256_png_gz, "image/png", "gzip")
 
 static Settings *_settings;
 static LED *_statusLED;
@@ -665,6 +665,58 @@ httpd_uri_t get_sysinfo_json_handler = {
     .uri = "/sysinfo.json",
     .method = HTTP_GET,
     .handler = get_sysinfo_json_handler_func,
+    .user_ctx = NULL};
+
+esp_err_t post_ping_handler_func(httpd_req_t *req)
+{
+    add_security_headers(req);
+
+    char buf[128];
+    int ret, remaining = req->content_len;
+    if (remaining >= sizeof(buf)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload too large");
+        return ESP_FAIL;
+    }
+
+    if ((ret = httpd_req_recv(req, buf, remaining)) <= 0) {
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            httpd_resp_send_408(req);
+        }
+        return ESP_FAIL;
+    }
+    buf[ret] = '\0';
+
+    cJSON *root = cJSON_Parse(buf);
+    if (!root) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+    const char *target = getStringFromJson(root, "target", "");
+    if (strlen(target) == 0) {
+        cJSON_Delete(root);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing target");
+        return ESP_FAIL;
+    }
+
+    int latency = ping_service_ping(target, 4000); // 4 seconds timeout
+    cJSON_Delete(root);
+
+    httpd_resp_set_type(req, "application/json");
+    char resp[128];
+    if (latency >= 0) {
+        snprintf(resp, sizeof(resp), "{\"success\":true,\"latency_ms\":%d}", latency);
+    } else {
+        snprintf(resp, sizeof(resp), "{\"success\":false}");
+    }
+    httpd_resp_sendstr(req, resp);
+    return ESP_OK;
+}
+
+httpd_uri_t post_ping_handler = {
+    .uri = "/api/ping",
+    .method = HTTP_POST,
+    .handler = post_ping_handler_func,
     .user_ctx = NULL};
 
 void add_settings(cJSON *root)
@@ -2756,6 +2808,8 @@ void WebUI::start()
         httpd_register_uri_handler(_httpd_handle, &get_monitoring_handler);
         httpd_register_uri_handler(_httpd_handle, &post_monitoring_handler);
         httpd_register_uri_handler(_httpd_handle, &get_monitoring_test_handler);
+        
+        httpd_register_uri_handler(_httpd_handle, &post_ping_handler);
 
         httpd_register_uri_handler(_httpd_handle, &get_backup_handler);
         httpd_register_uri_handler(_httpd_handle, &post_restore_handler);
@@ -2769,10 +2823,10 @@ void WebUI::start()
         httpd_register_uri_handler(_httpd_handle, &get_log_download_handler);
         httpd_register_uri_handler(_httpd_handle, &get_crash_log_handler);
 
-        httpd_register_uri_handler(_httpd_handle, &main_js_gz_handler);
-        httpd_register_uri_handler(_httpd_handle, &main_css_gz_handler);
+        httpd_register_uri_handler(_httpd_handle, &main_js_br_handler);
+        httpd_register_uri_handler(_httpd_handle, &main_css_br_handler);
         httpd_register_uri_handler(_httpd_handle, &favicon_ico_gz_handler);
-        httpd_register_uri_handler(_httpd_handle, &index_html_gz_handler);
+        httpd_register_uri_handler(_httpd_handle, &index_html_br_handler);
         // PWA assets
         httpd_register_uri_handler(_httpd_handle, &manifest_webmanifest_gz_handler);
         httpd_register_uri_handler(_httpd_handle, &icon_256_png_gz_handler);

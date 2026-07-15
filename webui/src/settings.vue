@@ -373,6 +373,35 @@
               </template>
             </div>
           </div>
+
+          <div class="settings-card mt-3">
+            <div class="card-header">
+              <h3>Network Diagnostics</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group mb-3">
+                <label class="form-label">Ping Target (IP or Hostname)</label>
+                <div class="d-flex">
+                  <BFormInput
+                    type="text"
+                    v-model="pingTarget"
+                    trim
+                    placeholder="192.168.1.1"
+                    class="me-2"
+                    @keyup.enter="runPing"
+                  />
+                  <BButton variant="primary" @click="runPing" :disabled="pingLoading || !pingTarget">
+                    <span v-if="pingLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span v-else>Ping</span>
+                  </BButton>
+                </div>
+              </div>
+              <div v-if="pingResult !== null" :class="['alert', pingResult >= 0 ? 'alert-success' : 'alert-danger']">
+                <span v-if="pingResult >= 0">Ping successful. Latency: {{ pingResult }} ms</span>
+                <span v-else>Ping failed or timeout.</span>
+              </div>
+            </div>
+          </div>
         </div>
       </Transition>
 
@@ -682,6 +711,10 @@ const ipv6PrefixLength = ref(64)
 const ipv6Gateway = ref('')
 const ipv6Dns1 = ref('')
 const ipv6Dns2 = ref('')
+
+const pingTarget = ref('')
+const pingLoading = ref(false)
+const pingResult = ref(null)
 
 const timesource = ref(0)
 const dcfOffset = ref(0)
@@ -1061,6 +1094,39 @@ const handleBeforeUnload = (event) => {
 
 const handleFileSelect = (event) => {
   restoreFile.value = event.target.files[0]
+}
+
+const runPing = async () => {
+  if (!pingTarget.value || pingLoading.value) return
+  
+  pingLoading.value = true
+  pingResult.value = null
+  
+  try {
+    const response = await fetch('/api/ping', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ target: pingTarget.value })
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success) {
+        pingResult.value = data.latency_ms
+      } else {
+        pingResult.value = -1
+      }
+    } else {
+      pingResult.value = -1
+    }
+  } catch (error) {
+    console.error('Ping failed:', error)
+    pingResult.value = -1
+  } finally {
+    pingLoading.value = false
+  }
 }
 
 const saveSettingsClick = async () => {

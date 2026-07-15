@@ -60,5 +60,5 @@ public:
     void stop();
 
     void _udpQueueHandler();
-    bool _udpReceivePacket(pbuf *pb, const ip_addr_t *addr, uint16_t port);
+    bool IRAM_ATTR _udpReceivePacket(pbuf *pb, const ip_addr_t *addr, uint16_t port);
 };

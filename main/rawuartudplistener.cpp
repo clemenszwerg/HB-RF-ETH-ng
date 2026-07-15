@@ -52,7 +52,7 @@ void _raw_uart_udpQueueHandlerTask(void *parameter)
     ((RawUartUdpListener *)parameter)->_udpQueueHandler();
 }
 
-void _raw_uart_udpReceivePaket(void *arg, udp_pcb *pcb, pbuf *pb, const ip_addr_t *addr, uint16_t port)
+void IRAM_ATTR _raw_uart_udpReceivePaket(void *arg, udp_pcb *pcb, pbuf *pb, const ip_addr_t *addr, uint16_t port)
 {
     // A pbuf chain is one UDP datagram, not multiple packets. Transfer the
     // complete chain to the worker; splitting it corrupts larger CCU frames.
@@ -402,7 +402,7 @@ void RawUartUdpListener::_udpQueueHandler()
     }
 }
 
-bool RawUartUdpListener::_udpReceivePacket(pbuf *pb, const ip_addr_t *addr, uint16_t port)
+bool IRAM_ATTR RawUartUdpListener::_udpReceivePacket(pbuf *pb, const ip_addr_t *addr, uint16_t port)
 {
     udp_event_t *e = (udp_event_t *)malloc(sizeof(udp_event_t));
     if (!e)
