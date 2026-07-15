@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4-Beta.22] - 2026-07-15
+
+### Changes
+- fix(i18n): localize supporter prompt dismissal
+- fix(webui): make supporter prompt dismissible
+- chore: update manifests for v2.2.4-Beta.21
+
 ## [2.2.4-Beta.18] - 2026-07-15
 
 ### Changes
