@@ -30,6 +30,7 @@
 #include <new>
 #include <stdarg.h>
 #include "webui.h"
+#include "ping_service.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -692,7 +693,8 @@ esp_err_t post_ping_handler_func(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    const char *target = getStringFromJson(root, "target", "");
+    cJSON *target_json = cJSON_GetObjectItem(root, "target");
+    const char *target = target_json && cJSON_IsString(target_json) ? target_json->valuestring : "";
     if (strlen(target) == 0) {
         cJSON_Delete(root);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing target");
