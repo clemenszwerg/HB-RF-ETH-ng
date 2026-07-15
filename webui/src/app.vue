@@ -69,8 +69,8 @@
       v-model="showSupporterExpiredPrompt"
       :title="t('supporter.expiredPromptTitle')"
       :ok-title="t('supporter.expiredPromptSupport')"
+      :cancel-title="t('supporter.expiredPromptLater')"
       ok-variant="primary"
-      ok-only
       no-close-on-backdrop
       @ok="showSponsorModal = true"
     >
