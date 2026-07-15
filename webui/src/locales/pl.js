@@ -680,6 +680,7 @@ export default {
     chipInactiveTooltip: 'Ten projekt opiera się na dobrowolnym wsparciu — zostań wspierającym',
     expiredPromptTitle: 'Twój klucz wspierającego wygasł',
     expiredPromptSupport: 'Wesprzyj ponownie',
+    expiredPromptLater: 'Może później',
     expiredPromptBody: 'Twój klucz wspierającego wygasł. Małym wkładem (np. kawą) wspierasz dalszy rozwój tego projektu i otrzymujesz nowy klucz w ramach podziękowania. Dziękujemy! ❤'
   }
 }

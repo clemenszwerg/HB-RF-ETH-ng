@@ -680,6 +680,7 @@ export default {
     chipInactiveTooltip: 'Tento projekt závisí na dobrovolné podpoře — staňte se příznivcem',
     expiredPromptTitle: 'Váš klíč příznivce vypršel',
     expiredPromptSupport: 'Podpořit znovu',
+    expiredPromptLater: 'Možná později',
     expiredPromptBody: 'Váš klíč příznivce vypršel. Malým příspěvkem (např. kávou) podpoříte další vývoj tohoto projektu a jako díky získáte nový klíč příznivce. Děkujeme! ❤'
   }
 }

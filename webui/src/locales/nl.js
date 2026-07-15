@@ -680,6 +680,7 @@ export default {
     chipInactiveTooltip: 'Dit project is afhankelijk van vrijwillige steun — word supporter',
     expiredPromptTitle: 'Je supporter-sleutel is verlopen',
     expiredPromptSupport: 'Opnieuw steunen',
+    expiredPromptLater: 'Misschien later',
     expiredPromptBody: 'Je supporter-sleutel is verlopen. Met een kleine bijdrage (bijv. een koffie) steun je de doorontwikkeling van dit project en ontvang je een nieuwe supporter-sleutel als dank. Bedankt! ❤'
   }
 }

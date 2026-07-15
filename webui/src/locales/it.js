@@ -680,6 +680,7 @@ export default {
     chipInactiveTooltip: 'Questo progetto dipende dal sostegno volontario — diventa sostenitore',
     expiredPromptTitle: 'La tua chiave sostenitore è scaduta',
     expiredPromptSupport: 'Sostieni di nuovo',
+    expiredPromptLater: 'Forse più tardi',
     expiredPromptBody: 'La tua chiave sostenitore è scaduta. Con un piccolo contributo (es. un caffè) sostieni lo sviluppo continuo di questo progetto e ricevi una nuova chiave come ringraziamento. Grazie! ❤'
   }
 }

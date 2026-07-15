@@ -680,6 +680,7 @@ export default {
     chipInactiveTooltip: 'Detta projekt är beroende av frivilligt stöd — bli supporter',
     expiredPromptTitle: 'Din supporternyckel har löpt ut',
     expiredPromptSupport: 'Stöd igen',
+    expiredPromptLater: 'Kanske senare',
     expiredPromptBody: 'Din supporternyckel har löpt ut. Med ett litet bidrag (t.ex. en kaffe) stöder du den fortsatta utvecklingen av detta projekt och får en ny supporternyckel som tack. Tack! ❤'
   }
 }
