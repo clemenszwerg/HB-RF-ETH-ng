@@ -2825,10 +2825,10 @@ void WebUI::start()
         httpd_register_uri_handler(_httpd_handle, &get_log_download_handler);
         httpd_register_uri_handler(_httpd_handle, &get_crash_log_handler);
 
-        httpd_register_uri_handler(_httpd_handle, &main_js_br_handler);
-        httpd_register_uri_handler(_httpd_handle, &main_css_br_handler);
+        httpd_register_uri_handler(_httpd_handle, &main_js_gz_handler);
+        httpd_register_uri_handler(_httpd_handle, &main_css_gz_handler);
         httpd_register_uri_handler(_httpd_handle, &favicon_ico_gz_handler);
-        httpd_register_uri_handler(_httpd_handle, &index_html_br_handler);
+        httpd_register_uri_handler(_httpd_handle, &index_html_gz_handler);
         // PWA assets
         httpd_register_uri_handler(_httpd_handle, &manifest_webmanifest_gz_handler);
         httpd_register_uri_handler(_httpd_handle, &icon_256_png_gz_handler);
