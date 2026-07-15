@@ -1,7 +1,22 @@
 {
   "schema": 1,
-  "updatedAt": "2026-07-15T14:47:30Z",
+  "updatedAt": "2026-07-15T15:57:22Z",
   "releases": [
+    {
+      "version": "2.2.4-Beta.21",
+      "channel": "beta",
+      "isPrerelease": true,
+      "publishedAt": "2026-07-15T15:57:22Z",
+      "downloadUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/download/v2.2.4-Beta.21/firmware_2.2.4-Beta.21.bin",
+      "sha256": "e84c4f30bc875bdd76883faaf92444d3e01f3b4b71e6be98d69b0189c4e3f316",
+      "releaseUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/v2.2.4-Beta.21",
+      "notesUrl": "https://github.com/Xerolux/HB-RF-ETH-ng/releases/tag/v2.2.4-Beta.21",
+      "tagName": "v2.2.4-Beta.21",
+      "name": "HB-RF-ETH-ng v2.2.4-Beta.21",
+      "prerelease": true,
+      "assetName": "firmware_2.2.4-Beta.21.bin",
+      "notesExcerpt": "# \ud83d\ude80 HB-RF-ETH-ng v2.2.4-Beta.21 [![License](https://img.shields.io/github/license/Xerolux/HB-RF-ETH-ng)](LICENSE.md) [![Downloads](https://img.shields.io/github/downloads/Xerolux/HB-RF-ETH-ng/total)](https://github.com/Xerolux/HB-RF-ETH-ng/releases) > \u26a0\ufe0f **Pre-Release** - Testversion, Nutzung auf ei\u2026"
+    },
     {
       "version": "2.2.4-Beta.18",
       "channel": "beta",
