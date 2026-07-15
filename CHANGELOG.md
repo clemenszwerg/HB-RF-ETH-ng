@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4] - 2026-07-15
+
+### Changes
+- chore: update manifests for v2.2.4-Beta.23
+
 ## [2.2.4-Beta.23] - 2026-07-15
 
 ### Changes
