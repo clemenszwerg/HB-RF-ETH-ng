@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.5-Beta.1] - 2026-07-19
+
+### Changes
+- Merge pull request #372 from Xerolux/fix/issue-371-reset-reason-heap-diag
+- fix(diag): log reset reason at boot + expose task stack hwm
+- chore: rebuild firmware archive
+- chore: update manifests for v2.2.4
+
 ## [2.2.4] - 2026-07-15
 
 ### Changes
