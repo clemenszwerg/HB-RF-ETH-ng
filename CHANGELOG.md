@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.5-Beta.2] - 2026-07-20
+
+### Changes
+- ci: remove completed draft release dispatcher
+- ci: validate full and WebUI-only draft releases
+- feat: add lightweight system recovery themes and log diagnostics (#385)
+- ci: remove completed diagnostics review workflow
+- ci: apply diagnostics review fixes
+- ci: remove completed diagnostics maintenance workflow
+- ci: rebuild diagnostics branch on merged updater
+- feat: separate New Design WebUI updates from firmware (#380)
+- ci: remove completed WebUI maintenance workflow
+- ci: apply final WebUI storage fixes
+- chore: update manifests for v2.2.5-Beta.1
+
 ## [2.2.5-Beta.1] - 2026-07-19
 
 ### Changes
