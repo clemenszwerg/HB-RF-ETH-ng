@@ -25,6 +25,7 @@ jobs:
           git fetch origin ops/beta3-release-status
           git show origin/ops/beta3-release-status:scripts/apply_gzip_and_strict_24h_updates.py > /tmp/apply_patch.py
           git show origin/ops/beta3-release-status:scripts/apply_update_stagger_guard.py > /tmp/apply_stagger.py
+          sed -i 's#docs/HOTFIX_BETA3.md#docs/HOTFIX_BETA3_RECOVERY.md#g' /tmp/apply_patch.py
           {
             python3 /tmp/apply_patch.py
             python3 /tmp/apply_stagger.py
