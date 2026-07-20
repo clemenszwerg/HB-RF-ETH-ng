@@ -19,12 +19,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Load and apply patch
+      - name: Load and apply patches
         run: |
           set -euo pipefail
           git fetch origin ops/beta3-release-status
           git show origin/ops/beta3-release-status:scripts/apply_gzip_and_strict_24h_updates.py > /tmp/apply_patch.py
+          git show origin/ops/beta3-release-status:scripts/apply_update_stagger_guard.py > /tmp/apply_stagger.py
           python3 /tmp/apply_patch.py
+          python3 /tmp/apply_stagger.py
 
       - name: Refresh package lock
         run: |
@@ -36,5 +38,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "fix: use gzip and enforce one update check per 24h"
+          git commit -m "fix: use gzip and enforce safe staggered 24h checks"
           git push origin HEAD:fix/recovery-dns-webui-gzip
