@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.5-Beta.4] - 2026-07-20
+
+### Changes
+- ci: remove Beta.4 release dispatcher
+- ci: trigger Beta.4 release
+- ci: prepare Beta.4 release dispatch
+- fix: recover WebUI and switch to safe manual updates
+- ci: remove completed manual-model trigger
+- ci: remove completed fixed-default workflow
+- ci: remove completed PR 387 refactor workflow
+- ci: remove obsolete firmware archive workflow
+- ci: remove obsolete New Design test workflow
+- ci: remove firmware archive generation from builds
+- ci: remove completed PR 387 maintenance job
+- ci: make guarded refactor failure diagnosable
+- ci: add guarded PR 387 refactor job
+- ci: add guarded PR 387 refactor runner
+- ci: trigger fixed UI defaults
+- ci: apply fixed New Design and restart sync defaults
+- ci: trigger final manual update model
+- ci: apply final manual update and fixed UI model
+- ci: trigger final gzip hotfix cleanup
+- ci: finalize gzip hotfix cleanup
+- ci: trigger corrected gzip hotfix
+- ci: fix gzip patch documentation path
+- ci: capture gzip patch diagnostics
+- ci: include staggered update-check guard
+- ci: prepare gzip and strict 24h hotfix
+- ci: remove completed Brotli fallback trigger
+- ci: remove completed Brotli fallback runner
+- ci: trigger Brotli fallback revision
+- ci: add Brotli fallback revision runner
+- ci: remove completed recovery hotfix trigger
+- ci: remove completed recovery hotfix runner
+- ci: trigger minimal recovery hotfix runner
+- ci: add minimal recovery hotfix runner
+- ci: remove broken recovery hotfix workflow
+- ci: trigger Beta.3 recovery hotfix
+- ci: apply Beta.3 recovery hotfix
+- chore: update manifests for v2.2.5-Beta.3
+
 ## [2.2.5-Beta.3] - 2026-07-20
 
 ### Changes

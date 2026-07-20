@@ -1,4 +1,4 @@
-# 🚀 HB-RF-ETH-ng v2.2.5-Beta.3
+# 🚀 HB-RF-ETH-ng v2.2.5-Beta.4
 
 [![License](https://img.shields.io/github/license/Xerolux/HB-RF-ETH-ng)](LICENSE.md)
 [![Downloads](https://img.shields.io/github/downloads/Xerolux/HB-RF-ETH-ng/total)](https://github.com/Xerolux/HB-RF-ETH-ng/releases)
@@ -11,18 +11,46 @@ HB-RF-ETH-ng ist eine modernisierte Fork der originalen HB-RF-ETH Firmware von A
 Diese Firmware ermöglicht es, ein Homematic Funkmodul (HM-MOD-RPI-PCB oder RPI-RF-MOD) per Netzwerk
 an eine CCU-Installation (piVCCU3, debmatic, OpenCCU) anzubinden.
 
-## 🆕 Was ist neu in v2.2.5-Beta.3?
+## 🆕 Was ist neu in v2.2.5-Beta.4?
 
 ### Changes
-- ci: remove Beta.3 release dispatcher
-- ci: prepare Beta.3 release dispatch
-- fix(i18n): use German as the only fallback (#386)
-- ci: remove unused translation maintenance workflow
-- ci: commit translation audit before validation
-- ci: trigger German translation audit
-- ci: apply German translation fallback audit
-- ci: remove unused draft validation workflow
-- ci: complete draft release validation
+- ci: remove Beta.4 release dispatcher
+- ci: trigger Beta.4 release
+- ci: prepare Beta.4 release dispatch
+- fix: recover WebUI and switch to safe manual updates
+- ci: remove completed manual-model trigger
+- ci: remove completed fixed-default workflow
+- ci: remove completed PR 387 refactor workflow
+- ci: remove obsolete firmware archive workflow
+- ci: remove obsolete New Design test workflow
+- ci: remove firmware archive generation from builds
+- ci: remove completed PR 387 maintenance job
+- ci: make guarded refactor failure diagnosable
+- ci: add guarded PR 387 refactor job
+- ci: add guarded PR 387 refactor runner
+- ci: trigger fixed UI defaults
+- ci: apply fixed New Design and restart sync defaults
+- ci: trigger final manual update model
+- ci: apply final manual update and fixed UI model
+- ci: trigger final gzip hotfix cleanup
+- ci: finalize gzip hotfix cleanup
+- ci: trigger corrected gzip hotfix
+- ci: fix gzip patch documentation path
+- ci: capture gzip patch diagnostics
+- ci: include staggered update-check guard
+- ci: prepare gzip and strict 24h hotfix
+- ci: remove completed Brotli fallback trigger
+- ci: remove completed Brotli fallback runner
+- ci: trigger Brotli fallback revision
+- ci: add Brotli fallback revision runner
+- ci: remove completed recovery hotfix trigger
+- ci: remove completed recovery hotfix runner
+- ci: trigger minimal recovery hotfix runner
+- ci: add minimal recovery hotfix runner
+- ci: remove broken recovery hotfix workflow
+- ci: trigger Beta.3 recovery hotfix
+- ci: apply Beta.3 recovery hotfix
+- chore: update manifests for v2.2.5-Beta.3
 
 ## ✨ Hauptfunktionen
 
@@ -62,7 +90,7 @@ SHA256-Prüfsummen befinden sich in `SHA256SUMS.txt`.
 
 ## 📦 Im Release enthalten
 
-- **Firmware-Binary** (`firmware_2.2.5-Beta.3.bin`)
+- **Firmware-Binary** (`firmware_2.2.5-Beta.4.bin`)
 - **Bootloader** (`bootloader.bin`)
 - **Partitionstabelle** (`partitions.bin`)
 - **SHA256-Prüfsummen** (`SHA256SUMS.txt`)
