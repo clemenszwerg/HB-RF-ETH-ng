@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.5-Beta.3] - 2026-07-20
+
+### Changes
+- ci: remove Beta.3 release dispatcher
+- ci: prepare Beta.3 release dispatch
+- fix(i18n): use German as the only fallback (#386)
+- ci: remove unused translation maintenance workflow
+- ci: commit translation audit before validation
+- ci: trigger German translation audit
+- ci: apply German translation fallback audit
+- ci: remove unused draft validation workflow
+- ci: complete draft release validation
+
 ## [2.2.5-Beta.2] - 2026-07-20
 
 ### Changes

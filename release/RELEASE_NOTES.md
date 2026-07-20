@@ -1,4 +1,4 @@
-# 🚀 HB-RF-ETH-ng v2.2.5-Beta.2
+# 🚀 HB-RF-ETH-ng v2.2.5-Beta.3
 
 [![License](https://img.shields.io/github/license/Xerolux/HB-RF-ETH-ng)](LICENSE.md)
 [![Downloads](https://img.shields.io/github/downloads/Xerolux/HB-RF-ETH-ng/total)](https://github.com/Xerolux/HB-RF-ETH-ng/releases)
@@ -11,20 +11,18 @@ HB-RF-ETH-ng ist eine modernisierte Fork der originalen HB-RF-ETH Firmware von A
 Diese Firmware ermöglicht es, ein Homematic Funkmodul (HM-MOD-RPI-PCB oder RPI-RF-MOD) per Netzwerk
 an eine CCU-Installation (piVCCU3, debmatic, OpenCCU) anzubinden.
 
-## 🆕 Was ist neu in v2.2.5-Beta.2?
+## 🆕 Was ist neu in v2.2.5-Beta.3?
 
 ### Changes
-- ci: remove completed draft release dispatcher
-- ci: validate full and WebUI-only draft releases
-- feat: add lightweight system recovery themes and log diagnostics (#385)
-- ci: remove completed diagnostics review workflow
-- ci: apply diagnostics review fixes
-- ci: remove completed diagnostics maintenance workflow
-- ci: rebuild diagnostics branch on merged updater
-- feat: separate New Design WebUI updates from firmware (#380)
-- ci: remove completed WebUI maintenance workflow
-- ci: apply final WebUI storage fixes
-- chore: update manifests for v2.2.5-Beta.1
+- ci: remove Beta.3 release dispatcher
+- ci: prepare Beta.3 release dispatch
+- fix(i18n): use German as the only fallback (#386)
+- ci: remove unused translation maintenance workflow
+- ci: commit translation audit before validation
+- ci: trigger German translation audit
+- ci: apply German translation fallback audit
+- ci: remove unused draft validation workflow
+- ci: complete draft release validation
 
 ## ✨ Hauptfunktionen
 
@@ -64,7 +62,7 @@ SHA256-Prüfsummen befinden sich in `SHA256SUMS.txt`.
 
 ## 📦 Im Release enthalten
 
-- **Firmware-Binary** (`firmware_2.2.5-Beta.2.bin`)
+- **Firmware-Binary** (`firmware_2.2.5-Beta.3.bin`)
 - **Bootloader** (`bootloader.bin`)
 - **Partitionstabelle** (`partitions.bin`)
 - **SHA256-Prüfsummen** (`SHA256SUMS.txt`)
