@@ -42,3 +42,26 @@ static inline void add_security_headers(httpd_req_t *req) {
     httpd_resp_set_hdr(req, "X-XSS-Protection", "1; mode=block");
     httpd_resp_set_hdr(req, "Referrer-Policy", "strict-origin-when-cross-origin");
 }
+
+/**
+ * Same as add_security_headers(), but uses a Content-Security-Policy that
+ * permits inline <script> blocks.
+ *
+ * NOTE: httpd_resp_set_hdr() APPENDS a header — it does not overwrite a
+ * previously set value. Therefore routes that need inline scripts must NOT
+ * call add_security_headers() first; they must call this variant instead,
+ * otherwise the response ends up with two Content-Security-Policy headers
+ * (one strict, one permissive) and browsers enforce the intersection — which
+ * blocks the inline script. This is the bug that previously made the
+ * self-contained /recovery page silently non-functional.
+ *
+ * Use this ONLY for self-contained documents whose entire script body is
+ * trusted and embedded inline (e.g. the emergency recovery page).
+ */
+static inline void add_security_headers_inline_script(httpd_req_t *req) {
+    httpd_resp_set_hdr(req, "Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';");
+    httpd_resp_set_hdr(req, "X-Content-Type-Options", "nosniff");
+    httpd_resp_set_hdr(req, "X-Frame-Options", "SAMEORIGIN");
+    httpd_resp_set_hdr(req, "X-XSS-Protection", "1; mode=block");
+    httpd_resp_set_hdr(req, "Referrer-Policy", "strict-origin-when-cross-origin");
+}
