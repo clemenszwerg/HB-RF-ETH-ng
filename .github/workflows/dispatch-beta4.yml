@@ -1,0 +1,42 @@
+name: Dispatch Beta.4 Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Remove one-time dispatcher
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/dispatch-beta4.yml .github/beta4-trigger.txt
+          git commit -m "ci: remove Beta.4 release dispatcher"
+          git push origin HEAD:main
+
+      - name: Publish Beta.4 prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release.yml \
+            --repo "${{ github.repository }}" \
+            --ref main \
+            -f tag=v2.2.5-Beta.4 \
+            -f prerelease=true \
+            -f draft=false
