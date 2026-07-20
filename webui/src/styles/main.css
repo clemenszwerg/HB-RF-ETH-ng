@@ -62,6 +62,27 @@
   --backdrop-blur: 20px;
   --transition-fast: 0.18s ease;
   --transition-normal: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---- Type system ----------------------------------------------
+     One canonical scale, snapped from the previous ad-hoc rem values.
+     Every font-size in the app should reference one of these tokens
+     instead of an arbitrary 0.78rem / 0.82rem / 0.85rem / etc. */
+
+  /* Font families. --font-mono is the single source of truth; the old
+     ad-hoc Consolas / Cascadia / SFMono / ui-monospace stacks all map
+     to this token now. */
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", Inter, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* Type scale (1rem = 16px body root). */
+  --fs-2xs: 0.75rem;   /* 12px — micro captions, eyebrows, meta labels */
+  --fs-xs:  0.8125rem; /* 13px — small secondary text, chips, hints */
+  --fs-sm:  0.875rem;  /* 14px — body small, subtitles */
+  --fs-md:  1rem;      /* 16px — body */
+  --fs-lg:  1.125rem;  /* 18px — card headers */
+  --fs-xl:  1.375rem;  /* 22px — section headings */
+  --fs-2xl: 1.75rem;   /* 28px — page hero title (mobile) */
+  --fs-3xl: 2.25rem;   /* 36px — brand wordmark, display */
 }
 
 [data-bs-theme="dark"] {
@@ -106,7 +127,7 @@ body {
     radial-gradient(circle at top left, rgba(242, 106, 61, 0.16), transparent 28%),
     radial-gradient(circle at top right, rgba(57, 113, 232, 0.12), transparent 26%),
     linear-gradient(180deg, var(--color-bg-alt), var(--color-bg));
-  font-family: "Segoe UI Variable Text", "Segoe UI", "Inter", sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -316,7 +337,7 @@ textarea {
   padding: 7px 12px;
   border-radius: var(--radius-pill);
   width: fit-content;
-  font-size: 0.78rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -336,7 +357,7 @@ textarea {
 .hero-subtitle {
   max-width: 72ch;
   color: var(--color-text-secondary);
-  font-size: 0.98rem;
+  font-size: var(--fs-sm);
 }
 
 .hero-actions,
@@ -396,7 +417,7 @@ textarea {
   border: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.58);
   color: var(--color-text);
-  font-size: 0.86rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -500,12 +521,12 @@ textarea {
 
 .card-section-title h3,
 .card-section-title h2 {
-  font-size: 1.06rem;
+  font-size: var(--fs-lg);
 }
 
 .card-section-title p {
   color: var(--color-text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--fs-xs);
 }
 
 .metric-card {
@@ -531,14 +552,14 @@ textarea {
 
 .metric-label {
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .metric-subtext {
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
 }
 
 .metric-progress {
@@ -591,7 +612,7 @@ textarea {
 
 .kv-label {
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   min-width: 0;
 }
 
@@ -603,8 +624,8 @@ textarea {
 }
 
 .kv-value.mono {
-  font-family: Consolas, "SFMono-Regular", monospace;
-  font-size: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
 }
 
 .form-label {
@@ -612,7 +633,7 @@ textarea {
   margin-bottom: 7px;
   margin-left: 4px;
   color: var(--color-text-secondary);
-  font-size: 0.78rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -651,7 +672,7 @@ textarea {
   padding: 0.78rem 1.3rem;
   border: none;
   border-radius: var(--radius-pill);
-  font-size: 0.94rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: -0.01em;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
@@ -965,14 +986,11 @@ body.newdesign-active {
   --newdesign-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   --newdesign-shadow-lg: 0 10px 24px rgba(15, 23, 42, 0.08);
 
-  /* Emerald-green primary accent — overrides the orange --color-primary* for
-     everything rendered inside the new-design scope. */
-  --color-primary: #2f8b57;
-  --color-primary-hover: #3b9962;
-  --color-primary-soft: rgba(47, 139, 87, 0.12);
-  --color-primary-light: rgba(47, 139, 87, 0.12);
-  --color-primary-strong: #246b43;
-  --color-primary-dark: #246b43;
+  /* Primary accent is NOT overridden here. The new-design scope inherits
+     --color-primary* from :root / <html>, where useThemeStore.apply() sets
+     it (inline style). Hardcoding it here used to win the cascade and break
+     the /theme accent picker — see stores.js apply(). Only the success token
+     family is overridden for the new-design look. */
   --color-success: #43a047;
   --color-success-soft: rgba(67, 160, 71, 0.14);
   --color-success-light: rgba(67, 160, 71, 0.14);
@@ -981,7 +999,7 @@ body.newdesign-active {
   --newdesign-primary-soft: var(--color-primary-soft);
   --newdesign-primary-strong: var(--color-primary-strong);
   --newdesign-focus-ring: 0 0 0 3px var(--color-primary-soft);
-  --newdesign-hover-border: rgba(47, 139, 87, 0.25);
+  --newdesign-hover-border: var(--color-primary-soft);
 
   /* Sidebar token referenced by NewDesignHeader (previously undefined). */
   --color-sidebar: var(--newdesign-sidebar);
@@ -1031,14 +1049,10 @@ body.newdesign-active[data-bs-theme="dark"] .newdesign-shell {
   --newdesign-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.5);
   /* Sidebar/header tokens must resolve here too — the desktop sidebar and top
      bar live inside #app.newdesign-shell, so a token defined only on the body
-     scope is shadowed. Mirror the overrides the body block declares. */
+     scope is shadowed. Mirror the overrides the body block declares.
+     --color-primary* is intentionally NOT mirrored: it must inherit from
+     :root / <html> so the /theme accent picker keeps working in dark mode. */
   --color-sidebar: var(--newdesign-sidebar);
-  --color-primary: #2f8b57;
-  --color-primary-hover: #3d9966;
-  --color-primary-soft: rgba(47, 139, 87, 0.18);
-  --color-primary-light: rgba(47, 139, 87, 0.18);
-  --color-primary-strong: #3d9966;
-  --color-primary-dark: #3d9966;
   --color-success: #55c271;
   --color-success-soft: rgba(85, 194, 113, 0.16);
   --color-success-light: rgba(85, 194, 113, 0.16);
@@ -1063,17 +1077,13 @@ body.newdesign-active[data-bs-theme="dark"] {
   --newdesign-text-soft: #c5c8cc;
   --newdesign-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   --newdesign-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.5);
-  /* Dark emerald accent + dark surface/text tokens. */
-  --color-primary: #2f8b57;
-  --color-primary-hover: #3d9966;
-  --color-primary-soft: rgba(47, 139, 87, 0.18);
-  --color-primary-light: rgba(47, 139, 87, 0.18);
-  --color-primary-strong: #3d9966;
-  --color-primary-dark: #3d9966;
+  /* Dark surface/text tokens only. --color-primary* is intentionally NOT set
+     here — it inherits from :root / <html> so the /theme accent picker works
+     in dark mode too. */
   --color-success: #55c271;
   --color-success-soft: rgba(85, 194, 113, 0.16);
   --color-success-light: rgba(85, 194, 113, 0.16);
-  --newdesign-hover-border: rgba(47, 139, 87, 0.4);
+  --newdesign-hover-border: var(--color-primary-soft);
   --color-sidebar: var(--newdesign-sidebar);
   --color-bg: #2e3136;
   --color-bg-alt: #2e3136;
@@ -1890,7 +1900,7 @@ body.newdesign-active .newdesign-shell.auth-screen,
 body.newdesign-active.bare-layout {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 14% 12%, rgba(47, 139, 87, 0.14), transparent 28%),
+    radial-gradient(circle at 14% 12%, var(--color-primary-soft), transparent 28%),
     radial-gradient(circle at 86% 18%, rgba(15, 23, 42, 0.08), transparent 30%),
     var(--color-bg);
 }
