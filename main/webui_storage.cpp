@@ -25,6 +25,10 @@
 // constant-time admin-token validation.
 extern esp_err_t validate_auth(httpd_req_t *req);
 
+#ifndef HB_WEBUI_VERSION
+#define HB_WEBUI_VERSION "unknown"
+#endif
+
 namespace
 {
 constexpr const char *TAG = "WebUIStorage";
@@ -210,9 +214,9 @@ bool validate_manifest_locked()
         cJSON_IsString(version) && version->valuestring &&
         version->valuestring[0] != '\0' &&
         cJSON_IsString(js_encoding) && js_encoding->valuestring &&
-        strcmp(js_encoding->valuestring, "br") == 0 &&
+        strcmp(js_encoding->valuestring, "gzip") == 0 &&
         cJSON_IsString(css_encoding) && css_encoding->valuestring &&
-        strcmp(css_encoding->valuestring, "br") == 0;
+        strcmp(css_encoding->valuestring, "gzip") == 0;
 
     if (valid)
     {
@@ -232,12 +236,11 @@ bool validate_files_locked()
         return false;
     }
 
-    // Only the New Design is accepted. Brotli keeps the complete single-file
-    // Vue application inside the existing 320 KiB partition.
+    // Only the New Design is accepted. All standalone assets use gzip.
     const bool valid =
         is_regular_nonempty_file(BASE_PATH "/index.html.gz") &&
-        is_regular_nonempty_file(BASE_PATH "/main.js.br") &&
-        is_regular_nonempty_file(BASE_PATH "/main.css.br") &&
+        is_regular_nonempty_file(BASE_PATH "/main.js.gz") &&
+        is_regular_nonempty_file(BASE_PATH "/main.css.gz") &&
         is_regular_nonempty_file(BASE_PATH "/webui-manifest.json") &&
         validate_manifest_locked();
 
@@ -438,8 +441,8 @@ struct AssetSpec
 };
 
 constexpr AssetSpec ASSET_SPECS[] = {
-    {"/main.js", BASE_PATH "/main.js.br", "application/javascript", "br"},
-    {"/main.css", BASE_PATH "/main.css.br", "text/css", "br"},
+    {"/main.js", BASE_PATH "/main.js.gz", "application/javascript", "gzip"},
+    {"/main.css", BASE_PATH "/main.css.gz", "text/css", "gzip"},
     {"/favicon.ico", BASE_PATH "/favicon.ico.gz", "image/x-icon", "gzip"},
     {"/manifest.webmanifest", BASE_PATH "/manifest.webmanifest.gz", "application/manifest+json", "gzip"},
     {"/icon-256.png", BASE_PATH "/icon-256.png.gz", "image/png", "gzip"},
@@ -527,8 +530,7 @@ esp_err_t wrapped_asset_handler(httpd_req_t *req)
         const esp_err_t result = stream_external_file(req, route->asset);
         if (result != ESP_ERR_NOT_FOUND) return result;
 
-        // Optional assets such as the large PWA icon intentionally remain in
-        // firmware and fall through to the embedded New Design handler.
+        // Optional assets intentionally remain embedded.
         ESP_LOGD(TAG, "Using embedded fallback asset for %s",
                  route->asset ? route->asset->uri : "unknown");
     }
@@ -560,8 +562,10 @@ esp_err_t get_webui_status_handler(httpd_req_t *req)
 
     const WebUIStorageStatus status = webui_storage_get_status();
     char safe_version[sizeof(status.version)] = {};
+    char effective_version[sizeof(status.version)] = {};
     char safe_error[sizeof(status.lastError)] = {};
     copy_json_safe(safe_version, sizeof(safe_version), status.version);
+    webui_storage_get_effective_version(effective_version, sizeof(effective_version));
     copy_json_safe(safe_error, sizeof(safe_error), status.lastError);
 
     char response[512];
@@ -817,6 +821,20 @@ WebUIStorageStatus webui_storage_get_status()
     return s_status;
 }
 
+void webui_storage_get_effective_version(char *output, size_t outputSize)
+{
+    if (!output || outputSize == 0) return;
+    StorageLock lock;
+    if (!lock) {
+        copy_safe(output, outputSize, HB_WEBUI_VERSION);
+        return;
+    }
+    copy_safe(output, outputSize,
+              s_status.valid && s_status.version[0]
+                  ? s_status.version
+                  : HB_WEBUI_VERSION);
+}
+
 bool webui_storage_is_valid()
 {
     StorageLock lock;
@@ -846,7 +864,7 @@ esp_err_t webui_storage_update_begin(size_t expected_size,
     // spiffs_create_partition_image() creates a full partition-sized image.
     if (expected_size != s_partition->size)
     {
-        set_error_locked("WWW image size does not match SPIFFS partition");
+        set_error_locked("Falsche Datei: erwartet wird ein 327680-Byte-WebUI-Abbild; Firmware unter System -> Firmware installieren");
         return ESP_ERR_INVALID_SIZE;
     }
     if (!valid_sha256_hex(expected_sha256_hex))
