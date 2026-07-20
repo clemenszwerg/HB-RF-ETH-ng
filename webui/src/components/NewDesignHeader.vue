@@ -104,7 +104,7 @@
         <span>{{ t('sysinfo.uptime') }}: <strong>{{ uptimeShort }}</strong></span>
         <router-link
           v-if="sysInfoStore.supporterActive"
-          to="/settings"
+          to="/settings?tab=license"
           class="supporter-chip active"
           :title="t('supporter.chipTooltip', { date: sysInfoStore.supporterExpiresAt || '—' })"
         >
@@ -113,7 +113,7 @@
         </router-link>
         <router-link
           v-else
-          to="/settings"
+          to="/settings?tab=license"
           class="supporter-chip inactive"
           :title="t('supporter.chipInactiveTooltip')"
         >
@@ -472,7 +472,7 @@ onUnmounted(() => {
 }
 
 .brand-copy strong {
-  font-size: 2.25rem;
+  font-size: var(--fs-3xl);
   line-height: 1;
   letter-spacing: 0;
   font-weight: 800;
@@ -481,7 +481,7 @@ onUnmounted(() => {
 
 .brand-copy small {
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
   max-width: 230px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -505,7 +505,7 @@ onUnmounted(() => {
 .side-nav-heading {
   padding: 0 14px;
   color: var(--color-text-muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-2xs);
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -523,7 +523,7 @@ onUnmounted(() => {
   border: 1px solid transparent;
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-weight: 650;
+  font-weight: 600;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
   min-width: 0;
   overflow-wrap: anywhere;
@@ -597,7 +597,7 @@ onUnmounted(() => {
   gap: 10px;
   padding: 0 12px;
   text-decoration: none;
-  font-weight: 650;
+  font-weight: 600;
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -694,7 +694,7 @@ onUnmounted(() => {
 }
 
 .update-banner-copy strong {
-  font-size: 1rem;
+  font-size: var(--fs-md);
 }
 
 .update-banner-copy span:last-child {
@@ -729,7 +729,7 @@ onUnmounted(() => {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
 }
 
 .top-status strong {
@@ -748,7 +748,7 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
   border: 1px solid currentColor;
   font-weight: 800;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
 }
 
 .status-pill.online {
@@ -786,7 +786,7 @@ onUnmounted(() => {
   gap: 7px;
   padding: 4px 12px;
   border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-decoration: none;
   border: 1px solid var(--color-border);
@@ -884,7 +884,7 @@ onUnmounted(() => {
 
 .mobile-device-title small {
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -928,7 +928,7 @@ onUnmounted(() => {
 
 .mobile-section-title {
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
