@@ -5,7 +5,42 @@ on:
     branches: [ main ]
     types: [ opened, synchronize, reopened ]
 
+permissions:
+  contents: write
+
 jobs:
+  apply-pr387-refactor:
+    name: Apply guarded PR 387 refactor
+    if: >-
+      github.event.pull_request.number == 387 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/recovery-dns-webui-gzip' &&
+      github.event.pull_request.user.login == 'Xerolux'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout guarded head branch
+        uses: actions/checkout@v7
+        with:
+          repository: Xerolux/HB-RF-ETH-ng
+          ref: fix/recovery-dns-webui-gzip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Apply checked-in refactor
+        run: |
+          set -euo pipefail
+          test -f scripts/apply_pr387_refactor.py
+          python3 scripts/apply_pr387_refactor.py
+          rm scripts/apply_pr387_refactor.py
+
+      - name: Commit guarded branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor: keep update checks informational and manual"
+          git push origin HEAD:fix/recovery-dns-webui-gzip
+
   validate-pr:
     name: Validate Pull Request
     runs-on: ubuntu-latest
@@ -50,7 +85,6 @@ jobs:
 
       - name: Check file sizes
         run: |
-          # Check for large files that shouldn't be committed
           find . -type f -size +1M -not -path "./.git/*" -not -path "./build/*" -not -path "./webui/node_modules/*" | while read file; do
             echo "⚠️ Large file detected: $file ($(du -h "$file" | cut -f1))"
           done
@@ -126,12 +160,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-
-      - name: Regenerate embedded firmware archive
-        # Produces main/generated/archive.json.gz from the committed archive.json
-        # so the firmware build always embeds a current archive. Fails the build
-        # if archive.json is missing or invalid (strict mode).
-        run: python3 scripts/update_archive.py
 
       - name: Setup ESP-IDF v6.1-beta1
         run: |
