@@ -1,0 +1,187 @@
+name: Complete draft release validation
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  verify-and-complete:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      FIRMWARE_TAG: v2.2.5-Beta.2
+      FIRMWARE_VERSION: 2.2.5-Beta.2
+      WEBUI_VERSION: 1.0.0-Beta.1
+      WEBUI_TAG: webui-v1.0.0-Beta.1
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Remove maintenance workflow first
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/maintenance-complete-draft-validation.yml
+          git add .github/workflows/maintenance-complete-draft-validation.yml
+          git commit -m "ci: remove completed draft validation workflow"
+          git push origin main
+
+      - name: Verify existing full draft release
+        run: |
+          set -euo pipefail
+          gh release view "$FIRMWARE_TAG" --repo "$REPO" --json isDraft,isPrerelease,tagName,name,assets > full-release.json
+          python3 - <<'PY'
+          import json, os
+          data = json.load(open('full-release.json', encoding='utf-8'))
+          assert data['isDraft'] is True, data
+          names = {item['name'] for item in data['assets']}
+          expected = {
+              f"firmware_{os.environ['FIRMWARE_VERSION']}.bin",
+              f"webui_{os.environ['WEBUI_VERSION']}.bin",
+              'bootloader.bin', 'partitions.bin', 'SHA256SUMS.txt',
+              'firmware-version.txt', 'webui-version.txt',
+              'webui-compatibility.json',
+          }
+          missing = expected - names
+          assert not missing, f'Missing full-release assets: {sorted(missing)}; got {sorted(names)}'
+          PY
+
+      - name: Wait briefly for an existing WebUI draft
+        run: |
+          for _ in $(seq 1 15); do
+            if gh release view "$WEBUI_TAG" --repo "$REPO" >/dev/null 2>&1; then exit 0; fi
+            sleep 2
+          done
+
+      - name: Dispatch WebUI-only draft when absent
+        run: |
+          set -euo pipefail
+          if gh release view "$WEBUI_TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "WebUI draft already exists"
+            exit 0
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$WEBUI_TAG" >/dev/null 2>&1; then
+            git push origin ":refs/tags/$WEBUI_TAG"
+          fi
+
+          BEFORE=$(gh run list --repo "$REPO" --workflow release-webui.yml --limit 1 --json databaseId --jq '.[0].databaseId // 0')
+          gh workflow run release-webui.yml --repo "$REPO" --ref main \
+            -f version="$WEBUI_VERSION" \
+            -f min_firmware_version=2.2.5-Beta.1 \
+            -f api_version=1 \
+            -f prerelease=true \
+            -f draft=true
+
+          RUN_ID=""
+          for _ in $(seq 1 30); do
+            LATEST=$(gh run list --repo "$REPO" --workflow release-webui.yml --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')
+            if [ "$LATEST" != "0" ] && [ "$LATEST" != "$BEFORE" ]; then RUN_ID="$LATEST"; break; fi
+            sleep 2
+          done
+          test -n "$RUN_ID"
+          echo "$RUN_ID" > webui-run-id.txt
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status --interval 10
+
+      - name: Verify WebUI-only draft release
+        run: |
+          set -euo pipefail
+          gh release view "$WEBUI_TAG" --repo "$REPO" --json isDraft,isPrerelease,tagName,name,assets > webui-release.json
+          python3 - <<'PY'
+          import json, os
+          data = json.load(open('webui-release.json', encoding='utf-8'))
+          assert data['isDraft'] is True, data
+          names = {item['name'] for item in data['assets']}
+          expected = {
+              f"webui_{os.environ['WEBUI_VERSION']}.bin",
+              'SHA256SUMS.txt', 'webui-version.txt',
+              'webui-compatibility.json',
+          }
+          missing = expected - names
+          assert not missing, f'Missing WebUI-only assets: {sorted(missing)}; got {sorted(names)}'
+          assert not any(name.startswith('firmware_') for name in names), names
+          PY
+
+      - name: Verify manifests stayed unpublished
+        run: |
+          git fetch origin main
+          git show origin/main:latest.json > latest-after.json
+          git show origin/main:beta.json > beta-after.json
+          python3 - <<'PY'
+          import json
+          latest = json.load(open('latest-after.json', encoding='utf-8'))
+          beta = json.load(open('beta-after.json', encoding='utf-8'))
+          assert latest.get('version') != '2.2.5-Beta.2'
+          assert beta.get('version') != '2.2.5-Beta.2'
+          PY
+
+      - name: Write validation report
+        run: |
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          full = json.load(open('full-release.json', encoding='utf-8'))
+          webui = json.load(open('webui-release.json', encoding='utf-8'))
+          latest = json.load(open('latest-after.json', encoding='utf-8'))
+          beta = json.load(open('beta-after.json', encoding='utf-8'))
+          def assets(data):
+              return '\n'.join(f"- `{item['name']}`" for item in sorted(data['assets'], key=lambda item: item['name']))
+          report = f'''# Draft release validation
+
+Validated at: {datetime.now(timezone.utc).isoformat()}
+
+## Full draft
+
+- Tag: `v2.2.5-Beta.2`
+- Draft: `{str(full['isDraft']).lower()}`
+- Pre-release: `{str(full['isPrerelease']).lower()}`
+
+{assets(full)}
+
+## WebUI-only draft
+
+- Tag: `webui-v1.0.0-Beta.1`
+- Draft: `{str(webui['isDraft']).lower()}`
+- Pre-release: `{str(webui['isPrerelease']).lower()}`
+- Firmware asset present: `false`
+
+{assets(webui)}
+
+## Update manifests
+
+- `latest.json` firmware: `{latest.get('version')}`
+- `beta.json` firmware: `{beta.get('version')}`
+- Draft releases did not publish either manifest.
+
+Physical ESP32-WROOM-32 validation remains deferred to the first beta test cycle.
+'''
+          Path('docs/DRAFT_RELEASE_VALIDATION.md').write_text(report, encoding='utf-8')
+          PY
+
+      - name: Commit validation report
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          cp /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/docs/DRAFT_RELEASE_VALIDATION.md docs/DRAFT_RELEASE_VALIDATION.md 2>/dev/null || true
+          if [ ! -f docs/DRAFT_RELEASE_VALIDATION.md ]; then
+            echo "Validation report missing" >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/DRAFT_RELEASE_VALIDATION.md
+          git commit -m "docs: record draft release validation"
+          git push origin main
