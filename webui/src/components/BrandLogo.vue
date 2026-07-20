@@ -21,7 +21,13 @@
         <stop offset="100%" stop-color="#EAA08E" />
       </linearGradient>
     </defs>
-    <g fill="url(#hb-rf-eth-brand)">
+    <!--
+      The three leaves' bounding box (incl. Bezier control points) is centred
+      near (241.5, 263.5) within the 512×512 viewBox, so the mark renders
+      slightly off-centre. A translate() on the group re-centres it without
+      touching the leaf geometry. Numbers rounded to integers for readability.
+    -->
+    <g fill="url(#hb-rf-eth-brand)" transform="translate(15, -7)">
       <path d="M 256.0 186.0 C 320.6 123.3, 374.3 165.6, 320.7 233.1 C 289.1 197.3, 272.8 175.2, 256.0 186.0 Z" />
       <path d="M 316.6 291.0 C 338.6 378.3, 275.2 403.6, 243.5 323.5 C 290.3 314.0, 317.6 311.0, 316.6 291.0 Z" />
       <path d="M 195.4 291.0 C 108.8 266.4, 118.6 198.8, 203.8 211.4 C 188.6 256.7, 177.6 281.8, 195.4 291.0 Z" />
