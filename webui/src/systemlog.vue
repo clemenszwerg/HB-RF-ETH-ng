@@ -617,7 +617,7 @@ onUnmounted(() => {
 .header-content p {
   margin: 4px 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--fs-xs);
   overflow-wrap: anywhere;
 }
 
@@ -632,7 +632,7 @@ onUnmounted(() => {
 
 .card-header h3 {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: var(--fs-lg);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -747,8 +747,8 @@ onUnmounted(() => {
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
-  font-family: "Cascadia Code", "Courier New", monospace;
-  font-size: 0.86rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   min-width: 0;
 }
 
@@ -785,7 +785,7 @@ onUnmounted(() => {
   background: var(--color-bg);
   border: 1px solid var(--color-border-light);
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
 }
 
 .bg-info-light { background-color: var(--color-info-light); }
@@ -828,11 +828,11 @@ onUnmounted(() => {
 
   .tool-btn {
     padding: 6px 10px;
-    font-size: 0.8125rem;
+    font-size: var(--fs-xs);
   }
 
   .log-line code {
-    font-size: 0.78rem;
+    font-size: var(--fs-2xs);
   }
 }
 
@@ -843,8 +843,8 @@ onUnmounted(() => {
   color: var(--color-text-inverse, #e0e0e0);
   padding: 12px;
   border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   line-height: 1.35;
   white-space: pre-wrap;
   word-break: break-word;

@@ -148,7 +148,7 @@ watch(() => props.modelValue, (newValue) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: var(--fs-xl);
   line-height: 1;
   cursor: pointer;
   opacity: 1;
@@ -174,7 +174,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .changelog-content :deep(h1) {
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
   font-weight: 800;
   color: var(--color-text);
   margin: 0 0 1rem;
@@ -183,7 +183,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .changelog-content :deep(h2) {
-  font-size: 1rem;
+  font-size: var(--fs-md);
   font-weight: 800;
   color: var(--color-primary-strong);
   margin: 1rem 0 0.5rem;
@@ -193,7 +193,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .changelog-content :deep(h3) {
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
   font-weight: 800;
   color: var(--color-text, #495057);
   margin-top: 1rem;
@@ -201,7 +201,7 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .changelog-content :deep(h4) {
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   font-weight: 800;
   color: var(--color-text-secondary, #6c757d);
   margin-top: 0.75rem;
@@ -267,14 +267,14 @@ watch(() => props.modelValue, (newValue) => {
 }
 
 .error-icon {
-  font-size: 3.5rem;
+  font-size: var(--fs-3xl);
   color: var(--color-danger);
   margin-bottom: 1rem;
   display: inline-flex;
 }
 
 .external-link-icon {
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
   vertical-align: -0.15em;
   margin-left: 0.25rem;
 }
@@ -307,10 +307,10 @@ watch(() => props.modelValue, (newValue) => {
     padding: 1rem;
   }
   .changelog-content :deep(h1) {
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
   }
   .changelog-content :deep(h2) {
-    font-size: 1.25rem;
+    font-size: var(--fs-xl);
   }
 }
 </style>

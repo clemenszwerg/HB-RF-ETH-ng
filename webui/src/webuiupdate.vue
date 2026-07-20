@@ -291,17 +291,17 @@ onMounted(refreshCachedStatus)
 .content-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
 .panel { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); }
 .status-card { padding:16px; display:flex; flex-direction:column; gap:5px; }
-.status-card .label,.status-card small { color:var(--color-text-secondary); font-size:.82rem; }
-.status-card strong { font-size:1rem; overflow-wrap:anywhere; }
+.status-card .label,.status-card small { color:var(--color-text-secondary); font-size: var(--fs-xs); }
+.status-card strong { font-size: var(--fs-md); overflow-wrap:anywhere; }
 .update-card { padding:20px; display:flex; flex-direction:column; gap:16px; }
 .card-heading { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
-.card-heading h2 { margin:.25rem 0; font-size:1.15rem; }
+.card-heading h2 { margin:.25rem 0; font-size: var(--fs-lg); }
 .card-heading p { margin:0; color:var(--color-text-secondary); }
-.kicker { color:var(--color-primary-strong); font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+.kicker { color:var(--color-primary-strong); font-size: var(--fs-2xs); font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
 .version-badge { padding:5px 9px; border-radius:999px; background:var(--color-primary-soft); font-weight:800; white-space:nowrap; }
 .release-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
 .release-grid div { padding:12px; border-radius:10px; background:var(--color-bg-alt); display:flex; flex-direction:column; gap:4px; }
-.release-grid span { color:var(--color-text-secondary); font-size:.8rem; }
+.release-grid span { color:var(--color-text-secondary); font-size: var(--fs-xs); }
 .release-grid strong { overflow-wrap:anywhere; }
 .actions { display:flex; flex-wrap:wrap; gap:10px; }
 .action-btn { display:inline-flex; gap:8px; align-items:center; text-decoration:none; }

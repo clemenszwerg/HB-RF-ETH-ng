@@ -231,7 +231,7 @@ const handleSubmit = async () => {
 :deep(.modal-title-custom) {
   color: white;
   font-weight: 600;
-  font-size: 1.25rem;
+  font-size: var(--fs-xl);
 }
 
 :deep(.modal-body-custom) {
@@ -256,7 +256,7 @@ const handleSubmit = async () => {
 }
 
 .modal-icon {
-  font-size: 2.5rem;
+  font-size: var(--fs-3xl);
   color: var(--color-primary);
   margin-bottom: var(--spacing-md);
   display: inline-flex;
@@ -286,7 +286,7 @@ const handleSubmit = async () => {
 
 .alert-icon {
   margin-right: var(--spacing-sm);
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
   display: inline-flex;
   vertical-align: -0.15em;
 }

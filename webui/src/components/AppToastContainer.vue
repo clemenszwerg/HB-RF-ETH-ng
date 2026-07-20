@@ -124,12 +124,12 @@ const iconName = (type) => {
 }
 
 .toast-copy strong {
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
 }
 
 .toast-copy span {
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   line-height: 1.35;
 }
 

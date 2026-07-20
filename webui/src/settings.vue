@@ -1236,7 +1236,7 @@ const restoreSettings = async () => {
   padding: 8px 16px;
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: var(--fs-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1280,7 +1280,7 @@ const restoreSettings = async () => {
 }
 
 .card-header h3 {
-  font-size: 1.125rem;
+  font-size: var(--fs-lg);
   margin: 0;
   color: var(--color-text-secondary);
   text-transform: uppercase;
@@ -1308,13 +1308,13 @@ const restoreSettings = async () => {
 
 .security-info h4 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   overflow-wrap: anywhere;
 }
 
 .security-info p {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
 }
@@ -1349,7 +1349,7 @@ hr {
 }
 
 .switch-label {
-  font-size: 1rem;
+  font-size: var(--fs-md);
   font-weight: 500;
 }
 
@@ -1363,13 +1363,13 @@ hr {
 
 .switch-copy h4 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-md);
 }
 
 .switch-copy p {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
 }
 
 .experimental-warning {
@@ -1393,7 +1393,7 @@ hr {
 .experimental-warning p {
   margin: 4px 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
 }
 
 .experimental-switch-row {
@@ -1414,7 +1414,7 @@ hr {
 }
 
 .brightness-icon {
-  font-size: 1.4rem;
+  font-size: var(--fs-xl);
   color: var(--color-warning);
   flex-shrink: 0;
 }
@@ -1499,7 +1499,7 @@ hr {
 }
 
 .source-icon {
-  font-size: 2rem;
+  font-size: var(--fs-3xl);
   color: var(--color-primary);
   margin-bottom: var(--spacing-xs);
   display: inline-flex;
@@ -1510,7 +1510,7 @@ hr {
   top: 8px;
   right: 8px;
   color: var(--color-primary);
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
   display: inline-flex;
 }
 
@@ -1536,7 +1536,7 @@ hr {
 }
 
 .tile-icon {
-  font-size: 1.8rem;
+  font-size: var(--fs-2xl);
   color: var(--color-primary);
   margin-right: var(--spacing-md);
   display: inline-flex;
@@ -1548,21 +1548,21 @@ hr {
 }
 
 .tile-content h4 {
-  font-size: 1rem;
+  font-size: var(--fs-md);
   margin: 0;
   overflow-wrap: anywhere;
 }
 
 .tile-content p {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--fs-xs);
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
 }
 
 .tile-arrow {
   color: var(--color-text-secondary);
-  font-size: 1.2rem;
+  font-size: var(--fs-lg);
   display: inline-flex;
 }
 
@@ -1585,7 +1585,7 @@ hr {
 }
 
 .led-program-item .form-label.small {
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   font-weight: 500;
   color: var(--color-text-secondary);
 }
@@ -1677,7 +1677,7 @@ hr {
 
   .segment-btn {
     padding: 10px 16px;
-    font-size: 0.875rem;
+    font-size: var(--fs-xs);
     flex: 1 1 min(140px, 100%);
   }
 
@@ -1743,7 +1743,7 @@ hr {
   }
 
   .source-icon {
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
     margin-bottom: 0;
   }
 
@@ -1783,7 +1783,7 @@ hr {
 @media (max-width: 576px) {
   .segment-btn {
     padding: 8px 14px;
-    font-size: 0.8125rem;
+    font-size: var(--fs-xs);
   }
 }
 
@@ -1811,14 +1811,14 @@ hr {
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--color-primary-soft), rgba(245, 158, 11, 0.18));
   color: var(--color-primary-strong);
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
 .supporter-intro {
   margin: 0 0 14px;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   line-height: 1.5;
 }
 
@@ -1893,7 +1893,7 @@ hr {
 
 .medallion-label {
   display: inline-block;
-  font-size: 0.72rem;
+  font-size: var(--fs-2xs);
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1906,19 +1906,19 @@ hr {
 
 .medallion-title {
   display: block;
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
   line-height: 1.25;
 }
 
 .medallion-body {
   margin: 6px 0 10px;
   color: var(--color-text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--fs-xs);
   line-height: 1.45;
 }
 
 .supporter-remove {
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
 }
 
 @keyframes medallion-float {
@@ -1943,7 +1943,7 @@ hr {
 
 .supporter-input {
   flex: 1 1 auto;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1955,7 +1955,7 @@ hr {
 
 .supporter-feedback {
   margin-top: 8px;
-  font-size: 0.83rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
 }
 
@@ -1964,7 +1964,7 @@ hr {
 .supporter-feedback.expired { color: var(--color-warning); }
 
 .supporter-remove {
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
 }
 
 /* ---- revoked state ---- */
@@ -1992,20 +1992,20 @@ hr {
 
 .revoked-text strong {
   display: block;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   color: var(--color-danger);
 }
 
 .revoked-text p {
   margin: 4px 0 8px;
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--fs-xs);
   line-height: 1.4;
 }
 
 .supporter-footnote {
   margin-top: 12px;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
 }
 
 @media (max-width: 576px) {

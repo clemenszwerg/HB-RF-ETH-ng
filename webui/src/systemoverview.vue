@@ -205,22 +205,22 @@ onMounted(loadOverview)
 .overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .overview-card, .detail-card { border: 1px solid var(--color-border-light); background: var(--color-surface); box-shadow: var(--shadow-sm); }
 .overview-card { min-height: 135px; border-radius: var(--radius-lg); padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-.overview-card strong { font-size: 1.5rem; }
+.overview-card strong { font-size: var(--fs-2xl); }
 .overview-card small, .overview-label { color: var(--color-text-secondary); }
-.overview-label { font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
+.overview-label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
 .usage-track { height: 6px; border-radius: var(--radius-full); background: var(--color-border-light); overflow: hidden; margin-top: auto; }
 .usage-track span { display: block; height: 100%; background: var(--color-primary); }
 .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .detail-card { border-radius: var(--radius-xl); padding: 22px; min-width: 0; }
 .detail-heading { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
-.detail-heading h2 { margin: 0; font-size: 1.2rem; }
-.detail-heading p { margin: 3px 0 0; color: var(--color-text-secondary); font-size: .88rem; }
+.detail-heading h2 { margin: 0; font-size: var(--fs-lg); }
+.detail-heading p { margin: 3px 0 0; color: var(--color-text-secondary); font-size: var(--fs-xs); }
 .kv-list { display: flex; flex-direction: column; }
 .kv-row { display: flex; justify-content: space-between; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--color-border-light); }
 .kv-row:last-child { border-bottom: 0; }
 .kv-row span { color: var(--color-text-secondary); }
 .kv-row strong { text-align: right; overflow-wrap: anywhere; }
-.mono { font-family: var(--font-mono, monospace); }
+.mono { font-family: var(--font-mono); }
 .action-row { display: flex; justify-content: flex-end; }
 .skeleton { min-height: 135px; animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 0%,100% { opacity: .45; } 50% { opacity: .8; } }

@@ -147,14 +147,14 @@ const libs = ref([
 }
 
 .section-icon {
-  font-size: 1.5rem;
+  font-size: var(--fs-2xl);
   color: var(--color-primary);
   display: inline-flex;
   flex-shrink: 0;
 }
 
 .section-title {
-  font-size: 1.125rem;
+  font-size: var(--fs-lg);
   font-weight: 600;
   color: var(--color-text);
   margin: 0;
@@ -182,17 +182,17 @@ const libs = ref([
 }
 
 .version-label {
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   opacity: 0.9;
 }
 
 .version-number {
-  font-size: 1rem;
+  font-size: var(--fs-md);
 }
 
 .project-description {
   color: var(--color-text-secondary);
-  font-size: 0.9375rem;
+  font-size: var(--fs-sm);
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -245,7 +245,7 @@ const libs = ref([
 }
 
 .link-icon {
-  font-size: 1.125rem;
+  font-size: var(--fs-lg);
   display: inline-flex;
 }
 
@@ -261,7 +261,7 @@ const libs = ref([
 }
 
 .license-info p {
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   color: var(--color-text-secondary);
 }
 
@@ -294,13 +294,13 @@ const libs = ref([
 .lib-name {
   font-weight: 500;
   color: var(--color-text);
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .lib-license {
-  font-size: 0.75rem;
+  font-size: var(--fs-2xs);
   color: var(--color-text-secondary);
   background: var(--color-surface);
   padding: 0.125rem 0.5rem;
@@ -311,7 +311,7 @@ const libs = ref([
 
 .text-muted {
   color: var(--color-text-secondary) !important;
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
 }
 
 @media (max-width: 768px) {

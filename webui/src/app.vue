@@ -324,7 +324,7 @@ onUnmounted(() => {
   border: 1px solid var(--color-border-light);
   padding: 8px 20px;
   border-radius: var(--radius-full);
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -374,7 +374,7 @@ onUnmounted(() => {
   background: #000;
   color: #fff;
   border: 1px solid #000;
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
@@ -439,7 +439,7 @@ onUnmounted(() => {
 
 .update-success-text {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
@@ -467,7 +467,7 @@ onUnmounted(() => {
 .expired-prompt-text {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.92rem;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -515,13 +515,13 @@ onUnmounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 2rem;
+  font-size: var(--fs-3xl);
   color: white;
   display: inline-flex;
 }
 
 .countdown-value {
-  font-size: 4rem;
+  font-size: var(--fs-3xl);
   line-height: 1;
   font-weight: 800;
   margin: var(--spacing-md) 0;

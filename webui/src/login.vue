@@ -366,7 +366,7 @@ const loginClick = async () => {
 }
 
 .brand-name {
-  font-size: 1.5rem;
+  font-size: var(--fs-2xl);
   font-weight: 800;
   color: var(--color-text);
   margin: 0;
@@ -374,14 +374,14 @@ const loginClick = async () => {
 }
 
 .welcome-text {
-  font-size: 1.25rem;
+  font-size: var(--fs-xl);
   font-weight: 700;
   margin-bottom: 8px;
   color: var(--color-text);
 }
 
 .subtitle-text {
-  font-size: 0.9375rem;
+  font-size: var(--fs-sm);
   color: var(--color-text-secondary);
   margin-bottom: 24px;
 }
@@ -403,7 +403,7 @@ const loginClick = async () => {
 .reset-status p {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
 }
 
 .reset-countdown {
@@ -435,7 +435,7 @@ const loginClick = async () => {
   z-index: 2;
   pointer-events: none;
   color: var(--color-text-muted);
-  font-size: 1.25rem;
+  font-size: var(--fs-xl);
   display: inline-flex;
 }
 
@@ -445,7 +445,7 @@ const loginClick = async () => {
   border: 1px solid transparent;
   background: var(--color-bg);
   border-radius: var(--radius-md);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
   color: var(--color-text);
 }
@@ -464,21 +464,21 @@ const loginClick = async () => {
 
 .error-text {
   color: var(--color-danger);
-  font-size: 0.8125rem;
+  font-size: var(--fs-xs);
   margin-top: -8px;
   margin-left: 12px;
 }
 
 .login-alert {
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
 }
 
 .login-btn {
   padding: 14px;
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 1.0625rem;
+  font-size: var(--fs-lg);
   margin-top: 8px;
   box-shadow: 0 14px 28px rgba(242, 106, 61, 0.22);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -518,7 +518,7 @@ const loginClick = async () => {
 }
 
 .links {
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
 }
 
 .links a {
@@ -551,13 +551,13 @@ const loginClick = async () => {
   .brand-logo {
     width: 56px;
     height: 56px;
-    font-size: 1.5rem;
+    font-size: var(--fs-2xl);
   }
   .brand-name {
-    font-size: 1.2rem;
+    font-size: var(--fs-lg);
   }
   .welcome-text {
-    font-size: 1rem;
+    font-size: var(--fs-md);
   }
 }
 </style>

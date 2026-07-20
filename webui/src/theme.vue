@@ -148,7 +148,7 @@ const saveColor = (event) => themeStore.setPrimaryColor(event.target.value, true
 .theme-card { border: 1px solid var(--color-border-light); background: var(--color-surface); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); padding: 24px; }
 .preview-card { grid-column: 1 / -1; }
 .card-heading { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px; }
-.card-heading h2 { font-size: 1.25rem; }
+.card-heading h2 { font-size: var(--fs-xl); }
 .card-heading p { color: var(--color-text-secondary); margin-top: 4px; }
 .scheme-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .scheme-option { border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-text); border-radius: var(--radius-md); min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
@@ -161,7 +161,7 @@ const saveColor = (event) => themeStore.setPrimaryColor(event.target.value, true
 .preview-panel { border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; background: var(--color-bg); }
 .preview-header { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--color-surface); border-bottom: 1px solid var(--color-border-light); }
 .preview-logo { width: 24px; height: 24px; border-radius: 8px; background: var(--color-primary); }
-.preview-status { margin-left: auto; color: var(--color-success); font-size: .82rem; font-weight: 700; }
+.preview-status { margin-left: auto; color: var(--color-success); font-size: var(--fs-xs); font-weight: 700; }
 .preview-content { display: grid; grid-template-columns: repeat(2, 1fr) auto; gap: 14px; align-items: end; padding: 20px; }
 .preview-metric { position: relative; padding: 14px; border-radius: var(--radius-md); background: var(--color-surface); display: flex; justify-content: space-between; overflow: hidden; }
 .preview-metric i { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--color-primary); }

@@ -104,7 +104,7 @@ watch(showModal, (newVal) => {
 }
 
 .title {
-  font-size: 1.35rem;
+  font-size: var(--fs-xl);
   font-weight: 800;
   margin-bottom: var(--spacing-sm);
   color: var(--color-text);
@@ -113,7 +113,7 @@ watch(showModal, (newVal) => {
 .description {
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-xl);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   line-height: 1.6;
 }
 
@@ -132,7 +132,7 @@ watch(showModal, (newVal) => {
   border-radius: var(--radius-sm);
   text-decoration: none;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   transition: background 0.2s, border-color 0.2s, color 0.2s;
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
@@ -167,7 +167,7 @@ watch(showModal, (newVal) => {
 }
 
 .footer-text {
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   color: var(--color-text-secondary);
   font-weight: 500;
 }
@@ -181,11 +181,11 @@ watch(showModal, (newVal) => {
     height: 40px;
   }
   .title {
-    font-size: 1.375rem;
+    font-size: var(--fs-xl);
   }
   .sponsor-option {
     padding: 12px;
-    font-size: 1rem;
+    font-size: var(--fs-md);
   }
 }
 </style>

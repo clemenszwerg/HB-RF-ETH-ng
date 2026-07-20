@@ -369,9 +369,9 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-pill, 999px);
   background: var(--color-warning-soft, #fff3cd);
   color: var(--color-warning, #856404);
-  font-size: 0.75rem;
+  font-size: var(--fs-2xs);
   font-weight: 600;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   cursor: help;
 }
 
@@ -393,19 +393,19 @@ onBeforeUnmount(() => {
 
 .quick-action strong {
   display: block;
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
   overflow-wrap: anywhere;
 }
 
 .quick-action p {
   margin: 4px 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
   overflow-wrap: anywhere;
 }
 
 .metric-value.smaller {
-  font-size: 1.2rem;
+  font-size: var(--fs-lg);
   line-height: 1.2;
 }
 
@@ -471,7 +471,7 @@ onBeforeUnmount(() => {
 }
 
 .radio-stat strong {
-  font-size: 1rem;
+  font-size: var(--fs-md);
   overflow-wrap: anywhere;
 }
 

@@ -906,7 +906,7 @@ const runDiagnostic = async (target) => {
 .diagnostics-subtitle {
   margin: 4px 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: var(--fs-xs);
 }
 
 .diag-list {
@@ -944,7 +944,7 @@ const runDiagnostic = async (target) => {
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -992,7 +992,7 @@ const runDiagnostic = async (target) => {
   background: rgba(255, 255, 255, 0.68);
   border-radius: var(--radius-sm);
   padding: 6px 12px;
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--color-text);
   white-space: normal;
@@ -1016,7 +1016,7 @@ const runDiagnostic = async (target) => {
 .diag-message {
   margin: 6px 0 0 20px;
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -1062,12 +1062,12 @@ const runDiagnostic = async (target) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: var(--fs-xl);
 }
 
 .card-header h3 {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: var(--fs-lg);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -1105,7 +1105,7 @@ const runDiagnostic = async (target) => {
   box-shadow: var(--shadow-lg);
   border-radius: var(--radius-full);
   padding: 1rem;
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
 }
 
 .expand-enter-active,
@@ -1143,7 +1143,7 @@ const runDiagnostic = async (target) => {
 .text-info { color: var(--color-info, #0d6efd); }
 
 .form-text {
-  font-size: 0.8125rem;
+  font-size: var(--fs-xs);
   color: var(--color-text-secondary);
   margin-top: 4px;
 }
@@ -1158,7 +1158,7 @@ const runDiagnostic = async (target) => {
 
 .tls-section h4,
 .command-section h4 {
-  font-size: 1rem;
+  font-size: var(--fs-md);
   margin: 0 0 4px;
   overflow-wrap: anywhere;
 }
@@ -1169,7 +1169,7 @@ const runDiagnostic = async (target) => {
   border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
   border-radius: var(--radius-lg);
   padding: 10px 14px;
-  font-size: 0.88rem;
+  font-size: var(--fs-xs);
   overflow-wrap: anywhere;
 }
 
@@ -1190,7 +1190,7 @@ const runDiagnostic = async (target) => {
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border-light);
   background: rgba(255, 255, 255, 0.68);
-  font-size: 0.78rem;
+  font-size: var(--fs-2xs);
   font-weight: 600;
   color: var(--color-text-secondary);
   max-width: 100%;
@@ -1199,7 +1199,7 @@ const runDiagnostic = async (target) => {
 
 .btn-link-danger {
   color: var(--color-danger);
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-decoration: none;
   padding: 0;
@@ -1210,14 +1210,14 @@ const runDiagnostic = async (target) => {
 }
 
 .pem-textarea {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
   min-height: 110px;
 }
 
 .pem-feedback {
   margin-top: 6px;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -1241,7 +1241,7 @@ const runDiagnostic = async (target) => {
 
 .cert-present-hint {
   color: var(--color-success);
-  font-size: 0.82rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -1290,7 +1290,7 @@ const runDiagnostic = async (target) => {
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: var(--fs-md);
   }
 
   .header-content {
@@ -1298,7 +1298,7 @@ const runDiagnostic = async (target) => {
   }
 
   .card-header h3 {
-    font-size: 1rem;
+    font-size: var(--fs-md);
     overflow-wrap: anywhere;
   }
 
@@ -1312,7 +1312,7 @@ const runDiagnostic = async (target) => {
   }
 
   .save-btn {
-    font-size: 1rem;
+    font-size: var(--fs-md);
     padding: 0.875rem;
   }
 

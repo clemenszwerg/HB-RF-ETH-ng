@@ -200,20 +200,20 @@ const handleSubmit = async () => {
 }
 
 .lock-icon {
-  font-size: 2rem;
+  font-size: var(--fs-3xl);
   color: white;
   display: inline-flex;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
 }
 
 .card-title {
-  font-size: 1.5rem;
+  font-size: var(--fs-2xl);
   font-weight: 700;
   margin: 0;
 }
 
 .card-subtitle {
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   opacity: 0.9;
   margin: var(--spacing-xs) 0 0 0;
 }
@@ -232,7 +232,7 @@ const handleSubmit = async () => {
 }
 
 .alert-icon {
-  font-size: 1.3rem;
+  font-size: var(--fs-xl);
   flex-shrink: 0;
   display: inline-flex;
 }
@@ -257,7 +257,7 @@ const handleSubmit = async () => {
 }
 
 .req-icon {
-  font-size: 1.3rem;
+  font-size: var(--fs-xl);
   color: var(--color-text-secondary);
   display: inline-flex;
   flex-shrink: 0;
@@ -270,13 +270,13 @@ const handleSubmit = async () => {
 .req-content strong {
   display: block;
   margin-bottom: var(--spacing-xs);
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
 }
 
 .req-content ul {
   margin: 0;
   padding-left: var(--spacing-lg);
-  font-size: 0.875rem;
+  font-size: var(--fs-xs);
   color: var(--color-text-secondary);
 }
 
