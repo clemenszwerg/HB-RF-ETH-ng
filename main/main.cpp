@@ -46,7 +46,6 @@
 #include "radiomoduledetector.h"
 #include "rawuartudplistener.h"
 #include "webui.h"
-#include "mdnsserver.h"
 #include "ntpserver.h"
 #include "esp_ota_ops.h"
 #include "updatecheck.h"
@@ -237,9 +236,6 @@ void app_main()
         break;
     }
 
-    static MDns mdns;
-    mdns.start(&settings);
-
     static NtpServer ntpServer(&clk);
     ntpServer.start();
 
@@ -388,10 +384,7 @@ void app_main()
 
     schedule_firmware_validation();
 
-    // Send mDNS announcement after all services are started
-    // This helps CCU 3 and other devices discover us after restart
-    ESP_LOGI(TAG, "All services started. Sending mDNS announcements...");
-    mdns.announce();
+    ESP_LOGI(TAG, "All services started.");
 
     // Boot finished - stop watching the main task, it stays suspended from
     // here on and would otherwise trip the WDT.
