@@ -581,6 +581,7 @@ export default {
   // Change Password
   changePassword: {
     title: 'Wachtwoordwijziging vereist',
+    eyebrow: 'Beveiliging',
     subtitle: 'Beveilig uw account',
     warningTitle: 'Vereist',
     requirementsTitle: 'Wachtwoordvereisten:',

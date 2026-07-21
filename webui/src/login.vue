@@ -367,7 +367,7 @@ const loginClick = async () => {
 
 .brand-name {
   font-size: var(--fs-2xl);
-  font-weight: 800;
+  font-weight: var(--font-weight-heavy);
   color: var(--color-text);
   margin: 0;
   letter-spacing: -0.03em;
@@ -375,15 +375,15 @@ const loginClick = async () => {
 
 .welcome-text {
   font-size: var(--fs-xl);
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
   color: var(--color-text);
 }
 
 .subtitle-text {
   font-size: var(--fs-sm);
   color: var(--color-text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-5);
 }
 
 .password-reset-panel {
@@ -397,7 +397,7 @@ const loginClick = async () => {
 .reset-status {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .reset-status p {
@@ -407,7 +407,7 @@ const loginClick = async () => {
 }
 
 .reset-countdown {
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-primary) !important;
 }
 
@@ -420,7 +420,7 @@ const loginClick = async () => {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .input-group-modern {
@@ -477,7 +477,7 @@ const loginClick = async () => {
 .login-btn {
   padding: 14px;
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: var(--fs-lg);
   margin-top: 8px;
   /* Neutral elevation shadow (token-driven) so the glow follows the active
@@ -501,8 +501,8 @@ const loginClick = async () => {
   border: 0;
   background: transparent;
   color: var(--color-primary);
-  font-weight: 700;
-  padding: 4px 8px;
+  font-weight: var(--font-weight-bold);
+  padding: var(--space-1) var(--space-2);
 }
 
 .forgot-link:disabled {
@@ -516,7 +516,7 @@ const loginClick = async () => {
 
 .version-text {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   opacity: 0.7;
 }
 
@@ -527,7 +527,7 @@ const loginClick = async () => {
 .links a {
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   transition: color var(--transition-fast);
 }
 

@@ -624,7 +624,7 @@ onUnmounted(() => {
 .header-icon {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -633,7 +633,7 @@ onUnmounted(() => {
 .card-header h3 {
   margin: 0;
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }
 
@@ -649,8 +649,8 @@ onUnmounted(() => {
 .toggle-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.52);
   border: 1px solid var(--color-border-light);
@@ -661,11 +661,11 @@ onUnmounted(() => {
 .tool-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   border: 1px solid var(--color-border-light);
   background: rgba(255, 255, 255, 0.6);
   border-radius: var(--radius-full);
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   max-width: 100%;
   white-space: normal;
@@ -678,7 +678,7 @@ onUnmounted(() => {
 .toolbar {
   padding: 0 var(--spacing-lg) var(--spacing-md);
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   min-width: 0;
 }
@@ -689,7 +689,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: var(--space-3) 14px;
   border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.64);
   border: 1px solid var(--color-border-light);
@@ -707,7 +707,7 @@ onUnmounted(() => {
 .level-filter {
   width: auto;
   min-width: 150px;
-  padding: 12px 14px;
+  padding: var(--space-3) 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border-light);
   background: rgba(255, 255, 255, 0.64);
@@ -732,14 +732,14 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 12px;
+  padding: var(--space-2) 10px;
+  border-radius: var(--radius-lg);
   color: var(--color-text);
   min-width: 0;
 }
 
 .log-line:hover {
-  background: rgba(127, 127, 127, 0.1);
+  background: var(--color-border-light);
 }
 
 .log-line code {
@@ -773,7 +773,7 @@ onUnmounted(() => {
 }
 
 .log-empty {
-  padding: 24px;
+  padding: var(--space-5);
   color: var(--color-text-secondary);
 }
 
@@ -839,10 +839,10 @@ onUnmounted(() => {
 .crash-tail-pre {
   max-height: 60vh;
   overflow: auto;
-  background: var(--color-bg-secondary, #1e1e1e);
-  color: var(--color-text-inverse, #e0e0e0);
-  padding: 12px;
-  border-radius: 6px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-inverse);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   line-height: 1.35;

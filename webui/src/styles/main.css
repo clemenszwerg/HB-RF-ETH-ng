@@ -29,6 +29,7 @@
 
   --color-bg: #eef1f6;
   --color-bg-alt: #f7f8fb;
+  --color-bg-secondary: #111723;
   --color-surface: #ffffff;
   --color-surface-2: rgba(255, 255, 255, 0.78);
   --color-border: rgba(125, 139, 167, 0.18);
@@ -37,6 +38,9 @@
   --color-text: #111723;
   --color-text-secondary: #5f6778;
   --color-text-muted: #8f97a8;
+  --color-text-inverse: #e9edf3;
+
+  --color-warning-strong: #b5760f;
 
   --shadow-sm: 0 8px 20px rgba(31, 41, 55, 0.06);
   --shadow-md: 0 14px 34px rgba(31, 41, 55, 0.09);
@@ -113,6 +117,7 @@
 [data-bs-theme="dark"] {
   --color-bg: #0f131a;
   --color-bg-alt: #131922;
+  --color-bg-secondary: #05070b;
   --color-surface: #171d26;
   --color-surface-2: rgba(23, 29, 38, 0.78);
   --color-border: rgba(157, 171, 196, 0.12);
@@ -120,6 +125,8 @@
   --color-text: #f4f7fb;
   --color-text-secondary: #a9b0be;
   --color-text-muted: #7d8697;
+  --color-text-inverse: #111723;
+  --color-warning-strong: #f5c058;
   --color-primary-soft: rgba(242, 106, 61, 0.16);
   --color-primary-light: rgba(242, 106, 61, 0.16);
   --color-success-soft: rgba(28, 169, 113, 0.16);

@@ -1,16 +1,14 @@
 <template>
-  <div class="change-password-page">
-    <BCard class="change-password-card">
-      <template #header>
-        <div class="card-header-content">
-          <span class="lock-icon"><AppIcon name="lock" /></span>
-          <div>
-            <h2 class="card-title">{{ t('changePassword.title') }}</h2>
-            <p class="card-subtitle">{{ t('changePassword.subtitle') }}</p>
-          </div>
-        </div>
-      </template>
+  <div class="change-password-page page-shell">
+    <section class="page-hero">
+      <div class="hero-copy">
+        <span class="hero-eyebrow"><AppIcon name="lock" /> {{ t('changePassword.eyebrow') }}</span>
+        <h1 class="hero-title">{{ t('changePassword.title') }}</h1>
+        <p class="hero-subtitle">{{ t('changePassword.subtitle') }}</p>
+      </div>
+    </section>
 
+    <section class="surface-card change-password-card">
       <div class="card-body-content">
         <BAlert show variant="warning" class="warning-alert">
           <span class="alert-icon"><AppIcon name="alert" /></span>
@@ -96,14 +94,13 @@
             size="lg"
             type="submit"
             :disabled="loading"
-            class="submit-btn"
           >
             <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
             <span>{{ loading ? t('common.changing') : t('changePassword.changePassword') }}</span>
           </BButton>
         </BForm>
       </div>
-    </BCard>
+    </section>
   </div>
 </template>
 
@@ -174,58 +171,27 @@ const handleSubmit = async () => {
 <style scoped>
 .change-password-page {
   display: flex;
-  justify-content: center;
-  padding: var(--spacing-md);
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  align-items: stretch;
 }
 
 .change-password-card {
   width: 100%;
-  max-width: 500px;
-  border: none;
-  box-shadow: var(--shadow-xl);
-  overflow: hidden;
+  max-width: 560px;
+  margin: 0 auto;
 }
 
-.change-password-card :deep(.card-header) {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
-  border-bottom: none;
-  padding: var(--spacing-xl) var(--spacing-lg);
-}
-
-.card-header-content {
+.card-body-content {
+  padding: var(--card-padding);
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--spacing-md);
-  color: white;
-}
-
-.lock-icon {
-  font-size: var(--fs-3xl);
-  color: white;
-  display: inline-flex;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
-}
-
-.card-title {
-  font-size: var(--fs-2xl);
-  font-weight: 700;
-  margin: 0;
-}
-
-.card-subtitle {
-  font-size: var(--fs-xs);
-  opacity: 0.9;
-  margin: var(--spacing-xs) 0 0 0;
-}
-
-.change-password-card :deep(.card-body) {
-  padding: var(--spacing-xl) var(--spacing-lg);
 }
 
 .warning-alert {
-  border-radius: var(--radius-md);
   padding: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  margin: 0;
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-md);
@@ -253,7 +219,6 @@ const handleSubmit = async () => {
   padding: var(--spacing-md);
   background: var(--color-bg);
   border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-lg);
 }
 
 .req-icon {
@@ -284,21 +249,9 @@ const handleSubmit = async () => {
   margin-bottom: var(--spacing-xs);
 }
 
-.submit-btn {
-  height: var(--touch-target-lg);
-  font-weight: 600;
-  margin-top: var(--spacing-md);
-}
-
-/* Mobile adjustments */
 @media (max-width: 480px) {
-  .change-password-page {
-    padding: var(--spacing-sm);
-  }
-
-  .change-password-card :deep(.card-header),
-  .change-password-card :deep(.card-body) {
-    padding: var(--spacing-lg) var(--spacing-md);
+  .change-password-card {
+    max-width: 100%;
   }
 }
 </style>

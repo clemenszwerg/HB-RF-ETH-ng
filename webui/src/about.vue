@@ -1,10 +1,21 @@
 <template>
-  <div class="about-page">
+  <div class="about-page page-shell">
+    <section class="page-hero">
+      <div class="hero-copy">
+        <span class="hero-eyebrow"><AppIcon name="info" /> {{ t('nav.about') }}</span>
+        <h1 class="hero-title">{{ t('about.title') }}</h1>
+        <p class="hero-subtitle">{{ t('about.description') }}</p>
+      </div>
+      <div class="hero-meta">
+        <span class="meta-chip"><AppIcon name="firmware" /> {{ sysInfoStore.currentVersion ? 'v' + sysInfoStore.currentVersion : '...' }}</span>
+      </div>
+    </section>
+
     <!-- Project Info -->
-    <div class="about-section">
-      <div class="section-header">
-        <span class="section-icon"><AppIcon name="router" /></span>
-        <h3 class="section-title">HB-RF-ETH-ng</h3>
+    <section class="surface-card">
+      <div class="card-section-title">
+        <span class="icon-badge soft"><AppIcon name="router" /></span>
+        <h3>HB-RF-ETH-ng</h3>
       </div>
       <div class="project-info">
         <div class="version-badge">
@@ -13,13 +24,13 @@
         </div>
         <p class="project-description">{{ t('about.description') }}</p>
       </div>
-    </div>
+    </section>
 
     <!-- Fork Info -->
-    <div class="about-section">
-      <div class="section-header">
-        <span class="section-icon"><AppIcon name="gitFork" /></span>
-        <h3 class="section-title">{{ t('about.fork') }}</h3>
+    <section class="surface-card">
+      <div class="card-section-title">
+        <span class="icon-badge soft"><AppIcon name="gitFork" /></span>
+        <h3>{{ t('about.fork') }}</h3>
       </div>
       <div class="info-card">
         <p>{{ t('about.forkDescription') }}</p>
@@ -36,13 +47,13 @@
           <p>{{ t('privacy.updateCheck') }}</p>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Original Author -->
-    <div class="about-section">
-      <div class="section-header">
-        <span class="section-icon"><AppIcon name="user" /></span>
-        <h3 class="section-title">{{ t('about.original') }}</h3>
+    <section class="surface-card">
+      <div class="card-section-title">
+        <span class="icon-badge soft"><AppIcon name="user" /></span>
+        <h3>{{ t('about.original') }}</h3>
       </div>
       <div class="info-card">
         <p>{{ t('about.copyrightOriginal') }}</p>
@@ -61,13 +72,13 @@
           </p>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Third Party Software -->
-    <div class="about-section">
-      <div class="section-header">
-        <span class="section-icon"><AppIcon name="package" /></span>
-        <h3 class="section-title">{{ t('thirdParty.title') }}</h3>
+    <section class="surface-card">
+      <div class="card-section-title">
+        <span class="icon-badge soft"><AppIcon name="package" /></span>
+        <h3>{{ t('thirdParty.title') }}</h3>
       </div>
       <div class="info-card">
         <p class="text-muted">{{ t('thirdParty.containsThirdPartySoftware') }}</p>
@@ -86,7 +97,7 @@
           </a>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -127,40 +138,6 @@ const libs = ref([
   min-width: 0;
 }
 
-.about-section {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-  padding: var(--spacing-lg);
-  min-width: 0;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-  padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
-  min-width: 0;
-}
-
-.section-icon {
-  font-size: var(--fs-2xl);
-  color: var(--color-primary);
-  display: inline-flex;
-  flex-shrink: 0;
-}
-
-.section-title {
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  color: var(--color-text);
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
 .project-info {
   display: flex;
   flex-direction: column;
@@ -175,7 +152,7 @@ const libs = ref([
   color: white;
   padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: var(--radius-full);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   width: fit-content;
   max-width: 100%;
   flex-wrap: wrap;
@@ -214,7 +191,7 @@ const libs = ref([
 .info-card a {
   color: var(--color-primary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .info-card a:hover {
@@ -230,7 +207,7 @@ const libs = ref([
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-primary) !important;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   transition: all var(--transition-fast);
   width: fit-content;
   max-width: 100%;
@@ -292,7 +269,7 @@ const libs = ref([
 }
 
 .lib-name {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--color-text);
   font-size: var(--fs-xs);
   min-width: 0;
@@ -305,7 +282,7 @@ const libs = ref([
   background: var(--color-surface);
   padding: 0.125rem 0.5rem;
   border-radius: var(--radius-full);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   flex: 0 0 auto;
 }
 
@@ -315,16 +292,6 @@ const libs = ref([
 }
 
 @media (max-width: 768px) {
-  .about-section {
-    padding: var(--spacing-md);
-    border-radius: var(--radius-md);
-  }
-
-  .section-header {
-    margin-bottom: var(--spacing-md);
-    padding-bottom: var(--spacing-sm);
-  }
-
   .libs-grid {
     grid-template-columns: 1fr 1fr;
     gap: var(--spacing-xs);

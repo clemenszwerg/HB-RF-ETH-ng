@@ -278,7 +278,7 @@ onUnmounted(() => {
 
 @media (max-width: 991px) {
   .newdesign-shell .main-content {
-    padding: var(--newdesign-content-top-mobile) 8px 24px;
+    padding: var(--newdesign-content-top-mobile) var(--space-2) var(--space-5);
   }
 }
 
@@ -295,13 +295,13 @@ onUnmounted(() => {
 }
 
 .newdesign-shell .app-footer {
-  padding: 8px var(--newdesign-content-gap) 18px var(--newdesign-sidebar-width);
+  padding: var(--space-2) var(--newdesign-content-gap) var(--space-4) var(--newdesign-sidebar-width);
   margin-top: 0;
 }
 
 @media (max-width: 991px) {
   .newdesign-shell .app-footer {
-    padding: 8px 8px 18px;
+    padding: var(--space-2) var(--space-2) var(--space-4);
   }
 }
 
@@ -323,16 +323,16 @@ onUnmounted(() => {
 .sponsor-btn {
   background: var(--color-surface);
   border: 1px solid var(--color-border-light);
-  padding: 8px 20px;
+  padding: var(--space-2) var(--card-padding);
   border-radius: var(--radius-full);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   box-shadow: var(--shadow-sm);
   max-width: 100%;
   white-space: normal;
@@ -369,14 +369,14 @@ onUnmounted(() => {
 .follow-x-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
   background: #000;
   color: #fff;
   border: 1px solid #000;
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s;
@@ -426,8 +426,8 @@ onUnmounted(() => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--color-success-soft, #d4edda);
-  color: var(--color-success, #28a745);
+  background: var(--color-success-soft);
+  color: var(--color-success);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -448,8 +448,8 @@ onUnmounted(() => {
 .expired-prompt-body {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 0;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
   min-width: 0;
 }
 
@@ -461,7 +461,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f26a3d, #ec4899);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
   color: #fff;
 }
 
@@ -524,7 +524,7 @@ onUnmounted(() => {
 .countdown-value {
   font-size: var(--fs-3xl);
   line-height: 1;
-  font-weight: 800;
+  font-weight: var(--font-weight-heavy);
   margin: var(--spacing-md) 0;
 }
 
@@ -538,7 +538,7 @@ onUnmounted(() => {
   border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.16);
   color: white;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   margin-bottom: var(--spacing-sm);
 }
 

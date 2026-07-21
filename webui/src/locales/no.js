@@ -581,6 +581,7 @@ export default {
   // Change Password
   changePassword: {
     title: 'Passordbytte kreves',
+    eyebrow: 'Sikkerhet',
     subtitle: 'Sikre kontoen din',
     warningTitle: 'Påkrevd',
     requirementsTitle: 'Passordkrav:',

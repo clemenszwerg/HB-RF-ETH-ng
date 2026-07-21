@@ -418,7 +418,7 @@ onUnmounted(() => {
   left: calc(var(--newdesign-sidebar-width) + var(--newdesign-content-gap));
   right: var(--newdesign-content-gap);
   z-index: 1002;
-  padding: 10px 14px;
+  padding: 10px var(--space-3);
   border-radius: var(--radius-sm);
   display: flex;
   justify-content: space-between;
@@ -435,7 +435,7 @@ onUnmounted(() => {
   inset: 0 auto 0 0;
   width: var(--newdesign-sidebar-width);
   z-index: 1001;
-  padding: 24px 12px 20px;
+  padding: var(--space-5) var(--space-3) var(--card-padding);
   background: var(--color-sidebar);
   border-right: 1px solid var(--color-border);
   display: flex;
@@ -565,7 +565,7 @@ onUnmounted(() => {
   color: #fff !important;
   background: var(--color-primary) !important;
   border-color: transparent !important;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   box-shadow: none !important;
 }
 
@@ -648,7 +648,7 @@ onUnmounted(() => {
   gap: 10px;
   padding: 0 12px;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -768,7 +768,7 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 800;
+  font-weight: var(--font-weight-heavy);
 }
 
 .top-status {
@@ -798,7 +798,7 @@ onUnmounted(() => {
   padding: 0 10px;
   border-radius: var(--radius-sm);
   border: 1px solid currentColor;
-  font-weight: 800;
+  font-weight: var(--font-weight-heavy);
   font-size: var(--fs-xs);
 }
 
@@ -838,7 +838,7 @@ onUnmounted(() => {
   padding: 4px 12px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   text-decoration: none;
   border: 1px solid var(--color-border);
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
@@ -909,7 +909,7 @@ onUnmounted(() => {
   max-height: calc(100vh - 24px);
   min-height: 0;
   border-radius: var(--radius-sm);
-  padding: 16px;
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -966,7 +966,7 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
   color: var(--color-text);
   text-decoration: none;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -980,7 +980,7 @@ onUnmounted(() => {
 .mobile-section-title {
   color: var(--color-text-secondary);
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 0 4px;
@@ -1002,7 +1002,7 @@ onUnmounted(() => {
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -1034,7 +1034,7 @@ onUnmounted(() => {
   border-radius: var(--newdesign-radius-button, 4px) !important;
   background: #3a3f45 !important;
   color: #fff !important;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   box-shadow: none !important;
 }
 
@@ -1054,7 +1054,7 @@ onUnmounted(() => {
 :global([data-bs-theme="dark"]) .mobile-logout,
 :global([data-bs-theme="dark"]) .mobile-auth {
   background: #1a1c1f !important;
-  border-color: #474c51 !important;
+  border-color: var(--newdesign-border) !important;
 }
 
 .dropdown-fade-enter-active,

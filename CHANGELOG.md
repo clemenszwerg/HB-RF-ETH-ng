@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changes
+- refactor(webui): Visuelles Design über alle Seiten vereinheitlicht. Hartcodierte Schrift-Gewichte (400/500/600/700/800) in allen Vue-Komponenten durch Tokens (`var(--font-weight-*)`) ersetzt; hartcodierte px-Padding-/Gap-/Radius-Werte auf `--space-*`/`--card-padding`/`--radius-*`-Tokens migriert. Dies ist die Fortsetzung des in Beta.6 begonnenen Typo-Refactors und schließt die letzten inkonsistenten Seiten (settings, monitoring, systemlog, login, app, sysinfo, NewDesignHeader, theme, webuiupdate, firmwareupdate, ChangelogModal, PasswordChangeModal) ab.
+- feat(webui): About- und Passwort-Ändern-Seiten erhalten denselben kanonischen Page-Hero (`.page-hero` + `.hero-eyebrow` + `.hero-title` + `.hero-subtitle`) wie alle anderen Inhaltsseiten. Vorher hatte About nur eine flache `.section-header` und Passwort-Ändern einen abweichenden Bootstrap-BCard-Gradient-Header. Neuer i18n-Key `changePassword.eyebrow` in allen 10 Sprachen.
+- refactor(webui): Section-Titel-Typografie auf `settings.vue` an den kanonischen `.card-section-title`-Stil angeglichen (vorher uppercase + letter-spaced + sekundärfarbig).
+- refactor(webui): Karten-Tiefe vereinheitlicht. `systemoverview.vue` (`.overview-card`/`.detail-card`) und `theme.vue` (`.theme-card`) nutzen jetzt `--shadow-md` statt `--shadow-sm` und wirken damit nicht mehr flacher als alle anderen Seiten.
+- fix(webui): Drei undefinierte CSS-Tokens (`--color-bg-secondary`, `--color-text-inverse`, `--color-warning-strong`) in `main.css` für Hell- und Dunkel-Modus definiert. Die crash-tail-Box in `systemlog.vue` renderte vorher immer in dunklen VSCode-Farben (die Fallbacks griffen unkonditional); Warning-Texte in `monitoring.vue`/`sysinfo.vue` waren nicht theme-konform.
+- fix(webui): Akzent-Farbpicker aus `/theme` greift jetzt an allen Stellen durch. Hartcodierte Glass-UI-Orange-Literale (`#f26a3d`, `rgba(242,106,61,…)`), die Akzent-abhängige Stellen blockierten (Supporter-Medaillon, Supporter-Icon/Badge/Card-Active-State auf settings.vue; Supporter-Hero-Chip auf sysinfo.vue; expired-prompt-icon auf app.vue), wurden durch Tokens ersetzt.
+- fix(webui): Bootstrap-Blau-Fallbacks (`#0d6efd`, `#e7f1ff`) und Amber-Literale in `monitoring.vue` durch echte Tokens (`var(--color-info)`, `var(--color-warning-strong)` etc.) ersetzt.
+
 ## [2.2.5-Beta.8] - 2026-07-21
 
 ### Changes

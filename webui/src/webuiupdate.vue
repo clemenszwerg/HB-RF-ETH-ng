@@ -329,36 +329,36 @@ onMounted(refreshCachedStatus)
 </script>
 
 <style scoped>
-.status-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:18px; }
-.content-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.status-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--space-3); margin-bottom:var(--card-padding); }
+.content-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--card-padding); }
 .panel { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); }
-.status-card { padding:16px; display:flex; flex-direction:column; gap:5px; }
+.status-card { padding:var(--space-4); display:flex; flex-direction:column; gap:5px; }
 .status-card .label,.status-card small { color:var(--color-text-secondary); font-size: var(--fs-xs); }
 .status-card strong { font-size: var(--fs-md); overflow-wrap:anywhere; }
-.update-card { padding:20px; display:flex; flex-direction:column; gap:16px; }
-.card-heading { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
+.update-card { padding:var(--card-padding); display:flex; flex-direction:column; gap:var(--space-4); }
+.card-heading { display:flex; justify-content:space-between; gap:var(--space-3); align-items:flex-start; }
 .card-heading h2 { margin:.25rem 0; font-size: var(--fs-lg); }
 .card-heading p { margin:0; color:var(--color-text-secondary); }
-.kicker { color:var(--color-primary-strong); font-size: var(--fs-2xs); font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
-.version-badge { padding:5px 9px; border-radius:999px; background:var(--color-primary-soft); font-weight:800; white-space:nowrap; }
-.release-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-.release-grid div { padding:12px; border-radius:10px; background:var(--color-bg-alt); display:flex; flex-direction:column; gap:4px; }
+.kicker { color:var(--color-primary-strong); font-size: var(--fs-2xs); font-weight:var(--font-weight-heavy); text-transform:uppercase; letter-spacing:.04em; }
+.version-badge { padding:5px 9px; border-radius:999px; background:var(--color-primary-soft); font-weight:var(--font-weight-heavy); white-space:nowrap; }
+.release-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-3); }
+.release-grid div { padding:var(--space-3); border-radius:var(--radius-sm); background:var(--color-bg-alt); display:flex; flex-direction:column; gap:var(--space-1); }
 .release-grid span { color:var(--color-text-secondary); font-size: var(--fs-xs); }
 .release-grid strong { overflow-wrap:anywhere; }
-.actions { display:flex; flex-wrap:wrap; gap:10px; }
-.action-btn { display:inline-flex; gap:8px; align-items:center; text-decoration:none; }
+.actions { display:flex; flex-wrap:wrap; gap:var(--space-3); }
+.action-btn { display:inline-flex; gap:var(--space-2); align-items:center; text-decoration:none; }
 /* Manual "search now" row — mirrors the Firmware tab so both sub-tabs share
    the same primary action placement (Korrekturauftrag §6.5). */
-.check-now-row { display:flex; margin-bottom:4px; }
+.check-now-row { display:flex; margin-bottom:var(--space-1); }
 .check-now-btn { width:auto; }
-.file-drop { min-height:145px; border:2px dashed var(--color-border-strong); border-radius:14px; display:flex; flex-direction:column; gap:7px; align-items:center; justify-content:center; text-align:center; cursor:pointer; padding:18px; }
+.file-drop { min-height:145px; border:2px dashed var(--color-border-strong); border-radius:var(--radius-lg); display:flex; flex-direction:column; gap:7px; align-items:center; justify-content:center; text-align:center; cursor:pointer; padding:var(--card-padding); }
 .file-drop input { display:none; }
 .file-drop.invalid { border-color:var(--color-danger); }
 .file-drop.disabled { opacity:.6; cursor:not-allowed; }
 .file-drop small { color:var(--color-text-secondary); }
 .track { height:10px; border-radius:999px; background:var(--color-bg-alt); overflow:hidden; }
 .track span { display:block; height:100%; background:var(--color-primary); }
-.progress-panel { display:flex; flex-direction:column; gap:8px; }
-.progress-copy { display:flex; justify-content:space-between; gap:12px; }
+.progress-panel { display:flex; flex-direction:column; gap:var(--space-2); }
+.progress-copy { display:flex; justify-content:space-between; gap:var(--space-3); }
 @media(max-width:900px){ .status-grid,.content-grid { grid-template-columns:1fr; } }
 </style>

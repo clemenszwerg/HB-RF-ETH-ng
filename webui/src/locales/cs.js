@@ -581,6 +581,7 @@ export default {
   // Change Password
   changePassword: {
     title: 'Vyžadována změna hesla',
+    eyebrow: 'Zabezpečení',
     subtitle: 'Zabezpečte svůj účet',
     warningTitle: 'Vyžadováno',
     requirementsTitle: 'Požadavky na heslo:',

@@ -230,7 +230,7 @@ const handleSubmit = async () => {
 
 :deep(.modal-title-custom) {
   color: white;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: var(--fs-xl);
 }
 
@@ -269,7 +269,7 @@ const handleSubmit = async () => {
 }
 
 .password-change-modal :deep(.form-label) {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
 }
 

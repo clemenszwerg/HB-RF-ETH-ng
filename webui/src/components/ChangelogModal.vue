@@ -175,7 +175,7 @@ watch(() => props.modelValue, (newValue) => {
 
 .changelog-content :deep(h1) {
   font-size: var(--fs-lg);
-  font-weight: 800;
+  font-weight: var(--font-weight-heavy);
   color: var(--color-text);
   margin: 0 0 1rem;
   padding-bottom: 0.75rem;
@@ -184,7 +184,7 @@ watch(() => props.modelValue, (newValue) => {
 
 .changelog-content :deep(h2) {
   font-size: var(--fs-md);
-  font-weight: 800;
+  font-weight: var(--font-weight-bold);
   color: var(--color-primary-strong);
   margin: 1rem 0 0.5rem;
   padding: 0.75rem 0;
@@ -194,16 +194,16 @@ watch(() => props.modelValue, (newValue) => {
 
 .changelog-content :deep(h3) {
   font-size: var(--fs-sm);
-  font-weight: 800;
-  color: var(--color-text, #495057);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
 
 .changelog-content :deep(h4) {
   font-size: var(--fs-sm);
-  font-weight: 800;
-  color: var(--color-text-secondary, #6c757d);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
 }

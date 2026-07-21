@@ -382,21 +382,21 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.content-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.content-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--card-padding); }
 .update-card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); overflow:hidden; }
-.card-header { display:flex; gap:14px; align-items:flex-start; padding:20px; border-bottom:1px solid var(--color-border); }
+.card-header { display:flex; gap:14px; align-items:flex-start; padding:var(--card-padding); border-bottom:1px solid var(--color-border); }
 .header-icon { width:44px; height:44px; flex:0 0 auto; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; }
 .header-text h2 { margin:0; font-size: var(--fs-lg); font-weight: var(--font-weight-semibold); }
 .header-text p { margin:.35rem 0 0; color:var(--color-text-secondary); }
-.card-body { padding:20px; display:flex; flex-direction:column; gap:16px; }
-.release-box { display:flex; justify-content:space-between; gap:14px; align-items:center; padding:16px; border-radius:var(--radius-md); background:var(--color-success-soft); }
+.card-body { padding:var(--card-padding); display:flex; flex-direction:column; gap:var(--space-4); }
+.release-box { display:flex; justify-content:space-between; gap:14px; align-items:center; padding:var(--space-4); border-radius:var(--radius-md); background:var(--color-success-soft); }
 .release-box.is-current { background:var(--color-bg-alt); }
 .release-box div { display:flex; flex-direction:column; gap:3px; }
 .release-label, .release-box small { color:var(--color-text-secondary); font-size: var(--fs-xs); }
 .release-box strong { font-size: var(--fs-lg); }
-.beta-badge { padding:4px 8px; border-radius:var(--radius-pill); background:var(--color-warning-soft); font-size: var(--fs-2xs); font-weight: var(--font-weight-bold); }
+.beta-badge { padding:var(--space-1) var(--space-2); border-radius:var(--radius-pill); background:var(--color-warning-soft); font-size: var(--fs-2xs); font-weight: var(--font-weight-bold); }
 .actions { display:flex; flex-wrap:wrap; gap:10px; }
-.action-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; }
+.action-btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--space-2); text-decoration:none; }
 /* Manual "search now" sits above the release status so the primary action is
    reachable before the user reads the cached result. Reuses .action-btn so it
    shares size/alignment with the download + GitHub buttons below. */
@@ -411,16 +411,16 @@ onMounted(async () => {
 .hidden-input { display:none; }
 .upload-icon { font-size: var(--fs-3xl); margin-bottom:8px; }
 .upload-text { display:block; font-weight: var(--font-weight-bold); }
-.file-preview { width:100%; display:flex; gap:12px; align-items:center; text-align:left; }
+.file-preview { width:100%; display:flex; gap:var(--space-3); align-items:center; text-align:left; }
 .file-details { min-width:0; flex:1; display:flex; flex-direction:column; }
 .file-name { overflow-wrap:anywhere; font-weight: var(--font-weight-bold); }
 .file-size { color:var(--color-text-secondary); font-size: var(--fs-xs); }
-.remove-file-btn { border:0; background:transparent; color:var(--color-danger); padding:8px; }
+.remove-file-btn { border:0; background:transparent; color:var(--color-danger); padding:var(--space-2); }
 .progress-container { display:flex; align-items:center; gap:10px; }
 .progress-bar { flex:1; height:10px; border-radius:var(--radius-pill); background:var(--color-bg-alt); overflow:hidden; }
 .progress-value { height:100%; background:var(--color-primary); }
 .system-actions { margin-top:18px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-.action-tile { width:100%; display:flex; gap:12px; align-items:center; text-align:left; padding:16px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-surface); color:var(--color-text); cursor: pointer; }
+.action-tile { width:100%; display:flex; gap:var(--space-3); align-items:center; text-align:left; padding:var(--space-4); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-surface); color:var(--color-text); cursor: pointer; }
 .action-tile h4 { font-weight: var(--font-weight-semibold); }
 .action-tile h4,.action-tile p { margin:0; }
 .action-tile p { color:var(--color-text-secondary); font-size: var(--fs-xs); }

@@ -596,6 +596,7 @@ export default {
   // Change Password
   changePassword: {
     title: 'Password change required',
+    eyebrow: 'Security',
     subtitle: 'Secure your account',
     warningTitle: 'Required',
     requirementsTitle: 'Password requirements:',

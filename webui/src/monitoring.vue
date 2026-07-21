@@ -893,10 +893,10 @@ const runDiagnostic = async (target) => {
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-lg);
   padding: var(--spacing-md);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 1px solid var(--color-warning-soft);
   border-radius: var(--radius-lg);
-  background: rgba(245, 158, 11, 0.12);
-  color: var(--warning-dark, #92400e);
+  background: var(--color-warning-soft);
+  color: var(--color-warning-strong);
 }
 
 .monitoring-resource-warning p {
@@ -935,7 +935,7 @@ const runDiagnostic = async (target) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -943,7 +943,7 @@ const runDiagnostic = async (target) => {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: var(--fs-sm);
   min-width: 0;
   overflow-wrap: anywhere;
@@ -991,9 +991,9 @@ const runDiagnostic = async (target) => {
   border: 1px solid var(--color-border-light);
   background: rgba(255, 255, 255, 0.68);
   border-radius: var(--radius-sm);
-  padding: 6px 12px;
+  padding: var(--space-1) var(--space-3);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   white-space: normal;
   flex: 0 0 auto;
@@ -1058,7 +1058,7 @@ const runDiagnostic = async (target) => {
 .header-icon {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1068,7 +1068,7 @@ const runDiagnostic = async (target) => {
 .card-header h3 {
   margin: 0;
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }
 
@@ -1137,10 +1137,10 @@ const runDiagnostic = async (target) => {
 
 .bg-danger-light { background-color: var(--color-danger-light); }
 .bg-success-light { background-color: var(--color-success-light); }
-.bg-info-light { background-color: var(--color-info-light, var(--color-info-soft, #e7f1ff)); }
+.bg-info-light { background-color: var(--color-info-light); }
 .text-danger { color: var(--color-danger); }
 .text-success { color: var(--color-success); }
-.text-info { color: var(--color-info, #0d6efd); }
+.text-info { color: var(--color-info); }
 
 .form-text {
   font-size: var(--fs-xs);
@@ -1186,12 +1186,12 @@ const runDiagnostic = async (target) => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 5px var(--space-3);
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border-light);
   background: rgba(255, 255, 255, 0.68);
   font-size: var(--fs-2xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
   max-width: 100%;
   white-space: normal;
@@ -1200,7 +1200,7 @@ const runDiagnostic = async (target) => {
 .btn-link-danger {
   color: var(--color-danger);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
   padding: 0;
   background: none;
@@ -1218,7 +1218,7 @@ const runDiagnostic = async (target) => {
 .pem-feedback {
   margin-top: 6px;
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }
 
@@ -1242,7 +1242,7 @@ const runDiagnostic = async (target) => {
 .cert-present-hint {
   color: var(--color-success);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -1289,7 +1289,7 @@ const runDiagnostic = async (target) => {
   .header-icon {
     width: 36px;
     height: 36px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: var(--fs-md);
   }
 

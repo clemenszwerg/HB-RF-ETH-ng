@@ -367,10 +367,10 @@ onBeforeUnmount(() => {
   margin-left: 8px;
   padding: 1px 8px;
   border-radius: var(--radius-pill, 999px);
-  background: var(--color-warning-soft, #fff3cd);
-  color: var(--color-warning, #856404);
+  background: var(--color-warning-soft);
+  color: var(--color-warning-strong);
   font-size: var(--fs-2xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-family: var(--font-mono);
   cursor: help;
 }
@@ -378,13 +378,13 @@ onBeforeUnmount(() => {
 .quick-actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-  gap: 14px;
+  gap: var(--space-3);
 }
 
 .quick-action {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-3);
   text-decoration: none;
   color: inherit;
   padding: 16px 18px;
@@ -412,7 +412,7 @@ onBeforeUnmount(() => {
 .copy-value {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   border: none;
   background: transparent;
   color: var(--color-text);
@@ -430,7 +430,7 @@ onBeforeUnmount(() => {
 .ipv6-row {
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .ipv6-list {
@@ -475,22 +475,22 @@ onBeforeUnmount(() => {
 .radio-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .radio-stat {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.44);
-  border: 1px solid rgba(125, 139, 167, 0.12);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-light);
   min-width: 0;
 }
 
 [data-bs-theme="dark"] .radio-stat {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-surface-2);
 }
 
 .radio-stat.wide {
@@ -531,9 +531,9 @@ onBeforeUnmount(() => {
 
 .supporter-hero-chip.is-active {
   color: #fff;
-  background: linear-gradient(135deg, #f26a3d 0%, #f59e0b 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-strong) 100%);
   border-color: transparent;
-  box-shadow: 0 4px 14px rgba(242, 106, 61, 0.35);
+  box-shadow: 0 4px 14px var(--color-primary-soft);
 }
 
 .supporter-hero-chip.is-active .app-icon {
@@ -541,7 +541,7 @@ onBeforeUnmount(() => {
 }
 
 .supporter-hero-chip:hover {
-  border-color: rgba(242, 106, 61, 0.45);
+  border-color: var(--color-primary-soft);
 }
 
 .supporter-hero-chip:not(.is-active):hover {

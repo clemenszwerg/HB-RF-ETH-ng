@@ -1297,12 +1297,12 @@ const restoreSettings = async () => {
   display: inline-flex;
   flex-wrap: wrap;
   background-color: var(--color-border-light);
-  padding: 4px;
-  border-radius: 20px;
+  padding: var(--space-1);
+  border-radius: var(--radius-lg);
   position: relative;
   width: 100%;
   max-width: 700px;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -1311,9 +1311,9 @@ const restoreSettings = async () => {
   min-width: 0;
   border: none;
   background: transparent;
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: var(--fs-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -1321,7 +1321,7 @@ const restoreSettings = async () => {
   position: relative;
   z-index: 1;
   text-align: center;
-  gap: 8px;
+  gap: var(--space-2);
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -1338,7 +1338,7 @@ const restoreSettings = async () => {
 .segment-btn.active {
   background-color: var(--color-surface);
   color: var(--color-text);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Settings Cards (Apple Style Grouped) */
@@ -1360,9 +1360,9 @@ const restoreSettings = async () => {
 .card-header h3 {
   font-size: var(--fs-lg);
   margin: 0;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 
@@ -1428,7 +1428,7 @@ hr {
 
 .switch-label {
   font-size: var(--fs-md);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .switch-copy {
@@ -1505,7 +1505,7 @@ hr {
   flex: 1;
   height: 6px;
   -webkit-appearance: none;
-  background: #d1d1d6;
+  background: var(--color-border-strong);
   border-radius: 3px;
 }
 
@@ -1523,7 +1523,7 @@ hr {
 .mode-selector {
   display: flex;
   background: var(--color-bg);
-  padding: 4px;
+  padding: var(--space-1);
   border-radius: var(--radius-lg);
   margin-top: var(--spacing-xs);
   min-width: 0;
@@ -1533,9 +1533,9 @@ hr {
   flex: 1;
   border: none;
   background: transparent;
-  padding: 8px;
+  padding: var(--space-2);
   border-radius: var(--radius-md);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   transition: all 0.2s;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -1664,7 +1664,7 @@ hr {
 
 .led-program-item .form-label.small {
   font-size: var(--fs-xs);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
 }
 
@@ -1720,7 +1720,7 @@ hr {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
   font-weight: var(--font-weight-bold);
@@ -1905,12 +1905,12 @@ hr {
 }
 
 .supporter-card.is-active {
-  border-color: rgba(242, 106, 61, 0.4);
-  box-shadow: 0 0 0 1px rgba(242, 106, 61, 0.12), 0 8px 24px rgba(242, 106, 61, 0.08);
+  border-color: var(--color-primary-soft);
+  box-shadow: 0 0 0 1px var(--color-primary-soft), 0 8px 24px var(--color-primary-soft);
 }
 
 .supporter-icon {
-  background: linear-gradient(135deg, var(--color-primary), #f59e0b);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
   color: #fff;
 }
 
@@ -1920,10 +1920,10 @@ hr {
   gap: 6px;
   padding: 6px 12px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--color-primary-soft), rgba(245, 158, 11, 0.18));
+  background: linear-gradient(135deg, var(--color-primary-soft), var(--color-primary-soft));
   color: var(--color-primary-strong);
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 .supporter-intro {
@@ -1953,9 +1953,9 @@ hr {
   justify-content: center;
   background:
     radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.45), transparent 55%),
-    linear-gradient(135deg, #f26a3d 0%, #f59e0b 50%, #ec4899 100%);
+    linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-strong) 100%);
   box-shadow:
-    0 10px 26px rgba(242, 106, 61, 0.38),
+    0 10px 26px var(--color-primary-soft),
     inset 0 0 0 4px rgba(255, 255, 255, 0.2),
     inset 0 -8px 14px rgba(0, 0, 0, 0.12);
   animation: medallion-float 3.2s ease-in-out infinite;
@@ -1986,7 +1986,7 @@ hr {
 /* Twinkling stars orbiting the badge */
 .medallion-spark {
   position: absolute;
-  color: #f59e0b;
+  color: var(--color-primary-strong);
   z-index: 2;
   animation: spark-twinkle 2.4s ease-in-out infinite;
 }
@@ -2005,7 +2005,7 @@ hr {
 .medallion-label {
   display: inline-block;
   font-size: var(--fs-2xs);
-  font-weight: 800;
+  font-weight: var(--font-weight-heavy);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-primary-strong);
@@ -2067,7 +2067,7 @@ hr {
 .supporter-feedback {
   margin-top: 8px;
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .supporter-feedback.valid { color: var(--color-success); }
@@ -2082,7 +2082,7 @@ hr {
 .supporter-revoked-panel {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   padding: 14px;
   border-radius: var(--radius-lg);
   background: var(--color-danger-soft);
@@ -2093,7 +2093,7 @@ hr {
   width: 44px;
   height: 44px;
   flex: 0 0 auto;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: inline-flex;
   align-items: center;
   justify-content: center;
