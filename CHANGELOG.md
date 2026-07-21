@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.5-Beta.8] - 2026-07-21
+
+### Changes
+- feat: mDNS-Komponente vollständig entfernt (espressif/mdns, MDns-Wrapperklasse, alle Aufrufstellen). mDNS belegt im ESP-IDF rund 15–30 KB Heap; unter aktiver CCU-3-Session fiel der freie Heap auf ~58 KB (largest 44 KB), was dazu führte, dass die manuelle Update-Suche mit „Manual update check skipped (low heap)" übersprungen wurde. Nach Entfernung läuft die Update-Suche wie auf einem unbelasteten Gerät durch. Der Raw-UART-UDP-Listener (Port 3008) ist von mDNS unabhängig und funktioniert unverändert.
+- ⚠️ Verhaltensänderung für Anwender: Die automatische CCU-3-Entdeckung per mDNS (_raw-uart._udp) entfällt. Die CCU 3 muss künftig mit der festen IP-Adresse des HB-RF-ETH konfiguriert werden (bzw. per DHCP-Reservation eine feste IP erhalten). Port bleibt UDP 3008. Das WebUI-Feld „Hostname" bleibt erhalten (für DHCP/DNS-Namen), wird nur nicht mehr über mDNS beworben.
+- chore: Zwei „by design"-Logzeilen beruhigt. Die SupporterCRL-Meldung „CRL fetch returned status 404" (erwartete Server-Antwort, wenn kein Supporter-Key widerrufen wurde) wurde von INFO auf DEBUG gesenkt und verschwindet aus dem Standard-Log. Die RawUartUdpListener-Warnung „unexpected endpoint identifier … - adopting client identifier" (erscheint einmal pro Geräteneustart, wenn die CCU mit ihrem alten Session-Token reconnectet; Adoption ist semantisch sicher) wurde von WARN auf INFO gesenkt. Keine Verhaltensänderung, ausschließlich Log-Sichtbarkeit.
+
 ## [2.2.5-Beta.7] - 2026-07-21
 
 ### Changes
