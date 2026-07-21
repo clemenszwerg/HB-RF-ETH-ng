@@ -1,4 +1,4 @@
-# 🚀 HB-RF-ETH-ng v2.2.5-Beta.7
+# 🚀 HB-RF-ETH-ng v2.2.5-Beta.8
 
 [![License](https://img.shields.io/github/license/Xerolux/HB-RF-ETH-ng)](LICENSE.md)
 [![Downloads](https://img.shields.io/github/downloads/Xerolux/HB-RF-ETH-ng/total)](https://github.com/Xerolux/HB-RF-ETH-ng/releases)
@@ -11,14 +11,12 @@ HB-RF-ETH-ng ist eine modernisierte Fork der originalen HB-RF-ETH Firmware von A
 Diese Firmware ermöglicht es, ein Homematic Funkmodul (HM-MOD-RPI-PCB oder RPI-RF-MOD) per Netzwerk
 an eine CCU-Installation (piVCCU3, debmatic, OpenCCU) anzubinden.
 
-## 🆕 Was ist neu in v2.2.5-Beta.7?
+## 🆕 Was ist neu in v2.2.5-Beta.8?
 
 ### Changes
-- feat(webui): Manuelle Updatesuche über „Jetzt nach Updates suchen" wiederhergestellt. Neuer Backend-Endpunkt POST /api/check_update löst sofortigen Manifest-Abruf aus (läuft außerhalb des httpd-Threads), 60-Sekunden-Cooldown verhindert Missbrauch; die automatische 24-Stunden-Prüfung bleibt unberührt. Die Schaltfläche erscheint konsistent auf den Firmware- und WebUI-Update-Tabs und zeigt Lade-, Update-, Aktuell- und Fehlerzustände an.
-- refactor(webui): Eigenständiger Menüpunkt „Design wechseln" entfernt. Die Theme-Auswahl ist ausschließlich unter Einstellungen → Design erreichbar; der Header-Sonne/Mond-Schnellwechsler bleibt, und die /theme-Route bleibt für Lesezeichen erreichbar.
-- fix(webui): Fokus- und Hover-Zustände nutzen jetzt Design-Tokens (var(--color-primary) / var(--color-primary-soft) / var(--shadow-md)) statt hartcodierter Glass-UI-Orange-Tokens — Login-Eingaben, Login-Button, Passwort-Änderungs-Modal und Selbsttest-Test-Button erscheinen damit nicht mehr orange im grünen NewDesign.
-- fix(webui): Dashboard-Zeile „Letzter Neustart" in „Neustartgrund" umbenannt (Wert ist die Ursache, keine Zeitangabe); alle 10 Sprachen aktualisiert.
-- docs: POST /api/check_update in API.md und openapi.yaml dokumentiert (202 Accepted, {triggered, fetchInProgress}, Client-Polling).
+- feat: mDNS-Komponente vollständig entfernt (espressif/mdns, MDns-Wrapperklasse, alle Aufrufstellen). mDNS belegt im ESP-IDF rund 15–30 KB Heap; unter aktiver CCU-3-Session fiel der freie Heap auf ~58 KB (largest 44 KB), was dazu führte, dass die manuelle Update-Suche mit „Manual update check skipped (low heap)" übersprungen wurde. Nach Entfernung läuft die Update-Suche wie auf einem unbelasteten Gerät durch. Der Raw-UART-UDP-Listener (Port 3008) ist von mDNS unabhängig und funktioniert unverändert.
+- ⚠️ Verhaltensänderung für Anwender: Die automatische CCU-3-Entdeckung per mDNS (_raw-uart._udp) entfällt. Die CCU 3 muss künftig mit der festen IP-Adresse des HB-RF-ETH konfiguriert werden (bzw. per DHCP-Reservation eine feste IP erhalten). Port bleibt UDP 3008. Das WebUI-Feld „Hostname" bleibt erhalten (für DHCP/DNS-Namen), wird nur nicht mehr über mDNS beworben.
+- chore: Zwei „by design"-Logzeilen beruhigt. Die SupporterCRL-Meldung „CRL fetch returned status 404" (erwartete Server-Antwort, wenn kein Supporter-Key widerrufen wurde) wurde von INFO auf DEBUG gesenkt und verschwindet aus dem Standard-Log. Die RawUartUdpListener-Warnung „unexpected endpoint identifier … - adopting client identifier" (erscheint einmal pro Geräteneustart, wenn die CCU mit ihrem alten Session-Token reconnectet; Adoption ist semantisch sicher) wurde von WARN auf INFO gesenkt. Keine Verhaltensänderung, ausschließlich Log-Sichtbarkeit.
 
 ## ✨ Hauptfunktionen
 
@@ -58,7 +56,7 @@ SHA256-Prüfsummen befinden sich in `SHA256SUMS.txt`.
 
 ## 📦 Im Release enthalten
 
-- **Firmware-Binary** (`firmware_2.2.5-Beta.7.bin`)
+- **Firmware-Binary** (`firmware_2.2.5-Beta.8.bin`)
 - **Bootloader** (`bootloader.bin`)
 - **Partitionstabelle** (`partitions.bin`)
 - **SHA256-Prüfsummen** (`SHA256SUMS.txt`)
