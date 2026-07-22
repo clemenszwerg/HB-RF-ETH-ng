@@ -2,12 +2,12 @@
   <div class="www-page page-shell">
     <section class="page-hero">
       <div class="hero-copy">
-        <span class="hero-eyebrow"><AppIcon name="firmware" /> {{ t('webuiUpdate.webuiChip') }}</span>
+        <span class="hero-eyebrow"><AppIcon name="globe" /> {{ t('webuiUpdate.webuiChip') }}</span>
         <h1 class="hero-title">{{ t('webuiUpdate.pageTitle') }}</h1>
         <p class="hero-subtitle">{{ t('webuiUpdate.pageSubtitle') }}</p>
       </div>
       <div class="hero-meta">
-        <span class="meta-chip"><AppIcon name="firmware" /> {{ t('webuiUpdate.webuiChip') }}: {{ installedVersion }}</span>
+        <span class="meta-chip"><AppIcon name="globe" /> {{ t('webuiUpdate.webuiChip') }}: {{ installedVersion }}</span>
         <span class="meta-chip"><AppIcon name="firmware" /> {{ t('webuiUpdate.firmwareChip') }}: {{ firmwareVersion || '—' }}</span>
         <span class="meta-chip" :class="status.valid ? 'success-chip' : 'warning-chip'">
           <AppIcon :name="status.valid ? 'check' : 'shield'" />
@@ -39,9 +39,10 @@
     </section>
 
     <div class="content-grid">
-      <section class="panel update-card">
-        <div class="card-heading">
-          <div>
+      <section class="update-card">
+        <div class="card-header">
+          <div class="header-icon bg-success-light text-success"><AppIcon name="download" /></div>
+          <div class="header-text">
             <span class="kicker">{{ t('webuiUpdate.availableKicker') }}</span>
             <h2>{{ t('webuiUpdate.downloadHeading') }}</h2>
             <p>{{ t('webuiUpdate.downloadHelp') }}</p>
@@ -49,91 +50,107 @@
           <span v-if="release.version" class="version-badge">v{{ release.version }}</span>
         </div>
 
-        <BAlert v-if="manifestError" variant="warning" :model-value="true">{{ manifestError }}</BAlert>
+        <div class="card-body">
+          <BAlert v-if="manifestError" variant="warning" :model-value="true">{{ manifestError }}</BAlert>
 
-        <!-- Manual "search for updates now" (Korrekturauftrag §6.2/§6.3). Shares
-             the on-device fetch with the Firmware tab; after it settles we reload
-             the WebUI-specific release block. -->
-        <div class="check-now-row">
-          <BButton variant="outline-primary" class="action-btn check-now-btn"
-                   :disabled="checkNowBusy" @click="onCheckNow">
-            <span v-if="checkNowBusy" class="spinner-border spinner-border-sm me-2"></span>
-            <AppIcon v-else name="refresh" />
-            {{ checkNowBusy ? checkNowLabel : checkNowIdleLabel }}
-          </BButton>
-        </div>
+          <!-- Manual "search for updates now" (Korrekturauftrag §6.2/§6.3). Shares
+               the on-device fetch with the Firmware tab; after it settles we reload
+               the WebUI-specific release block. -->
+          <div class="check-now-row">
+            <BButton variant="outline-primary" class="action-btn check-now-btn"
+                     :disabled="checkNowBusy" @click="onCheckNow">
+              <span v-if="checkNowBusy" class="spinner-border spinner-border-sm me-2"></span>
+              <AppIcon v-else name="refresh" />
+              {{ checkNowBusy ? checkNowLabel : checkNowIdleLabel }}
+            </BButton>
+          </div>
 
-        <div v-if="release.version" class="release-grid">
-          <div><span>{{ t('webuiUpdate.installedGridLabel') }}</span><strong>{{ installedVersion }}</strong></div>
-          <div><span>{{ t('webuiUpdate.availableGridLabel') }}</span><strong>{{ release.version }}</strong></div>
-          <div><span>{{ t('webuiUpdate.imageSizeLabel') }}</span><strong>{{ formatBytes(release.size) }}</strong></div>
-          <div><span>{{ t('webuiUpdate.minFirmwareLabel') }}</span><strong>{{ release.minFirmwareVersion || '—' }}</strong></div>
-        </div>
-
-        <BAlert v-if="release.version && !updateAvailable" variant="success" :model-value="true">
-          {{ t('webuiUpdate.upToDate') }}
-        </BAlert>
-
-        <div class="actions">
-          <a
-            v-if="updateAvailable && release.downloadUrl"
-            class="btn btn-success action-btn"
-            :href="release.downloadUrl"
-            target="_blank"
-            rel="noopener noreferrer"
+          <BAlert
+            v-if="manualCheckFeedback"
+            :variant="manualCheckFeedback.variant"
+            :model-value="true"
+            class="manual-check-feedback"
+            data-testid="manual-check-feedback"
           >
-            <AppIcon name="download" /> {{ t('webuiUpdate.downloadButton') }}
-          </a>
-          <a
-            v-if="release.releaseUrl"
-            class="btn btn-outline-secondary action-btn"
-            :href="release.releaseUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <AppIcon name="externalLink" /> {{ t('webuiUpdate.releaseLink') }}
-          </a>
-          <BButton variant="outline-secondary" :disabled="loading" @click="refreshCachedStatus">
-            <AppIcon name="refresh" /> {{ t('webuiUpdate.reloadStatusButton') }}
-          </BButton>
+            <strong>{{ manualCheckFeedback.title }}</strong>
+            <span>{{ manualCheckFeedback.message }}</span>
+          </BAlert>
+
+          <div v-if="release.version" class="release-grid">
+            <div><span>{{ t('webuiUpdate.installedGridLabel') }}</span><strong>{{ installedVersion }}</strong></div>
+            <div><span>{{ t('webuiUpdate.availableGridLabel') }}</span><strong>{{ release.version }}</strong></div>
+            <div><span>{{ t('webuiUpdate.imageSizeLabel') }}</span><strong>{{ formatBytes(release.size) }}</strong></div>
+            <div><span>{{ t('webuiUpdate.minFirmwareLabel') }}</span><strong>{{ release.minFirmwareVersion || '—' }}</strong></div>
+          </div>
+
+          <BAlert v-if="!updateAvailable && (release.version || updateStore.hasCompletedManualCheck)" variant="success" :model-value="true">
+            {{ t('webuiUpdate.upToDate') }}
+          </BAlert>
+
+          <div class="actions">
+            <a
+              v-if="updateAvailable && release.downloadUrl"
+              class="btn btn-success action-btn"
+              :href="release.downloadUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <AppIcon name="download" /> {{ t('webuiUpdate.downloadButton') }}
+            </a>
+            <a
+              v-if="release.releaseUrl"
+              class="btn btn-outline-secondary action-btn"
+              :href="release.releaseUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <AppIcon name="externalLink" /> {{ t('webuiUpdate.releaseLink') }}
+            </a>
+            <BButton variant="outline-secondary" :disabled="loading" @click="refreshCachedStatus">
+              <AppIcon name="refresh" /> {{ t('webuiUpdate.reloadStatusButton') }}
+            </BButton>
+          </div>
         </div>
       </section>
 
-      <section class="panel update-card">
-        <div class="card-heading">
-          <div>
+      <section class="update-card">
+        <div class="card-header">
+          <div class="header-icon bg-primary-light text-primary"><AppIcon name="upload" /></div>
+          <div class="header-text">
             <span class="kicker">{{ t('webuiUpdate.manualKicker') }}</span>
             <h2>{{ t('webuiUpdate.uploadHeading') }}</h2>
             <p>{{ t('webuiUpdate.uploadHelp', { size: formatBytes(status.partitionSize) }) }}</p>
           </div>
         </div>
 
-        <label class="file-drop" :class="{ disabled: busy, invalid: !!fileError }">
-          <input type="file" accept=".bin,application/octet-stream" :disabled="busy" @change="selectFile">
-          <AppIcon name="upload" />
-          <span>{{ selectedFile ? selectedFile.name : t('webuiUpdate.chooseFile') }}</span>
-          <small v-if="selectedFile">{{ formatBytes(selectedFile.size) }}</small>
-        </label>
+        <div class="card-body">
+          <label class="file-drop" :class="{ disabled: busy, invalid: !!fileError }">
+            <input type="file" accept=".bin,application/octet-stream" :disabled="busy" @change="selectFile">
+            <AppIcon name="upload" />
+            <span>{{ selectedFile ? selectedFile.name : t('webuiUpdate.chooseFile') }}</span>
+            <small v-if="selectedFile">{{ formatBytes(selectedFile.size) }}</small>
+          </label>
 
-        <BAlert v-if="fileError" variant="danger" :model-value="true">{{ fileError }}</BAlert>
+          <BAlert v-if="fileError" variant="danger" :model-value="true">{{ fileError }}</BAlert>
 
-        <div v-if="busy" class="progress-panel">
-          <div class="progress-copy"><span>{{ t('webuiUpdate.uploadInProgress') }}</span><strong>{{ progress }}%</strong></div>
-          <div class="track"><span :style="{ width: progress + '%' }"></span></div>
-        </div>
+          <div v-if="busy" class="progress-panel">
+            <div class="progress-copy"><span>{{ t('webuiUpdate.uploadInProgress') }}</span><strong>{{ progress }}%</strong></div>
+            <div class="track"><span :style="{ width: progress + '%' }"></span></div>
+          </div>
 
-        <BAlert variant="info" :model-value="true">
-          {{ t('webuiUpdate.uploadExplainer') }}
-        </BAlert>
+          <BAlert variant="info" :model-value="true">
+            {{ t('webuiUpdate.uploadExplainer') }}
+          </BAlert>
 
-        <div class="actions">
-          <BButton variant="primary" :disabled="busy || !selectedFile || !!fileError" @click="installManual">
-            <span v-if="busy" class="spinner-border spinner-border-sm me-2"></span>
-            <AppIcon v-else name="upload" /> {{ busy ? t('webuiUpdate.installingButton') : t('webuiUpdate.installButton') }}
-          </BButton>
-          <BButton v-if="selectedFile" variant="outline-secondary" :disabled="busy" @click="clearFile">
-            <AppIcon name="close" /> {{ t('webuiUpdate.clearSelectionButton') }}
-          </BButton>
+          <div class="actions">
+            <BButton variant="primary" :disabled="busy || !selectedFile || !!fileError" @click="installManual">
+              <span v-if="busy" class="spinner-border spinner-border-sm me-2"></span>
+              <AppIcon v-else name="upload" /> {{ busy ? t('webuiUpdate.installingButton') : t('webuiUpdate.installButton') }}
+            </BButton>
+            <BButton v-if="selectedFile" variant="outline-secondary" :disabled="busy" @click="clearFile">
+              <AppIcon name="close" /> {{ t('webuiUpdate.clearSelectionButton') }}
+            </BButton>
+          </div>
         </div>
       </section>
     </div>
@@ -189,7 +206,52 @@ const storagePercent = computed(() => {
   return total ? Math.min(100, Math.round((status.value.usedBytes || 0) * 100 / total)) : 0
 })
 const updateAvailable = computed(() => !!release.value.version && compareVersions(installedVersion.value, release.value.version) < 0)
-const lastCheckText = computed(() => updateFetchedAt.value ? new Date(Number(updateFetchedAt.value)).toLocaleString() : t('webuiUpdate.neverChecked'))
+const lastCheckText = computed(() => {
+  const checkedAt = updateStore.lastSuccessfulManualCheckAt || updateFetchedAt.value
+  return checkedAt ? new Date(Number(checkedAt)).toLocaleString() : t('webuiUpdate.neverChecked')
+})
+
+const manualCheckFeedback = computed(() => {
+  let outcome = updateStore.lastManualCheckOutcome
+  if (outcome === 'updated' || outcome === 'no-update') {
+    outcome = updateAvailable.value ? 'updated' : 'no-update'
+  }
+
+  switch (outcome) {
+    case 'updated':
+      return {
+        variant: 'success',
+        title: t('updates.checkResultUpdatedTitle'),
+        message: t('updates.checkResultUpdated', { version: release.value.version })
+      }
+    case 'no-update':
+      return {
+        variant: 'success',
+        title: t('updates.checkResultNoUpdateTitle'),
+        message: t('updates.checkResultNoUpdate')
+      }
+    case 'cooldown':
+      return {
+        variant: 'info',
+        title: t('updates.checkResultCooldownTitle'),
+        message: t('updates.checkResultCooldown')
+      }
+    case 'skipped':
+      return {
+        variant: 'warning',
+        title: t('updates.checkResultSkippedTitle'),
+        message: updateStore.lastSkipReason || t('updates.checkResultSkipped')
+      }
+    case 'error':
+      return {
+        variant: 'danger',
+        title: t('updates.checkResultErrorTitle'),
+        message: updateStore.checkError || t('updates.checkResultError')
+      }
+    default:
+      return null
+  }
+})
 
 const formatBytes = bytes => {
   const value = Number(bytes) || 0
@@ -270,7 +332,7 @@ const onCheckNow = async () => {
   try {
     const outcome = await updateStore.checkNow(firmwareVersion.value)
     await loadCachedRelease()
-    if (outcome === 'updated' && updateAvailable.value) {
+    if ((outcome === 'updated' || outcome === 'no-update') && updateAvailable.value) {
       uiStore.pushToast({ type: 'success', title: t('updates.checkResultUpdatedTitle'), message: t('updates.checkResultUpdated', { version: release.value.version }), duration: 5000 })
     } else if (outcome === 'skipped') {
       uiStore.pushToast({ type: 'warning', title: t('updates.checkResultSkippedTitle'), message: updateStore.lastSkipReason || t('updates.checkResultSkipped'), duration: 8000 })
@@ -357,12 +419,15 @@ onMounted(refreshCachedStatus)
 .status-card { padding:var(--space-4); display:flex; flex-direction:column; gap:5px; }
 .status-card .label,.status-card small { color:var(--color-text-secondary); font-size: var(--fs-xs); }
 .status-card strong { font-size: var(--fs-md); overflow-wrap:anywhere; }
-.update-card { padding:var(--card-padding); display:flex; flex-direction:column; gap:var(--space-4); }
-.card-heading { display:flex; justify-content:space-between; gap:var(--space-3); align-items:flex-start; }
-.card-heading h2 { margin:.25rem 0; font-size: var(--fs-lg); }
-.card-heading p { margin:0; color:var(--color-text-secondary); }
+.update-card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); overflow:hidden; }
+.card-header { display:flex; gap:14px; align-items:flex-start; padding:var(--card-padding); border-bottom:1px solid var(--color-border); }
+.header-icon { width:44px; height:44px; flex:0 0 auto; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; }
+.header-text { min-width:0; flex:1; }
+.header-text h2 { margin:2px 0 0; font-size:var(--fs-lg); font-weight:var(--font-weight-semibold); }
+.header-text p { margin:.35rem 0 0; color:var(--color-text-secondary); }
+.card-body { padding:var(--card-padding); display:flex; flex-direction:column; gap:var(--space-4); }
 .kicker { color:var(--color-primary-strong); font-size: var(--fs-2xs); font-weight:var(--font-weight-heavy); text-transform:uppercase; letter-spacing:.04em; }
-.version-badge { padding:5px 9px; border-radius:999px; background:var(--color-primary-soft); font-weight:var(--font-weight-heavy); white-space:nowrap; }
+.version-badge { margin-left:auto; padding:5px 9px; border-radius:999px; background:var(--color-primary-soft); font-weight:var(--font-weight-heavy); white-space:nowrap; }
 .release-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-3); }
 .release-grid div { padding:var(--space-3); border-radius:var(--radius-sm); background:var(--color-bg-alt); display:flex; flex-direction:column; gap:var(--space-1); }
 .release-grid span { color:var(--color-text-secondary); font-size: var(--fs-xs); }
@@ -371,9 +436,10 @@ onMounted(refreshCachedStatus)
 .action-btn { display:inline-flex; gap:var(--space-2); align-items:center; text-decoration:none; }
 /* Manual "search now" row — mirrors the Firmware tab so both sub-tabs share
    the same primary action placement (Korrekturauftrag §6.5). */
-.check-now-row { display:flex; margin-bottom:var(--space-1); }
+.check-now-row { display:flex; }
 .check-now-btn { width:auto; }
-.file-drop { min-height:145px; border:2px dashed var(--color-border-strong); border-radius:var(--radius-lg); display:flex; flex-direction:column; gap:7px; align-items:center; justify-content:center; text-align:center; cursor:pointer; padding:var(--card-padding); }
+.manual-check-feedback { margin:0; display:flex; flex-direction:column; gap:var(--space-1); }
+.file-drop { min-height:150px; border:2px dashed var(--color-border-strong); border-radius:var(--radius-lg); display:flex; flex-direction:column; gap:7px; align-items:center; justify-content:center; text-align:center; cursor:pointer; padding:var(--card-padding); }
 .file-drop input { display:none; }
 .file-drop.invalid { border-color:var(--color-danger); }
 .file-drop.disabled { opacity:.6; cursor:not-allowed; }

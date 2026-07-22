@@ -2,12 +2,12 @@
   <div class="firmware-page page-shell">
     <section class="page-hero">
       <div class="hero-copy">
-        <span class="hero-eyebrow"><AppIcon name="firmware" /> Firmware</span>
-        <h1 class="hero-title">Firmware aktualisieren</h1>
-        <p class="hero-subtitle">Updates werden einmal täglich gesucht. Die Installation erfolgt ausschließlich über eine lokal ausgewählte BIN-Datei.</p>
+        <span class="hero-eyebrow"><AppIcon name="firmware" /> {{ t('updates.firmware') }}</span>
+        <h1 class="hero-title">{{ t('firmware.pageTitle') }}</h1>
+        <p class="hero-subtitle">{{ t('firmware.pageDescription') }}</p>
       </div>
       <div class="hero-meta">
-        <span class="meta-chip"><AppIcon name="firmware" /> Installiert: {{ sysInfoStore.currentVersion || '—' }}</span>
+        <span class="meta-chip"><AppIcon name="firmware" /> {{ t('firmware.installedLabel') }}: {{ sysInfoStore.currentVersion || '—' }}</span>
         <span class="meta-chip"><AppIcon name="clock" /> {{ lastCheckText }}</span>
       </div>
     </section>
@@ -17,13 +17,14 @@
         <div class="card-header">
           <div class="header-icon bg-success-light text-success"><AppIcon name="download" /></div>
           <div class="header-text">
-            <h2>Verfügbare Firmware</h2>
-            <p>Der ESP lädt nur das kleine Update-Manifest. Die Firmware-Datei wird von deinem Browser heruntergeladen.</p>
+            <span class="kicker">{{ t('firmware.availableKicker') }}</span>
+            <h2>{{ t('firmware.availableHeading') }}</h2>
+            <p>{{ t('firmware.availableHelp') }}</p>
           </div>
         </div>
         <div class="card-body">
           <BAlert v-if="updateStore.checkError" variant="warning" :model-value="true">
-            Update-Prüfung fehlgeschlagen: {{ updateStore.checkError }}
+            {{ t('firmware.checkFailed') }}: {{ updateStore.checkError }}
           </BAlert>
 
           <!-- Manual "search for updates now" (Korrekturauftrag §6.2/§6.3).
@@ -39,18 +40,29 @@
             </BButton>
           </div>
 
+          <BAlert
+            v-if="manualCheckFeedback"
+            :variant="manualCheckFeedback.variant"
+            :model-value="true"
+            class="manual-check-feedback"
+            data-testid="manual-check-feedback"
+          >
+            <strong>{{ manualCheckFeedback.title }}</strong>
+            <span>{{ manualCheckFeedback.message }}</span>
+          </BAlert>
+
           <div v-if="updateStore.updateAvailable" class="release-box">
             <div>
-              <span class="release-label">Neue Version</span>
+              <span class="release-label">{{ t('firmware.newVersionLabel') }}</span>
               <strong>v{{ updateStore.latestVersion }}</strong>
-              <small v-if="updateStore.publishedAt">Veröffentlicht: {{ formatDate(updateStore.publishedAt) }}</small>
+              <small v-if="updateStore.publishedAt">{{ t('firmware.publishedAt', { time: formatDate(updateStore.publishedAt) }) }}</small>
             </div>
             <span v-if="updateStore.isPrerelease" class="beta-badge">Beta</span>
           </div>
           <div v-else class="release-box is-current">
             <div>
-              <span class="release-label">Status</span>
-              <strong>{{ updateStore.latestVersion && updateStore.latestVersion !== 'n/a' ? 'Firmware ist aktuell' : 'Noch kein Prüfergebnis vorhanden' }}</strong>
+              <span class="release-label">{{ t('firmware.statusLabel') }}</span>
+              <strong>{{ updateStore.hasCompletedManualCheck || (updateStore.latestVersion && updateStore.latestVersion !== 'n/a') ? t('firmware.upToDate') : t('firmware.noCheckResult') }}</strong>
             </div>
           </div>
 
@@ -62,7 +74,7 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              <AppIcon name="download" /> Firmware-BIN herunterladen
+              <AppIcon name="download" /> {{ t('firmware.downloadBin') }}
             </a>
             <a
               v-if="updateStore.releaseUrl"
@@ -71,7 +83,7 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              <AppIcon name="externalLink" /> Release auf GitHub
+              <AppIcon name="externalLink" /> {{ t('firmware.viewOnGithub') }}
             </a>
           </div>
 
@@ -88,8 +100,8 @@
               >
             </div>
             <label for="betaChannelSwitch" class="beta-toggle-label">
-              Beta-Versionen anzeigen
-              <span class="beta-toggle-hint">Die Änderung gilt bei der nächsten automatischen Prüfung innerhalb des 24-Stunden-Zyklus.</span>
+              {{ t('firmware.betaChannel') }}
+              <span class="beta-toggle-hint">{{ t('firmware.betaCycleHint') }}</span>
             </label>
           </div>
         </div>
@@ -99,8 +111,9 @@
         <div class="card-header">
           <div class="header-icon bg-primary-light text-primary"><AppIcon name="upload" /></div>
           <div class="header-text">
-            <h2>Firmware manuell installieren</h2>
-            <p>Hier ausschließlich <code>firmware_*.bin</code> verwenden. WebUI-Dateien gehören unter <strong>System → WebUI</strong>.</p>
+            <span class="kicker">{{ t('firmware.manualKicker') }}</span>
+            <h2>{{ t('firmware.manualHeading') }}</h2>
+            <p>{{ t('firmware.manualHelp') }}</p>
           </div>
         </div>
         <div class="card-body">
@@ -111,7 +124,7 @@
             <input ref="fileInput" type="file" accept=".bin,application/octet-stream" class="hidden-input" @change="handleFileSelect">
             <template v-if="!file">
               <div class="upload-icon"><AppIcon name="upload" /></div>
-              <span class="upload-text">Firmware-BIN auswählen oder hierher ziehen</span>
+              <span class="upload-text">{{ t('firmware.selectFirmwareBin') }}</span>
             </template>
             <template v-else>
               <div class="file-preview">
@@ -133,13 +146,13 @@
           </div>
 
           <BAlert variant="warning" :model-value="true">
-            Während des Schreibens Stromversorgung und Netzwerk nicht unterbrechen. Nach erfolgreichem Upload startet das Gerät mit dauerhaft aktivem Neustart-Sync neu.
+            {{ t('firmware.writeWarning') }}
           </BAlert>
 
           <BButton variant="primary" size="lg" block class="action-btn"
                    :disabled="!file || !!fileError || uploading" @click="uploadFirmware">
             <span v-if="uploading" class="spinner-border spinner-border-sm me-2"></span>
-            <AppIcon v-else name="upload" /> {{ uploading ? 'Firmware wird übertragen …' : 'Firmware installieren' }}
+            <AppIcon v-else name="upload" /> {{ uploading ? t('firmware.uploading') : t('firmware.upload') }}
           </BButton>
         </div>
       </section>
@@ -148,11 +161,11 @@
     <section class="system-actions">
       <button type="button" class="action-tile warning" @click="restartClick">
         <div class="tile-icon"><AppIcon name="refresh" /></div>
-        <div class="tile-text"><h4>Neustart</h4><p>Gerät mit aktivem Neustart-Sync neu starten</p></div>
+        <div class="tile-text"><h4>{{ t('firmware.restart') }}</h4><p>{{ t('firmware.restartSyncHint') }}</p></div>
       </button>
       <button type="button" class="action-tile danger" @click="openFactoryResetModal">
         <div class="tile-icon"><AppIcon name="restore" /></div>
-        <div class="tile-text"><h4>Werkseinstellungen</h4><p>Alle gespeicherten Einstellungen löschen</p></div>
+        <div class="tile-text"><h4>{{ t('firmware.factoryResetTitle') }}</h4><p>{{ t('firmware.factoryResetActionHint') }}</p></div>
       </button>
     </section>
 
@@ -189,7 +202,7 @@ import { useFirmwareUpdateStore, useRestartUiStore, useSysInfoStore, useUiStore,
 const WEBUI_IMAGE_SIZE = 0x50000
 const ESP_IMAGE_MAGIC = 0xe9
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const firmwareUpdateStore = useFirmwareUpdateStore()
 const restartUiStore = useRestartUiStore()
 const sysInfoStore = useSysInfoStore()
@@ -207,11 +220,49 @@ const showFactoryResetModal = ref(false)
 const isResetting = ref(false)
 
 const lastCheckText = computed(() => {
-  if (!updateStore.lastCheck) return 'Noch nicht geprüft'
-  return `Geprüft: ${new Date(updateStore.lastCheck).toLocaleString()}`
+  const checkedAt = updateStore.lastSuccessfulManualCheckAt || updateStore.lastCheck
+  if (!checkedAt) return t('firmware.noRecentCheck')
+  return t('firmware.lastCheckAt', { time: new Date(checkedAt).toLocaleString(locale.value) })
 })
 
-const formatDate = value => value ? new Date(value).toLocaleString() : '—'
+const manualCheckFeedback = computed(() => {
+  switch (updateStore.lastManualCheckOutcome) {
+    case 'updated':
+      return {
+        variant: 'success',
+        title: t('updates.checkResultUpdatedTitle'),
+        message: t('updates.checkResultUpdated', { version: updateStore.latestVersion })
+      }
+    case 'no-update':
+      return {
+        variant: 'success',
+        title: t('updates.checkResultNoUpdateTitle'),
+        message: t('updates.checkResultNoUpdate')
+      }
+    case 'cooldown':
+      return {
+        variant: 'info',
+        title: t('updates.checkResultCooldownTitle'),
+        message: t('updates.checkResultCooldown')
+      }
+    case 'skipped':
+      return {
+        variant: 'warning',
+        title: t('updates.checkResultSkippedTitle'),
+        message: updateStore.lastSkipReason || t('updates.checkResultSkipped')
+      }
+    case 'error':
+      return {
+        variant: 'danger',
+        title: t('updates.checkResultErrorTitle'),
+        message: updateStore.checkError || t('updates.checkResultError')
+      }
+    default:
+      return null
+  }
+})
+
+const formatDate = value => value ? new Date(value).toLocaleString(locale.value) : '—'
 const formatSize = bytes => {
   const value = Number(bytes) || 0
   if (value < 1024) return `${value} B`
@@ -232,26 +283,26 @@ const validateFirmwareFile = async selectedFile => {
 
   const name = String(selectedFile.name || '').toLowerCase()
   if (!name.endsWith('.bin')) {
-    fileError.value = 'Ungültige Datei: Es wird eine Firmware-Datei mit der Endung .bin benötigt.'
+    fileError.value = t('firmware.fileInvalidExtension')
     return
   }
   if (name.startsWith('webui_') || name === 'spiffs.bin' || Number(selectedFile.size) === WEBUI_IMAGE_SIZE) {
-    fileError.value = 'Falsche Datei: Das ist ein WebUI-/WWW-Image. Bitte unter System → WebUI installieren.'
+    fileError.value = t('firmware.fileIsWebui')
     return
   }
   if (selectedFile.size < 1024) {
-    fileError.value = 'Die ausgewählte Datei ist zu klein und kann keine gültige Firmware sein.'
+    fileError.value = t('firmware.fileTooSmall')
     return
   }
 
   try {
     const firstByte = new Uint8Array(await selectedFile.slice(0, 1).arrayBuffer())[0]
     if (firstByte !== ESP_IMAGE_MAGIC) {
-      fileError.value = 'Ungültiges Firmware-Image: Der ESP32-Dateikopf 0xE9 fehlt. Die Datei wurde nicht angenommen.'
+      fileError.value = t('firmware.fileInvalidMagic')
       return
     }
   } catch {
-    fileError.value = 'Die ausgewählte Datei konnte nicht geprüft werden.'
+    fileError.value = t('firmware.fileReadError')
     return
   }
 
@@ -274,13 +325,13 @@ const uploadFirmware = async () => {
         if (event.total) uploadProgress.value = Math.round(event.loaded * 100 / event.total)
       }
     })
-    uiStore.pushToast({ type: 'success', title: 'Firmware übertragen', message: 'Das Gerät startet jetzt neu.', duration: 2500 })
+    uiStore.pushToast({ type: 'success', title: t('firmware.uploadCompleteTitle'), message: t('firmware.uploadCompleteMessage'), duration: 2500 })
     restartUiStore.start({ includeFlashPause: true, syncSeconds: 40, restartSeconds: 30 })
   } catch (error) {
     const message = typeof error.response?.data === 'string'
       ? error.response.data
-      : (error.response?.data?.error || error.message || 'Firmware-Upload fehlgeschlagen.')
-    uiStore.pushToast({ type: 'error', title: 'Firmware-Upload fehlgeschlagen', message, duration: 7000 })
+      : (error.response?.data?.error || error.message || t('firmware.uploadFailedMessage'))
+    uiStore.pushToast({ type: 'error', title: t('firmware.uploadFailedTitle'), message, duration: 7000 })
   } finally {
     uploading.value = false
     uploadProgress.value = 0
@@ -293,10 +344,10 @@ const onBetaToggle = async event => {
   try {
     await axios.post('/settings.json', { betaChannel: enabled }, { silent: true })
     updateStore.betaChannel = enabled
-    uiStore.pushToast({ type: 'success', title: 'Update-Kanal gespeichert', message: 'Die Auswahl gilt bei der nächsten täglichen Prüfung.' })
+    uiStore.pushToast({ type: 'success', title: t('firmware.betaSavedTitle'), message: t('firmware.betaSavedMessage') })
   } catch (error) {
     event.target.checked = !enabled
-    uiStore.pushToast({ type: 'error', title: 'Speichern fehlgeschlagen', message: error.response?.data?.error || error.message })
+    uiStore.pushToast({ type: 'error', title: t('firmware.saveFailedTitle'), message: error.response?.data?.error || error.message })
   } finally {
     betaToggleSaving.value = false
   }
@@ -396,8 +447,10 @@ onMounted(async () => {
 .update-card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); overflow:hidden; }
 .card-header { display:flex; gap:14px; align-items:flex-start; padding:var(--card-padding); border-bottom:1px solid var(--color-border); }
 .header-icon { width:44px; height:44px; flex:0 0 auto; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; }
-.header-text h2 { margin:0; font-size: var(--fs-lg); font-weight: var(--font-weight-semibold); }
+.header-text { min-width:0; flex:1; }
+.header-text h2 { margin:2px 0 0; font-size: var(--fs-lg); font-weight: var(--font-weight-semibold); }
 .header-text p { margin:.35rem 0 0; color:var(--color-text-secondary); }
+.kicker { color:var(--color-primary-strong); font-size:var(--fs-2xs); font-weight:var(--font-weight-heavy); text-transform:uppercase; letter-spacing:.04em; }
 .card-body { padding:var(--card-padding); display:flex; flex-direction:column; gap:var(--space-4); }
 .release-box { display:flex; justify-content:space-between; gap:14px; align-items:center; padding:var(--space-4); border-radius:var(--radius-md); background:var(--color-success-soft); }
 .release-box.is-current { background:var(--color-bg-alt); }
@@ -412,6 +465,7 @@ onMounted(async () => {
    shares size/alignment with the download + GitHub buttons below. */
 .check-now-row { display:flex; }
 .check-now-btn { width:auto; }
+.manual-check-feedback { margin:0; display:flex; flex-direction:column; gap:var(--space-1); }
 .beta-toggle-row { display:flex; gap:12px; align-items:flex-start; padding-top:14px; border-top:1px solid var(--color-border); }
 .beta-toggle-label { display:flex; flex-direction:column; gap:3px; font-weight: var(--font-weight-bold); }
 .beta-toggle-hint { font-size: var(--fs-xs); font-weight: var(--font-weight-normal); color:var(--color-text-secondary); }

@@ -78,6 +78,7 @@ export default defineConfig({
   esbuild: {
     legalComments: 'none',
     drop: ['debugger'],
+    pure: ['console.debug'],
     keepNames: false
   },
   server: {

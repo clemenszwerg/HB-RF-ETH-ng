@@ -303,8 +303,10 @@ export default {
     eyebrow: 'Uppdateringar',
     title: 'Uppdateringar',
     subtitle: 'Firmware och webbgränssnitt har separata versioner och uppdateras oberoende av varandra.',
-    firmware: 'Firmware',
+    firmware: 'Enhetsfirmware',
+    firmwareDescription: 'ESP32, nätverk och radio',
     webui: 'WebUI',
+    webuiDescription: 'Kontrollgränssnitt i webbläsaren',
     checkNow: 'Sök efter uppdateringar nu',
     checkingNow: 'Söker …',
     // Resultat-toast efter en manuell "sök nu".

@@ -72,23 +72,22 @@
      Every font-size in the app should reference one of these tokens
      instead of an arbitrary 0.78rem / 0.82rem / 0.85rem / etc. */
 
-  /* Font families. Inter is the primary family (loaded via Google Fonts in
-     index.html with display=swap); system-ui stacks follow as fallback so
-     offline / blocked-CDN environments still render cleanly. --font-mono is
-     the single source of truth; the old ad-hoc Consolas / Cascadia / SFMono /
-     ui-monospace stacks all map to this token now. */
+  /* One font family everywhere. Even log/code surfaces use the same stack so
+     switching between pages never produces a visibly different typeface. */
   --font-sans: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-mono: var(--font-sans);
 
-  /* Type scale (1rem = 16px body root). */
-  --fs-2xs: 0.75rem;   /* 12px — micro captions, eyebrows, meta labels */
-  --fs-xs:  0.8125rem; /* 13px — small secondary text, chips, hints */
-  --fs-sm:  0.875rem;  /* 14px — body small, subtitles */
+  /* Readable type scale (1rem = 16px body root). The former 12/13/14px
+     levels made settings, monitoring and status pages look noticeably
+     smaller than the update pages. */
+  --fs-2xs: 0.8125rem; /* 13px — micro captions and eyebrows */
+  --fs-xs:  0.875rem;  /* 14px — secondary text, chips and hints */
+  --fs-sm:  1rem;      /* 16px — normal UI copy and subtitles */
   --fs-md:  1rem;      /* 16px — body */
-  --fs-lg:  1.125rem;  /* 18px — card headers */
-  --fs-xl:  1.375rem;  /* 22px — section headings */
-  --fs-2xl: 1.75rem;   /* 28px — page hero title (mobile) */
-  --fs-3xl: 2.25rem;   /* 36px — brand wordmark, display */
+  --fs-lg:  1.25rem;   /* 20px — card headers */
+  --fs-xl:  1.5rem;    /* 24px — section headings */
+  --fs-2xl: 1.875rem;  /* 30px — page hero title (mobile) */
+  --fs-3xl: 2.375rem;  /* 38px — brand wordmark, display */
 
   /* Weight + line-height tokens (Korrekturauftrag §1). Aliases so component
      rules can read var(--font-weight-semibold) etc. instead of bare numbers. */
@@ -160,8 +159,8 @@ body {
     radial-gradient(circle at top right, rgba(57, 113, 232, 0.12), transparent 26%),
     linear-gradient(180deg, var(--color-bg-alt), var(--color-bg));
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.5;
+  font-size: var(--fs-md);
+  line-height: var(--line-height-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -173,7 +172,7 @@ h4,
 h5,
 h6 {
   margin: 0;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   letter-spacing: -0.025em;
 }
 
@@ -193,6 +192,23 @@ select,
 
 button {
   font: inherit;
+}
+
+/* Native controls do not consistently inherit the document typeface. */
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Bootstrap and browser defaults normally switch these elements back to a
+   monospace stack. Keep the requested single typeface across every page. */
+code,
+pre,
+kbd,
+samp,
+.font-monospace {
+  font-family: var(--font-sans) !important;
 }
 
 ::selection {
@@ -656,8 +672,10 @@ textarea {
 }
 
 .kv-value.mono {
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
+  /* Identifiers in key/value cards are normal UI copy, even when they contain
+     technical values. */
+  font-family: inherit;
+  font-size: inherit;
 }
 
 .form-label {

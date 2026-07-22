@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changes
+- fix(webui): Firmware- und WebUI-Update-Seiten vereinheitlicht; manuelle Prüfungen zeigen „aktuell“, Cooldown, Überspringen und Fehler dauerhaft und eindeutig an.
+- fix(webui): Firmware-Seite vollständig internationalisiert, einschließlich Status, Datumsformatierung, Datei-Validierung und Toast-Meldungen.
+- fix(webui): Lesbare Typografie appweit vereinheitlicht sowie Monitoring-Zeilen und Statuskarten pixelgenau ausgerichtet.
+
 ## [2.2.5-Beta.9] - 2026-07-22
 
 ### Changes

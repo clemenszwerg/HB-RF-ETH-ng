@@ -57,6 +57,485 @@ test.beforeEach(async ({ page }) => {
   }))
 })
 
+test('dashboard typography and summary-card footers stay aligned', async ({ page }) => {
+  await page.route('**/sysinfo.json**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      sysInfo: {
+        hostname: 'HB-RF-ETH-TestRoma',
+        serial: '2805A5114784',
+        currentVersion: '2.2.4-Beta.3',
+        memoryUsage: 67,
+        cpuUsage: 0,
+        uptimeSeconds: 1397,
+        boardRevision: 'REV 1.10/1.11 (PUB)',
+        resetReason: 'Watchdog Reset (Interrupt Watchdog)',
+        ethernetConnected: true,
+        ethernetSpeed: 100,
+        ethernetDuplex: 'Full',
+        radioModuleType: 'RPI-RF-MOD',
+        radioModuleSerial: '58A9A71150',
+        radioModuleFirmwareVersion: '4.4.22',
+        radioModuleBidCosRadioMAC: '0x123456',
+        radioModuleHmIPRadioMAC: '0x654321',
+        radioModuleSGTIN: '3014F711A0001F98A99AXXXX'
+      }
+    })
+  }))
+
+  await page.goto(`${BASE_URL}/`)
+  await expect(page.locator('.dashboard .stats-grid')).toBeVisible()
+
+  const typography = await page.locator('.dashboard').evaluate(element => {
+    const bodyStyle = getComputedStyle(document.body)
+    const values = [...element.querySelectorAll('.kv-value')].map(value => {
+      const style = getComputedStyle(value)
+      return { fontFamily: style.fontFamily, fontSize: style.fontSize }
+    })
+    return {
+      bodyFontFamily: bodyStyle.fontFamily,
+      bodyFontSize: bodyStyle.fontSize,
+      values
+    }
+  })
+
+  expect(typography.values.length).toBeGreaterThan(0)
+  expect(typography.values.every(value => value.fontFamily === typography.bodyFontFamily)).toBe(true)
+  expect(typography.values.every(value => value.fontSize === typography.bodyFontSize)).toBe(true)
+
+  const footerBottoms = await page.locator('.dashboard .metric-footer').evaluateAll(footers =>
+    footers.map(footer => footer.getBoundingClientRect().bottom)
+  )
+  expect(footerBottoms).toHaveLength(4)
+  expect(Math.max(...footerBottoms) - Math.min(...footerBottoms)).toBeLessThan(1)
+})
+
+test('monitoring diagnostic rows use one consistent grey row size', async ({ page }) => {
+  await page.route('**/api/monitoring', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      checkmk: { enabled: false, port: 6556 },
+      mqtt: { enabled: false },
+      prometheus: { enabled: false },
+      syslog: { enabled: false },
+      notify: { enabled: false, channels: 0 }
+    })
+  }))
+
+  await page.goto(`${BASE_URL}/monitoring`)
+  const rows = page.locator('.diagnostics-panel .diag-row')
+  await expect(rows).toHaveCount(5)
+
+  const rowStyles = await rows.evaluateAll(elements => elements.map(element => {
+    const style = getComputedStyle(element)
+    return {
+      height: element.getBoundingClientRect().height,
+      paddingTop: style.paddingTop,
+      paddingBottom: style.paddingBottom,
+      backgroundColor: style.backgroundColor
+    }
+  }))
+
+  expect(new Set(rowStyles.map(row => row.height)).size).toBe(1)
+  expect(new Set(rowStyles.map(row => row.paddingTop)).size).toBe(1)
+  expect(new Set(rowStyles.map(row => row.paddingBottom)).size).toBe(1)
+  expect(new Set(rowStyles.map(row => row.backgroundColor)).size).toBe(1)
+  expect(rowStyles[0].backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
+})
+
+test('firmware update page follows the selected language completely', async ({ page }) => {
+  await page.goto(`${BASE_URL}/updates/firmware`)
+
+  await expect(page.locator('.firmware-page .hero-title')).toHaveText('Update device firmware')
+  await expect(page.locator('.firmware-page')).toContainText('Available device firmware')
+  await expect(page.locator('.firmware-page')).toContainText('Install firmware manually')
+  await expect(page.locator('.firmware-page')).not.toContainText('Firmware aktualisieren')
+  await expect(page.locator('.firmware-page')).not.toContainText('Noch kein Prüfergebnis')
+
+  await page.evaluate(() => localStorage.setItem('locale', 'de'))
+  await page.reload()
+
+  await expect(page.locator('.firmware-page .hero-title')).toHaveText('Geräte-Firmware aktualisieren')
+  await expect(page.locator('.firmware-page')).toContainText('Verfügbare Geräte-Firmware')
+  await expect(page.locator('.firmware-page')).toContainText('Firmware manuell installieren')
+})
+
+test('updates sub-navigation uses the shared design and switches child routes', async ({ page }) => {
+  await page.route('**/settings.json**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ settings })
+  }))
+  await page.route('**/api/firmware_archive**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify(archive)
+  }))
+  await page.route('**/api/webui/status**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      valid: true,
+      version: '1.0.0-Beta.6',
+      effectiveVersion: '1.0.0-Beta.6',
+      partitionSize: 327680,
+      usedBytes: 250000
+    })
+  }))
+
+  await page.goto(`${BASE_URL}/updates/firmware`)
+
+  const navigation = page.locator('.updates-page > .tabs-container')
+  const control = navigation.locator('.segmented-control')
+  const firmwareTab = control.getByRole('link', { name: /Device firmware/ })
+  const webUiTab = control.getByRole('link', { name: /WebUI/ })
+
+  await expect(navigation).toBeVisible()
+  await expect(navigation).toHaveCSS('display', 'flex')
+  await expect(control).toHaveCSS('display', 'grid')
+  await expect(firmwareTab).toHaveClass(/active/)
+  await expect(firmwareTab).toHaveCSS('min-height', '68px')
+  await expect(firmwareTab).toContainText('ESP32, network and radio')
+  await expect(webUiTab).toContainText('Browser-based controls')
+  await expect(page.locator('.firmware-page')).toBeVisible()
+  await expect(page.locator('.firmware-page .content-grid > .update-card')).toHaveCount(2)
+  await expect(page.locator('.firmware-page .update-card > .card-header')).toHaveCount(2)
+  await expect(page.locator('.firmware-page .update-card > .card-body')).toHaveCount(2)
+
+  const tabSizes = await control.locator('.segment-btn').evaluateAll(tabs => tabs.map(tab => ({
+    width: tab.getBoundingClientRect().width,
+    height: tab.getBoundingClientRect().height
+  })))
+  expect(tabSizes).toHaveLength(2)
+  expect(Math.abs(tabSizes[0].width - tabSizes[1].width)).toBeLessThan(1)
+  expect(tabSizes.every(tab => tab.height >= 44)).toBe(true)
+
+  await webUiTab.click()
+  await expect(page).toHaveURL(`${BASE_URL}/updates/webui`)
+  await expect(webUiTab).toHaveClass(/active/)
+  await expect(page.locator('.www-page')).toBeVisible()
+  await expect(page.locator('.www-page .content-grid > .update-card')).toHaveCount(2)
+  await expect(page.locator('.www-page .update-card > .card-header')).toHaveCount(2)
+  await expect(page.locator('.www-page .update-card > .card-body')).toHaveCount(2)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  const mobileBounds = await control.evaluate(element => {
+    const rect = element.getBoundingClientRect()
+    return { left: rect.left, right: rect.right, viewportWidth: window.innerWidth }
+  })
+  expect(mobileBounds.left).toBeGreaterThanOrEqual(0)
+  expect(mobileBounds.right).toBeLessThanOrEqual(mobileBounds.viewportWidth)
+})
+
+test('firmware keeps a successful no-update result visible without a release version', async ({ page }) => {
+  const settledSnapshot = {
+    latestVersion: 'n/a',
+    updateAvailable: false,
+    fetchedAt: 1784750400000,
+    fetchInProgress: false,
+    error: null
+  }
+
+  await page.route('**/api/check_update**', route => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ triggered: true, fetchInProgress: false })
+      })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(settledSnapshot) })
+  })
+
+  await page.goto(`${BASE_URL}/updates/firmware`)
+  await expect(page.getByText('No check result yet')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Search for updates now' }).click()
+
+  await expect(page.getByText('Firmware is up to date')).toBeVisible()
+  await expect(page.locator('.app-toast', { hasText: 'No newer version is available.' })).toBeVisible()
+})
+
+test('WebUI keeps a successful no-update result visible without a release version', async ({ page }) => {
+  const settledSnapshot = {
+    latestVersion: 'n/a',
+    updateAvailable: false,
+    fetchedAt: 1784750400000,
+    fetchInProgress: false,
+    error: null,
+    webui: {
+      version: '',
+      design: 'newdesign',
+      apiVersion: 1,
+      minFirmwareVersion: '2.2.5-Beta.1',
+      size: 327680
+    }
+  }
+
+  await page.route('**/api/webui/status**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      valid: true,
+      version: '1.0.0-Beta.7',
+      effectiveVersion: '1.0.0-Beta.7',
+      partitionSize: 327680,
+      usedBytes: 292666
+    })
+  }))
+  await page.route('**/api/check_update**', route => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ triggered: true, fetchInProgress: false })
+      })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(settledSnapshot) })
+  })
+
+  await page.goto(`${BASE_URL}/updates/webui`)
+  await expect(page.getByText('The installed WebUI is up to date.')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Search for updates now' }).click()
+
+  await expect(page.getByText('The installed WebUI is up to date.')).toBeVisible()
+  await expect(page.locator('.app-toast', { hasText: 'No newer version is available.' })).toBeVisible()
+})
+
+test('update-search cooldown does not fabricate a successful result', async ({ page }) => {
+  const emptySnapshot = {
+    latestVersion: 'n/a',
+    updateAvailable: false,
+    fetchedAt: 0,
+    fetchInProgress: false,
+    error: null
+  }
+
+  await page.route('**/api/check_update**', route => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ triggered: false, fetchInProgress: false })
+      })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(emptySnapshot) })
+  })
+
+  await page.goto(`${BASE_URL}/updates/firmware`)
+  await page.getByRole('button', { name: 'Search for updates now' }).click()
+
+  await expect(page.locator('.app-toast', { hasText: 'A check is already running or the 60-second cooldown is still active.' })).toBeVisible()
+  await expect(page.getByText('No check result yet')).toBeVisible()
+  await expect(page.getByText('Firmware is up to date')).toHaveCount(0)
+})
+
+test('firmware keeps manual no-update feedback visible when it was already current', async ({ page }) => {
+  let postCount = 0
+  const currentSnapshot = {
+    latestVersion: '2.2.4-Beta.3',
+    updateAvailable: false,
+    fetchedAt: 1700000000000,
+    fetchInProgress: false,
+    error: null
+  }
+
+  await page.route('**/api/check_update**', route => {
+    if (route.request().method() === 'POST') {
+      postCount += 1
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ triggered: true, fetchInProgress: false })
+      })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(currentSnapshot) })
+  })
+
+  await page.goto(`${BASE_URL}/updates/firmware`)
+  await expect(page.getByText('Firmware is up to date')).toBeVisible()
+  const lastCheck = page.locator('.hero-meta .meta-chip').nth(1)
+  const beforeCheck = await lastCheck.textContent()
+
+  await page.getByRole('button', { name: 'Search for updates now' }).click()
+  await expect(page.locator('.app-toast', { hasText: 'No newer version is available.' })).toBeVisible()
+  expect(postCount).toBe(1)
+
+  await page.waitForTimeout(4200)
+  const feedback = page.getByTestId('manual-check-feedback')
+  await expect(feedback).toBeVisible()
+  await expect(feedback).toContainText('Everything is up to date')
+  await expect(feedback).toContainText('No newer version is available.')
+  await expect(lastCheck).not.toHaveText(beforeCheck || '')
+})
+
+test('WebUI keeps manual no-update feedback visible when it was already current', async ({ page }) => {
+  let postCount = 0
+  const currentSnapshot = {
+    latestVersion: '2.2.4-Beta.3',
+    updateAvailable: false,
+    fetchedAt: 1700000000000,
+    fetchInProgress: false,
+    error: null,
+    webui: {
+      version: '1.0.0-Beta.7',
+      design: 'newdesign',
+      apiVersion: 1,
+      minFirmwareVersion: '2.2.4-Beta.1',
+      size: 327680
+    }
+  }
+
+  await page.route('**/api/webui/status**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      valid: true,
+      version: '1.0.0-Beta.7',
+      effectiveVersion: '1.0.0-Beta.7',
+      partitionSize: 327680,
+      usedBytes: 292666
+    })
+  }))
+  await page.route('**/api/check_update**', route => {
+    if (route.request().method() === 'POST') {
+      postCount += 1
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ triggered: true, fetchInProgress: false })
+      })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(currentSnapshot) })
+  })
+
+  await page.goto(`${BASE_URL}/updates/webui`)
+  await expect(page.getByText('The installed WebUI is up to date.')).toBeVisible()
+  const lastCheck = page.locator('.status-card').nth(2).locator('strong')
+  const beforeCheck = await lastCheck.textContent()
+
+  await page.getByRole('button', { name: 'Search for updates now' }).click()
+  await expect(page.locator('.app-toast', { hasText: 'No newer version is available.' })).toBeVisible()
+  expect(postCount).toBe(1)
+
+  await page.waitForTimeout(4200)
+  const feedback = page.getByTestId('manual-check-feedback')
+  await expect(feedback).toBeVisible()
+  await expect(feedback).toContainText('Everything is up to date')
+  await expect(feedback).toContainText('No newer version is available.')
+  await expect(lastCheck).not.toHaveText(beforeCheck || '')
+})
+
+test('cooldown feedback stays visible without advancing the successful check time', async ({ page }) => {
+  const currentSnapshot = {
+    latestVersion: '2.2.4-Beta.3',
+    updateAvailable: false,
+    fetchedAt: 1700000000000,
+    fetchInProgress: false,
+    error: null
+  }
+
+  await page.route('**/api/check_update**', route => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ triggered: false, fetchInProgress: false })
+      })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(currentSnapshot) })
+  })
+
+  await page.goto(`${BASE_URL}/updates/firmware`)
+  const lastCheck = page.locator('.hero-meta .meta-chip').nth(1)
+  const beforeCheck = await lastCheck.textContent()
+
+  await page.getByRole('button', { name: 'Search for updates now' }).click()
+  await expect(page.locator('.app-toast', { hasText: '60-second cooldown' })).toBeVisible()
+
+  await page.waitForTimeout(4200)
+  const feedback = page.getByTestId('manual-check-feedback')
+  await expect(feedback).toBeVisible()
+  await expect(feedback).toContainText('Just a moment')
+  await expect(feedback).toContainText('60-second cooldown')
+  await expect(lastCheck).toHaveText(beforeCheck || '')
+})
+
+test('WebUI cooldown feedback stays visible without advancing the successful check time', async ({ page }) => {
+  const currentSnapshot = {
+    latestVersion: '2.2.4-Beta.3',
+    updateAvailable: false,
+    fetchedAt: 1700000000000,
+    fetchInProgress: false,
+    error: null,
+    webui: {
+      version: '1.0.0-Beta.7',
+      design: 'newdesign',
+      apiVersion: 1,
+      minFirmwareVersion: '2.2.4-Beta.1',
+      size: 327680
+    }
+  }
+
+  await page.route('**/api/webui/status**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      valid: true,
+      version: '1.0.0-Beta.7',
+      effectiveVersion: '1.0.0-Beta.7',
+      partitionSize: 327680,
+      usedBytes: 292666
+    })
+  }))
+  await page.route('**/api/check_update**', route => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ triggered: false, fetchInProgress: false })
+      })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(currentSnapshot) })
+  })
+
+  await page.goto(`${BASE_URL}/updates/webui`)
+  const lastCheck = page.locator('.status-card').nth(2).locator('strong')
+  const beforeCheck = await lastCheck.textContent()
+
+  await page.getByRole('button', { name: 'Search for updates now' }).click()
+  await expect(page.locator('.app-toast', { hasText: '60-second cooldown' })).toBeVisible()
+
+  await page.waitForTimeout(4200)
+  const feedback = page.getByTestId('manual-check-feedback')
+  await expect(feedback).toBeVisible()
+  await expect(feedback).toContainText('Just a moment')
+  await expect(feedback).toContainText('60-second cooldown')
+  await expect(lastCheck).toHaveText(beforeCheck || '')
+})
+
+test('error feedback stays visible without advancing the successful check time', async ({ page }) => {
+  const currentSnapshot = {
+    latestVersion: '2.2.4-Beta.3',
+    updateAvailable: false,
+    fetchedAt: 1700000000000,
+    fetchInProgress: false,
+    error: null
+  }
+
+  await page.route('**/api/check_update**', route => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'TLS handshake failed' })
+      })
+    }
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(currentSnapshot) })
+  })
+
+  await page.goto(`${BASE_URL}/updates/firmware`)
+  const lastCheck = page.locator('.hero-meta .meta-chip').nth(1)
+  const beforeCheck = await lastCheck.textContent()
+
+  await page.getByRole('button', { name: 'Search for updates now' }).click()
+  await expect(page.locator('.app-toast', { hasText: 'TLS handshake failed' }).last()).toBeVisible()
+
+  const feedback = page.getByTestId('manual-check-feedback')
+  await expect(feedback).toBeVisible()
+  await expect(feedback).toContainText('Check failed')
+  await expect(feedback).toContainText('TLS handshake failed')
+  await expect(lastCheck).toHaveText(beforeCheck || '')
+})
+
 test('settings save/discard state follows the edited form immediately', async ({ page }) => {
   const persisted = { ...settings }
   const getUrls = []
@@ -79,7 +558,7 @@ test('settings save/discard state follows the edited form immediately', async ({
   await page.goto(`${BASE_URL}/settings`)
   await page.getByRole('button', { name: 'Network' }).click()
 
-  const hostname = page.locator('.form-group', { hasText: 'Hostname' }).locator('input')
+  const hostname = page.locator('label.form-label').filter({ hasText: /^Hostname$/ }).locator('..').locator('input')
   const footer = page.locator('.floating-footer')
 
   await expect(hostname).toHaveValue('hb-rf-eth')
@@ -142,7 +621,7 @@ test('late header initialization does not discard settings edits', async ({ page
   await page.goto(`${BASE_URL}/settings`)
   await page.getByRole('button', { name: 'Network' }).click()
 
-  const hostname = page.locator('.form-group', { hasText: 'Hostname' }).locator('input')
+  const hostname = page.locator('label.form-label').filter({ hasText: /^Hostname$/ }).locator('..').locator('input')
   await expect(hostname).toHaveValue('hb-rf-eth')
   await hostname.fill('edit-must-survive')
   await expect(page.locator('.floating-footer')).toBeVisible()
@@ -227,7 +706,7 @@ test('invalid settings reveal the affected tab instead of silently ignoring save
 
   await page.goto(`${BASE_URL}/settings`)
   await page.getByRole('button', { name: 'Network' }).click()
-  await page.locator('.form-group', { hasText: 'Hostname' }).locator('input').fill('invalid_hostname')
+  await page.locator('label.form-label').filter({ hasText: /^Hostname$/ }).locator('..').locator('input').fill('invalid_hostname')
   await page.getByRole('button', { name: 'General' }).click()
   await page.locator('.form-group', { hasText: 'CCU IP address' }).locator('input').fill('192.168.1.11')
   await page.locator('.floating-footer .save-btn').click()
@@ -257,7 +736,7 @@ test('OTA success dialog uses the active locale and has no default cancel button
   await expect(dialog.getByRole('button', { name: /Cancel|Abbrechen/, exact: true })).toHaveCount(0)
 })
 
-test('firmware archive loads only from the manifest embedded in the device', async ({ page }) => {
+test('firmware update page does not load the retired release archive', async ({ page }) => {
   await page.route('**/settings.json**', route => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({ settings })
@@ -277,9 +756,9 @@ test('firmware archive loads only from the manifest embedded in the device', asy
     await route.abort()
   })
 
-  await page.goto(`${BASE_URL}/firmware`)
-  await expect.poll(() => localRequests).toBe(1)
+  await page.goto(`${BASE_URL}/updates/firmware`)
   await page.waitForTimeout(250)
+  expect(localRequests).toBe(0)
   expect(externalRequests).toBe(0)
   await expect(page.locator('.archive-refresh')).toHaveCount(0)
   await expect(page.locator('.archive-error')).toBeHidden()

@@ -928,20 +928,18 @@ const runDiagnostic = async (target) => {
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
 }
 
 .diag-row {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.diag-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.diag-row:first-child {
-  padding-top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 52px;
+  padding: 10px var(--space-3);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
 }
 
 .diag-row-head {

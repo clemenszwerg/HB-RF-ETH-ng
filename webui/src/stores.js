@@ -539,6 +539,17 @@ export const useUpdateStore = defineStore('update', {
     fetchInProgress: false,
     lastCheck: null,
     checkError: null,
+    // A successful manual manifest refresh is a result even when the response
+    // has no displayable release version. Keep that completion state separate
+    // from updateAvailable so the UI can distinguish "current" from "never
+    // checked". Cooldown/skipped/error paths deliberately leave it unchanged.
+    hasCompletedManualCheck: false,
+    // Final semantic result of the most recent manual action. Unlike a toast,
+    // this remains available for durable inline feedback on both update tabs.
+    lastManualCheckOutcome: null,
+    // Client completion time for the most recent accepted, successful manual
+    // fetch. Cooldown/skipped/error outcomes must never advance this value.
+    lastSuccessfulManualCheckAt: null,
     // Human-readable reason the most recent manual/daily check was skipped
     // before it started (e.g. low heap with an active CCU session). Empty
     // when the last check ran normally. Surfaced by GET /api/check_update.
@@ -644,6 +655,15 @@ export const useUpdateStore = defineStore('update', {
       return 0
     },
 
+    _recordManualCheckOutcome(outcome) {
+      this.lastManualCheckOutcome = outcome
+      if (outcome === 'updated' || outcome === 'no-update') {
+        this.hasCompletedManualCheck = true
+        this.lastSuccessfulManualCheckAt = Date.now()
+      }
+      return outcome
+    },
+
     // Manual "search for updates now" (Korrekturauftrag §6.2/§6.3). Posts to
     // /api/check_update which arms an immediate on-device manifest fetch (60 s
     // cooldown enforced server-side); the device answers 202 immediately and
@@ -652,9 +672,10 @@ export const useUpdateStore = defineStore('update', {
     // outcome string so callers can show a definitive result toast.
     // Returns: 'updated' | 'no-update' | 'cooldown' | 'skipped' | 'error'
     async checkNow(currentVersion) {
-      if (this.isChecking) return 'cooldown'
+      if (this.isChecking) return this._recordManualCheckOutcome('cooldown')
       this.isChecking = true
       this.checkError = null
+      this.lastManualCheckOutcome = null
       try {
         const post = await axios.post('/api/check_update', {}, {
           params: { t: Date.now() }
@@ -666,19 +687,19 @@ export const useUpdateStore = defineStore('update', {
         const triggered = !!post.data?.triggered
         await this._pollUntilSettled()
         await this._loadSnapshot(currentVersion)
-        if (this.checkError) return 'error'
-        if (this.updateAvailable) return 'updated'
+        if (this.checkError) return this._recordManualCheckOutcome('error')
         // The device accepted the trigger but then skipped the fetch (e.g.
         // heap too low while the radio module is serving a CCU session). The
         // snapshot was never refreshed — surface the device's reason rather
         // than a misleading "no update available".
-        if (triggered && this.lastSkipReason) return 'skipped'
-        if (!triggered) return 'cooldown'
-        return 'no-update'
+        if (triggered && this.lastSkipReason) return this._recordManualCheckOutcome('skipped')
+        if (!triggered) return this._recordManualCheckOutcome('cooldown')
+        if (this.updateAvailable) return this._recordManualCheckOutcome('updated')
+        return this._recordManualCheckOutcome('no-update')
       } catch (error) {
         console.error('Manual update check failed:', error)
         this.checkError = error.response?.data?.error || error.message || 'Unknown error'
-        return 'error'
+        return this._recordManualCheckOutcome('error')
       } finally {
         this.isChecking = false
       }

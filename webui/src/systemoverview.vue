@@ -304,7 +304,8 @@ onMounted(loadOverview)
 .kv-row:last-child { border-bottom: 0; }
 .kv-row span { color: var(--color-text-secondary); }
 .kv-row strong { text-align: right; overflow-wrap: anywhere; font-weight: var(--font-weight-medium); }
-.mono { font-family: var(--font-mono); }
+/* Technical identifiers use the same UI typeface as surrounding values. */
+.mono { font-family: inherit; }
 .action-row { display: flex; justify-content: flex-end; }
 .skeleton { min-height: 135px; animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 0%,100% { opacity: .45; } 50% { opacity: .8; } }

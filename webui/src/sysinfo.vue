@@ -48,7 +48,7 @@
             <span class="icon-badge soft"><AppIcon name="cpu" /></span>
           </div>
           <div class="metric-subtext">{{ t('sysinfo.system') }}</div>
-          <div class="metric-progress info">
+          <div class="metric-progress info metric-footer">
             <span :style="{ width: safePercent(sysInfoStore.cpuUsage) + '%' }"></span>
           </div>
         </article>
@@ -62,7 +62,7 @@
             <span class="icon-badge success"><AppIcon name="memory" /></span>
           </div>
           <div class="metric-subtext">{{ t('sysinfo.system') }}</div>
-          <div class="metric-progress success">
+          <div class="metric-progress success metric-footer">
             <span :style="{ width: safePercent(sysInfoStore.memoryUsage) + '%' }"></span>
           </div>
         </article>
@@ -78,7 +78,7 @@
             </span>
           </div>
           <div class="metric-subtext">{{ ethernetStatus }}</div>
-          <div class="status-chip" :class="sysInfoStore.ethernetConnected ? 'success' : 'danger'">
+          <div class="status-chip metric-footer" :class="sysInfoStore.ethernetConnected ? 'success' : 'danger'">
             <AppIcon :name="sysInfoStore.ethernetConnected ? 'check' : 'close'" />
             {{ sysInfoStore.ethernetConnected ? t('sysinfo.connected') : t('sysinfo.disconnected') }}
           </div>
@@ -93,7 +93,7 @@
             <span class="icon-badge warning"><AppIcon name="board" /></span>
           </div>
           <div class="metric-subtext">{{ sysInfoStore.radioModuleFirmwareVersion || '-' }}</div>
-          <span class="pill-chip">{{ sysInfoStore.radioModuleSerial || '-' }}</span>
+          <span class="pill-chip metric-footer">{{ sysInfoStore.radioModuleSerial || '-' }}</span>
         </article>
       </section>
 
@@ -407,6 +407,23 @@ onBeforeUnmount(() => {
 .metric-value.smaller {
   font-size: var(--fs-lg);
   line-height: 1.2;
+}
+
+/* The four summary cards contain different footer controls (progress bar,
+   status chip or serial-number chip). Pin each of them to the same baseline so
+   the cards read as one row despite their different content lengths. */
+.metric-footer {
+  margin-top: auto;
+}
+
+/* Reserve the same two-line label area for every summary card. This keeps the
+   values aligned when a translated label such as "Ethernet connection" wraps
+   while shorter labels stay on one line. */
+.dashboard .metric-label {
+  display: flex;
+  align-items: flex-end;
+  min-height: 2.5rem;
+  line-height: var(--line-height-normal);
 }
 
 .copy-value {
