@@ -154,8 +154,8 @@ bool supporter_crl_is_revoked(const char *key)
 
 bool supporter_crl_refresh()
 {
-    // Serialise with all other outbound TLS fetches (update check, changelog
-    // proxy, OTA) — two concurrent handshakes exhaust the WROOM-32 heap.
+    // Serialise with all other outbound TLS fetches (update check, syslog,
+    // events, mqtt, OTA) — two concurrent handshakes exhaust the WROOM-32 heap.
     if (g_net_fetch_mutex && xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(15000)) != pdTRUE) {
         ESP_LOGW(TAG, "Refresh skipped: another HTTPS fetch is in progress");
         return false;

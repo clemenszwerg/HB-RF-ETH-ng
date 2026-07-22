@@ -170,8 +170,9 @@ esp_err_t monitoring_run_diagnostic(const char *target, bool *ok,
 esp_err_t checkmk_start(const checkmk_config_t *config);
 esp_err_t checkmk_stop(void);
 
-// Serialize external HTTPS requests (update-check + changelog proxy) so two
-// TLS connections never occupy the heap at once on memory-constrained devices.
+// Serialize external HTTPS requests (update-check, supporter CRL fetch,
+// syslog/events/mqtt TLS setup) so two TLS connections never occupy the heap
+// at once on memory-constrained devices.
 extern SemaphoreHandle_t g_net_fetch_mutex;
 
 // OTA download activity flag. Set by both OTA paths (WebUI URL download and

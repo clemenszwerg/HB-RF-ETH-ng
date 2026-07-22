@@ -802,9 +802,9 @@ bool UpdateCheck::_doFetch(ReleaseInfo *out)
              beta ? "beta" : "stable", beta ? 1 : 0,
              (unsigned)(free_heap / 1024));
 
-    // Serialize with the changelog proxy — two TLS handshakes at once exhaust
-    // the heap on the ESP32. 15 s timeout: GitHub should never take that long
-    // for a single release.
+    // Serialize with other outbound TLS requests (supporter CRL fetch, syslog,
+    // events, mqtt) — two TLS handshakes at once exhaust the heap on the ESP32.
+    // 15 s timeout: GitHub should never take that long for a single release.
     bool net_locked = false;
     if (g_net_fetch_mutex) {
         if (xSemaphoreTake(g_net_fetch_mutex, pdMS_TO_TICKS(15000)) != pdTRUE) {

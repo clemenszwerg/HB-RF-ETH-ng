@@ -696,6 +696,18 @@ esp_err_t post_ping_handler_func(httpd_req_t *req)
 {
     add_security_headers(req);
 
+    // Ping is an authenticated action: it sends ICMP from the device to an
+    // arbitrary target (SSRF surface) and blocks an httpd worker for up to 4s.
+    // Without this guard any LAN peer could probe internal/external hosts via
+    // the device and exhaust the httpd worker pool. Mirrors the auth check on
+    // the other state-changing POST handlers.
+    if (validate_auth(req) != ESP_OK)
+    {
+        httpd_resp_set_status(req, "401 Not authorized");
+        httpd_resp_sendstr(req, "401 Not authorized");
+        return ESP_OK;
+    }
+
     char buf[128];
     int ret, remaining = req->content_len;
     if (remaining >= sizeof(buf)) {

@@ -16,6 +16,10 @@
       </div>
     </section>
 
+    <BAlert v-if="statusError" variant="danger" :model-value="true" class="status-error">
+      {{ statusError }}
+    </BAlert>
+
     <section class="status-grid">
       <article class="panel status-card">
         <span class="label">Installierte WebUI-Version</span>
@@ -150,6 +154,7 @@ const loading = ref(true)
 const busy = ref(false)
 const progress = ref(0)
 const manifestError = ref('')
+const statusError = ref('')
 const fileError = ref('')
 const selectedFile = ref(null)
 const release = ref({})
@@ -208,12 +213,20 @@ const compareVersions = (left = '', right = '') => {
 }
 
 const loadStatus = async () => {
-  const [storageResponse, systemResponse] = await Promise.all([
-    axios.get('/api/webui/status', { timeout: 8000, silent: true }),
-    axios.get('/sysinfo.json', { timeout: 8000, silent: true })
-  ])
-  status.value = { ...status.value, ...storageResponse.data }
-  firmwareVersion.value = systemResponse.data?.sysInfo?.currentVersion || ''
+  try {
+    const [storageResponse, systemResponse] = await Promise.all([
+      axios.get('/api/webui/status', { timeout: 8000, silent: true }),
+      axios.get('/sysinfo.json', { timeout: 8000, silent: true })
+    ])
+    status.value = { ...status.value, ...storageResponse.data }
+    firmwareVersion.value = systemResponse.data?.sysInfo?.currentVersion || ''
+    statusError.value = ''
+  } catch (err) {
+    // Network drop, device mid-reboot, 500 — degrade gracefully instead of
+    // rejecting through onMounted. Show a retry banner; partitionSize stays
+    // at its previous value so install validation can't trip on a bogus 0.
+    statusError.value = err.response?.data?.message || err.message || 'Gerätestatus konnte nicht geladen werden.'
+  }
 }
 
 const loadCachedRelease = async () => {
@@ -293,6 +306,10 @@ const selectFile = event => {
     fileError.value = 'Ungültige Datei: Es wird ein WebUI-Image mit der Endung .bin benötigt.'
   } else if (name.startsWith('firmware_')) {
     fileError.value = 'Falsche Datei: Das ist eine Firmware-Datei. Bitte unter System → Firmware installieren.'
+  } else if (!status.value.partitionSize) {
+    // Status load failed earlier — can't validate size. Tell the user instead
+    // of every file failing with "expected 0 bytes".
+    fileError.value = 'Gerätestatus nicht verfügbar. Bitte zuerst „Gespeicherten Status neu laden“ und erneut versuchen.'
   } else if (Number(selectedFile.value.size) !== Number(status.value.partitionSize)) {
     fileError.value = `Falsche Image-Größe: Erwartet werden exakt ${formatBytes(status.value.partitionSize)} (${status.value.partitionSize} Byte).`
   }

@@ -69,7 +69,7 @@ CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
 CONFIG_LWIP_MAX_SOCKETS=16
 
 # Reduce TCP TIME_WAIT from the default 60s to 15s. The 60s MSL meant that
-# after every outbound HTTPS fetch (update check, changelog proxy, CRL refresh,
+# after every outbound HTTPS fetch (update check, CRL refresh,
 # OTA redirect handshake) the socket FD was unavailable for a full minute,
 # compounding the socket-exhaustion problem above.
 CONFIG_LWIP_TCP_MSL=15000

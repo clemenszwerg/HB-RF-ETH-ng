@@ -1265,6 +1265,15 @@ const restoreSettings = async () => {
     reader.onload = async (e) => {
       try {
         const json = JSON.parse(e.target.result)
+        // Sanity-check that this looks like a settings backup before POSTing
+        // arbitrary keys to the device. A real backup always carries top-level
+        // device-config keys (hostname/useDHCP). A wrong/truncated/malicious
+        // file is rejected client-side without hitting the network.
+        if (!json || typeof json !== 'object' || Array.isArray(json) ||
+            !('hostname' in json) || !('useDHCP' in json)) {
+          uiStore.pushToast({ type: 'error', title: t('common.error'), message: t('settings.restoreError') })
+          return
+        }
         await axios.post('/api/restore', json)
         uiStore.pushToast({ type: 'success', title: t('common.success'), message: t('settings.restoreSuccess'), duration: 1500 })
         window.location.reload()

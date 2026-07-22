@@ -154,10 +154,16 @@ const restartCountdownProgress = computed(() => {
 // nudge toward re-supporting rather than a hard gate (no functionality is
 // ever locked). Dismissing or opening the sponsor modal sets a sessionStorage
 // flag so it won't pester again until the next real login session.
+// An in-memory ref guards the same session too — Safari private mode silently
+// rejects sessionStorage writes, so without this guard a flapping
+// supporterExpired flag (sysinfo polls every 5s) would re-open the prompt.
+const supporterPromptShownThisMount = ref(false)
 watch(() => [sysInfoStore.supporterExpired, loginStore.isLoggedIn], ([expired, loggedIn]) => {
   if (!expired || !loggedIn) return
   if (sysInfoStore.supporterActive) return
+  if (supporterPromptShownThisMount.value) return
   if (safeSession.get('supporterPromptShown') === '1') return
+  supporterPromptShownThisMount.value = true
   safeSession.set('supporterPromptShown', '1')
   showSupporterExpiredPrompt.value = true
 })

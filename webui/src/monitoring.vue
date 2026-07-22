@@ -22,6 +22,10 @@
       </div>
     </section>
 
+    <BAlert v-if="loadError" variant="danger" :model-value="true" class="monitoring-load-error">
+      <strong>{{ t('common.error') }}:</strong> {{ loadError }}
+    </BAlert>
+
     <div v-if="showResourceWarning" class="monitoring-resource-warning">
       <AppIcon name="alert" />
       <div>
@@ -552,6 +556,7 @@ const saving = ref(false)
 const diagnosticBusy = ref({ checkmk: false, mqtt: false, prometheus: false, syslog: false, notify: false })
 const hasChanges = ref(false)
 const originalConfig = ref('')
+const loadError = ref('')
 
 const tlsClearFlags = ref({ tlsCaCertsClear: false, tlsCertfileClear: false, tlsKeyfileClear: false, commandTokenClear: false,
                             webhookSecretClear: false, telegramTokenClear: false, smtpPasswordClear: false })
@@ -742,7 +747,15 @@ onMounted(async () => {
       syslog: { ...syslogConfig.value },
       notify: { ...notifyConfig.value }
     })
-  } catch (error) {}
+    loadError.value = ''
+  } catch (error) {
+    // Don't silently swallow — without a successful load the form would show
+    // store defaults as if they were the device config. Surface the failure,
+    // and keep hasChanges false (originalConfig stays '') so the user can't
+    // accidentally save defaults over the real config.
+    loadError.value = error.response?.data?.message || error.message || t('common.unknownError')
+    uiStore.pushToast({ type: 'error', title: t('common.error'), message: loadError.value })
+  }
 })
 
 const serializeConfig = () => JSON.stringify({

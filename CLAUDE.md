@@ -159,7 +159,7 @@ The firmware runs on FreeRTOS with separate tasks per subsystem. Key source file
 | `rawuartudplistener.cpp` | UDP↔UART bridge (the core protocol relay) |
 | `webui.cpp` | HTTP server + all REST API endpoint handlers (largest file) |
 | `settings.cpp` | Persistent config via NVS Flash |
-| `monitoring.cpp` | CheckMK agent and MQTT monitoring; owns `g_net_fetch_mutex`, which serializes TLS fetches (UpdateCheck, changelog proxy) so concurrent handshakes don't exhaust the ESP32 heap |
+| `monitoring.cpp` | CheckMK agent and MQTT monitoring; owns `g_net_fetch_mutex`, which serializes TLS fetches (UpdateCheck, supporter CRL, syslog, events, mqtt, OTA) so concurrent handshakes don't exhaust the ESP32 heap |
 | `mqtt_handler.cpp` | MQTT client, reconnect logic, message dispatch, remote commands (`restart`, `factory_reset`, `update`, `check_update`) |
 | `monitoring_api.cpp` | REST endpoints for monitoring config |
 | `ntpclient.cpp` | NTP time sync client |

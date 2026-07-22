@@ -291,7 +291,7 @@ const onBetaToggle = async event => {
   const enabled = event.target.checked
   betaToggleSaving.value = true
   try {
-    await axios.post('/settings.json', { betaChannel: enabled })
+    await axios.post('/settings.json', { betaChannel: enabled }, { silent: true })
     updateStore.betaChannel = enabled
     uiStore.pushToast({ type: 'success', title: 'Update-Kanal gespeichert', message: 'Die Auswahl gilt bei der nächsten täglichen Prüfung.' })
   } catch (error) {
