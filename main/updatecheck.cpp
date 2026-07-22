@@ -140,9 +140,13 @@ static void _periodic_timer_callback(void *arg)
   // Do not create the worker stack or begin TLS when the WROOM-32 heap is
   // already fragmented. Skipping one scheduled check is safer than destabilising
   // Homematic/MQTT operation; the persistent cache remains available.
+  // mDNS was removed in 2.2.5-Beta.8, freeing ~30 KB, so the floor that used
+  // to be 72 KB (defensive against the old mDNS footprint) could be lowered
+  // to 56 KB. The daily automatic check still skips here silently; the manual
+  // "search now" path records a reason so the user sees why nothing happened.
   const size_t free_heap = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
   const size_t largest_block = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
-  constexpr size_t MIN_FREE_HEAP = 72 * 1024;
+  constexpr size_t MIN_FREE_HEAP = 56 * 1024;
   constexpr size_t MIN_LARGEST_BLOCK = 18 * 1024;
   if (free_heap < MIN_FREE_HEAP || largest_block < MIN_LARGEST_BLOCK) {
     ESP_LOGW(TAG,
@@ -187,15 +191,23 @@ static void _manual_fetch_callback(void *arg)
 
   // Same heap guard as the daily check: never destabilise Homematic/MQTT for a
   // manual refresh. The cached snapshot stays available and the user can retry.
+  // Unlike the daily path, a manual skip records a reason so the WebUI can
+  // show "skipped — low heap" instead of silently pretending nothing happened.
   const size_t free_heap = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
   const size_t largest_block = heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
-  constexpr size_t MIN_FREE_HEAP = 72 * 1024;
+  constexpr size_t MIN_FREE_HEAP = 56 * 1024;
   constexpr size_t MIN_LARGEST_BLOCK = 18 * 1024;
   if (free_heap < MIN_FREE_HEAP || largest_block < MIN_LARGEST_BLOCK) {
     ESP_LOGW(TAG,
              "Manual update check skipped (low heap): free=%u KB largest=%u KB",
              (unsigned)(free_heap / 1024),
              (unsigned)(largest_block / 1024));
+    char reason[96];
+    snprintf(reason, sizeof(reason),
+             "Update check skipped (low heap): free=%u KB largest=%u KB",
+             (unsigned)(free_heap / 1024),
+             (unsigned)(largest_block / 1024));
+    uc->recordSkipReason(reason);
     return;
   }
 
@@ -637,6 +649,10 @@ bool UpdateCheck::refresh()
             _release = fresh;
             strncpy(_latestVersion, fresh.version, sizeof(_latestVersion) - 1);
             _latestVersion[sizeof(_latestVersion) - 1] = 0;
+            // A successful fetch supersedes any earlier skip reason so the
+            // WebUI stops showing the low-heap hint after the next retry.
+            _lastSkipReason[0] = '\0';
+            _lastSkipReasonMs = 0;
         } else {
             _release.fetchedAtMs = now;
             if (fresh.error[0]) {
@@ -668,6 +684,31 @@ bool UpdateCheck::isFetchInProgress()
     // xSemaphoreGetMutexHolder returns the owning task handle or NULL. We
     // don't care who owns it - any non-NULL value means "busy".
     return xSemaphoreGetMutexHolder(_fetchLock) != NULL;
+}
+
+void UpdateCheck::recordSkipReason(const char *reason)
+{
+    if (!_stateMutex) return;
+    if (xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
+        snprintf(_lastSkipReason, sizeof(_lastSkipReason), "%s", reason ? reason : "");
+        _lastSkipReasonMs = current_epoch_seconds() > 0
+            ? current_epoch_seconds() * 1000
+            : (esp_timer_get_time() / 1000);
+        xSemaphoreGive(_stateMutex);
+    }
+}
+
+void UpdateCheck::getLastSkipReason(char *out, size_t outLen, int64_t *outMs)
+{
+    if (!out || outLen == 0) return;
+    out[0] = '\0';
+    if (outMs) *outMs = 0;
+    if (!_stateMutex) return;
+    if (xSemaphoreTake(_stateMutex, portMAX_DELAY) == pdTRUE) {
+        snprintf(out, outLen, "%s", _lastSkipReason);
+        if (outMs) *outMs = _lastSkipReasonMs;
+        xSemaphoreGive(_stateMutex);
+    }
 }
 
 bool UpdateCheck::triggerManualFetch()

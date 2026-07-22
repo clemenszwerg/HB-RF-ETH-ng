@@ -130,6 +130,14 @@ private:
     // Mirror of _release.version for the legacy const char* accessor.
     char _latestVersion[32] = "n/a";
 
+    // Human-readable reason the most recent fetch was skipped before it could
+    // start (e.g. low heap when the radio module is actively serving a CCU
+    // session). Empty when the last fetch ran normally. Guarded by _stateMutex
+    // and surfaced to the WebUI via GET /api/check_update (lastSkipReason) so
+    // the user gets a clear message instead of a silent "no update" result.
+    char _lastSkipReason[96] = {0};
+    int64_t _lastSkipReasonMs = 0;
+
     // OTA progress / state (guarded by _stateMutex). Read by MQTT publish task
     // and the HTTP layer; written by performOnlineUpdate() running on its own
     // task.
@@ -179,6 +187,15 @@ public:
     // True while a network fetch is in progress (started by the periodic
     // timer or by refresh()). Used by the HTTP layer to check fetch state.
     bool isFetchInProgress();
+
+    // Records a skip reason (e.g. low heap) and the current epoch millis so
+    // the WebUI can surface it instead of silently dropping the request.
+    void recordSkipReason(const char *reason);
+
+    // Returns a copy of the most recent skip reason (empty string if the last
+    // fetch ran normally or has since been superseded by a successful fetch).
+    // `outMs` (if non-null) receives the epoch-millis timestamp of the skip.
+    void getLastSkipReason(char *out, size_t outLen, int64_t *outMs = nullptr);
 
     // Returns a thread-safe snapshot of the currently cached release info.
     ReleaseInfo getReleaseInfo();

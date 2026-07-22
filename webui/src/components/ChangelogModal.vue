@@ -223,7 +223,7 @@ watch(() => props.modelValue, (newValue) => {
   color: var(--color-primary-strong);
   padding: 0.125rem 0.375rem;
   border-radius: var(--radius-sm);
-  font-size: 0.875em;
+  font-size: var(--fs-sm);
 }
 
 .changelog-content :deep(pre) {

@@ -233,7 +233,7 @@ const saveColor = (event) => themeStore.setPrimaryColor(event.target.value, true
 .theme-card { border: 1px solid var(--color-border-light); background: var(--color-surface); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); padding: var(--space-5); }
 .preview-card { grid-column: 1 / -1; }
 .card-heading { display: flex; gap: var(--space-3); align-items: flex-start; margin-bottom: 20px; }
-.card-heading h2 { font-size: var(--fs-xl); font-weight: var(--font-weight-bold); }
+.card-heading h2 { font-size: var(--fs-lg); font-weight: var(--font-weight-bold); }
 .card-heading p { color: var(--color-text-secondary); margin-top: 4px; }
 .scheme-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .scheme-option { border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-text); border-radius: var(--radius-md); min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); cursor: pointer; }

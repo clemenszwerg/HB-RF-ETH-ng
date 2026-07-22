@@ -478,7 +478,7 @@ const loginClick = async () => {
   padding: 14px;
   border-radius: var(--radius-md);
   font-weight: var(--font-weight-semibold);
-  font-size: var(--fs-lg);
+  font-size: var(--fs-sm);
   margin-top: 8px;
   /* Neutral elevation shadow (token-driven) so the glow follows the active
      theme instead of hardcoding the Glass-UI orange. The accent colour comes

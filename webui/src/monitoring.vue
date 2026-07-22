@@ -1118,7 +1118,7 @@ const runDiagnostic = async (target) => {
   box-shadow: var(--shadow-lg);
   border-radius: var(--radius-full);
   padding: 1rem;
-  font-size: var(--fs-lg);
+  font-size: var(--fs-sm);
 }
 
 .expand-enter-active,
@@ -1325,7 +1325,7 @@ const runDiagnostic = async (target) => {
   }
 
   .save-btn {
-    font-size: var(--fs-md);
+    font-size: var(--fs-sm);
     padding: 0.875rem;
   }
 

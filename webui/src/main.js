@@ -65,7 +65,7 @@ const storedLocale = localStorage.getItem('locale') || getBrowserLocale()
 const i18n = createI18n({
   legacy: false,
   locale: storedLocale,
-  fallbackLocale: 'de',
+  fallbackLocale: 'en',
   messages: messages
 })
 

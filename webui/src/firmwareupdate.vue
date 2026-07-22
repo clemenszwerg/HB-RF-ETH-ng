@@ -304,8 +304,8 @@ const onBetaToggle = async event => {
 
 // Manual update search (Korrekturauftrag §6.2/§6.3). The store handles the
 // POST + polling and returns one of: 'updated' | 'no-update' | 'cooldown' |
-// 'error'. Each outcome surfaces a clear toast so the user always knows the
-// result of clicking "search now".
+// 'skipped' | 'error'. Each outcome surfaces a clear toast so the user
+// always knows the result of clicking "search now".
 const onCheckNow = async () => {
   if (updateStore.isChecking) return
   const outcome = await updateStore.checkNow(sysInfoStore.currentVersion)
@@ -322,6 +322,16 @@ const onCheckNow = async () => {
       title: t('updates.checkResultNoUpdateTitle'),
       message: t('updates.checkResultNoUpdate'),
       duration: 4000
+    })
+  } else if (outcome === 'skipped') {
+    // Device accepted the request but skipped the fetch (typically low heap
+    // while the radio module is actively serving a CCU session). Show the
+    // device's own reason rather than a misleading "no update available".
+    uiStore.pushToast({
+      type: 'warning',
+      title: t('updates.checkResultSkippedTitle'),
+      message: updateStore.lastSkipReason || t('updates.checkResultSkipped'),
+      duration: 8000
     })
   } else if (outcome === 'cooldown') {
     uiStore.pushToast({

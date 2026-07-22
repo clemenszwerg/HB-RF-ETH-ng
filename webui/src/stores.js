@@ -538,7 +538,11 @@ export const useUpdateStore = defineStore('update', {
     // True while a refresh is in flight on the device.
     fetchInProgress: false,
     lastCheck: null,
-    checkError: null
+    checkError: null,
+    // Human-readable reason the most recent manual/daily check was skipped
+    // before it started (e.g. low heap with an active CCU session). Empty
+    // when the last check ran normally. Surfaced by GET /api/check_update.
+    lastSkipReason: ''
   }),
   getters: {
     shouldShowUpdateBadge: (state) => {
@@ -582,6 +586,7 @@ export const useUpdateStore = defineStore('update', {
         this.publishedAt = data.publishedAt || ''
         this.betaChannel = !!data.betaChannel
         this.fetchInProgress = !!data.fetchInProgress
+        this.lastSkipReason = data.lastSkipReason || ''
         this.lastCheck = data.fetchedAt ? new Date(Number(data.fetchedAt)).toISOString() : null
 
         if (data.error) {
@@ -645,7 +650,7 @@ export const useUpdateStore = defineStore('update', {
     // the actual GitHub request runs off the httpd thread. We then poll GET
     // until fetchInProgress clears and reload the snapshot. Resolves to an
     // outcome string so callers can show a definitive result toast.
-    // Returns: 'updated' | 'no-update' | 'cooldown' | 'error'
+    // Returns: 'updated' | 'no-update' | 'cooldown' | 'skipped' | 'error'
     async checkNow(currentVersion) {
       if (this.isChecking) return 'cooldown'
       this.isChecking = true
@@ -663,6 +668,11 @@ export const useUpdateStore = defineStore('update', {
         await this._loadSnapshot(currentVersion)
         if (this.checkError) return 'error'
         if (this.updateAvailable) return 'updated'
+        // The device accepted the trigger but then skipped the fetch (e.g.
+        // heap too low while the radio module is serving a CCU session). The
+        // snapshot was never refreshed — surface the device's reason rather
+        // than a misleading "no update available".
+        if (triggered && this.lastSkipReason) return 'skipped'
         if (!triggered) return 'cooldown'
         return 'no-update'
       } catch (error) {

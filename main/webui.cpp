@@ -2236,6 +2236,17 @@ static void send_release_info_response(httpd_req_t *req)
     cJSON_AddBoolToObject(root, "betaChannel", configuredBeta);
     cJSON_AddNumberToObject(root, "checkIntervalSeconds", 24 * 60 * 60);
     cJSON_AddBoolToObject(root, "fetchInProgress", _updateCheck->isFetchInProgress());
+    {
+        // Surface the most recent skip reason (e.g. low heap when the radio
+        // module is actively serving a CCU session) so the WebUI can tell the
+        // user why "search now" produced no result, instead of silently
+        // showing a stale "no update available".
+        char skipReason[96] = {0};
+        _updateCheck->getLastSkipReason(skipReason, sizeof(skipReason));
+        if (skipReason[0]) {
+            cJSON_AddStringToObject(root, "lastSkipReason", skipReason);
+        }
+    }
     if (cacheMatchesChannel && info.webui.valid) {
         cJSON *webui = cJSON_AddObjectToObject(root, "webui");
         if (webui) {

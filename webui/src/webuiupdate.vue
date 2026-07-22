@@ -2,16 +2,16 @@
   <div class="www-page page-shell">
     <section class="page-hero">
       <div class="hero-copy">
-        <span class="hero-eyebrow"><AppIcon name="firmware" /> WebUI</span>
-        <h1 class="hero-title">Weboberfläche aktualisieren</h1>
-        <p class="hero-subtitle">Firmware und WebUI besitzen getrennte Versionen. Die Installation erfolgt ausschließlich über ein manuell ausgewähltes 320-KB-WWW-Image.</p>
+        <span class="hero-eyebrow"><AppIcon name="firmware" /> {{ t('webuiUpdate.webuiChip') }}</span>
+        <h1 class="hero-title">{{ t('webuiUpdate.pageTitle') }}</h1>
+        <p class="hero-subtitle">{{ t('webuiUpdate.pageSubtitle') }}</p>
       </div>
       <div class="hero-meta">
-        <span class="meta-chip"><AppIcon name="firmware" /> WebUI: {{ installedVersion }}</span>
-        <span class="meta-chip"><AppIcon name="firmware" /> Firmware: {{ firmwareVersion || '—' }}</span>
+        <span class="meta-chip"><AppIcon name="firmware" /> {{ t('webuiUpdate.webuiChip') }}: {{ installedVersion }}</span>
+        <span class="meta-chip"><AppIcon name="firmware" /> {{ t('webuiUpdate.firmwareChip') }}: {{ firmwareVersion || '—' }}</span>
         <span class="meta-chip" :class="status.valid ? 'success-chip' : 'warning-chip'">
           <AppIcon :name="status.valid ? 'check' : 'shield'" />
-          {{ status.valid ? 'Separate WebUI aktiv' : 'Eingebetteter Fallback aktiv' }}
+          {{ status.valid ? t('webuiUpdate.separateActive') : t('webuiUpdate.embeddedFallback') }}
         </span>
       </div>
     </section>
@@ -22,19 +22,19 @@
 
     <section class="status-grid">
       <article class="panel status-card">
-        <span class="label">Installierte WebUI-Version</span>
+        <span class="label">{{ t('webuiUpdate.installedLabel') }}</span>
         <strong>{{ installedVersion }}</strong>
-        <small>{{ status.valid ? 'Aus der separaten WWW-Partition' : 'In der Firmware eingebettet' }}</small>
+        <small>{{ status.valid ? t('webuiUpdate.separateSource') : t('webuiUpdate.embeddedSource') }}</small>
       </article>
       <article class="panel status-card">
-        <span class="label">WWW-Speicher</span>
+        <span class="label">{{ t('webuiUpdate.storageLabel') }}</span>
         <strong>{{ formatBytes(status.usedBytes) }} / {{ formatBytes(status.partitionSize) }}</strong>
         <div class="track"><span :style="{ width: storagePercent + '%' }"></span></div>
       </article>
       <article class="panel status-card">
-        <span class="label">Update-Prüfung</span>
+        <span class="label">{{ t('webuiUpdate.checkLabel') }}</span>
         <strong>{{ lastCheckText }}</strong>
-        <small>Online-Abfrage höchstens einmal innerhalb von 24 Stunden</small>
+        <small>{{ t('webuiUpdate.checkHint') }}</small>
       </article>
     </section>
 
@@ -42,9 +42,9 @@
       <section class="panel update-card">
         <div class="card-heading">
           <div>
-            <span class="kicker">Verfügbare WebUI</span>
-            <h2>WebUI-Datei herunterladen</h2>
-            <p>Der ESP lädt nur das kleine gemeinsame Update-Manifest. Die BIN-Datei wird direkt von deinem Browser heruntergeladen.</p>
+            <span class="kicker">{{ t('webuiUpdate.availableKicker') }}</span>
+            <h2>{{ t('webuiUpdate.downloadHeading') }}</h2>
+            <p>{{ t('webuiUpdate.downloadHelp') }}</p>
           </div>
           <span v-if="release.version" class="version-badge">v{{ release.version }}</span>
         </div>
@@ -64,14 +64,14 @@
         </div>
 
         <div v-if="release.version" class="release-grid">
-          <div><span>Installiert</span><strong>{{ installedVersion }}</strong></div>
-          <div><span>Verfügbar</span><strong>{{ release.version }}</strong></div>
-          <div><span>Image-Größe</span><strong>{{ formatBytes(release.size) }}</strong></div>
-          <div><span>Firmware mindestens</span><strong>{{ release.minFirmwareVersion || '—' }}</strong></div>
+          <div><span>{{ t('webuiUpdate.installedGridLabel') }}</span><strong>{{ installedVersion }}</strong></div>
+          <div><span>{{ t('webuiUpdate.availableGridLabel') }}</span><strong>{{ release.version }}</strong></div>
+          <div><span>{{ t('webuiUpdate.imageSizeLabel') }}</span><strong>{{ formatBytes(release.size) }}</strong></div>
+          <div><span>{{ t('webuiUpdate.minFirmwareLabel') }}</span><strong>{{ release.minFirmwareVersion || '—' }}</strong></div>
         </div>
 
         <BAlert v-if="release.version && !updateAvailable" variant="success" :model-value="true">
-          Die installierte WebUI ist aktuell.
+          {{ t('webuiUpdate.upToDate') }}
         </BAlert>
 
         <div class="actions">
@@ -82,7 +82,7 @@
             target="_blank"
             rel="noopener noreferrer"
           >
-            <AppIcon name="download" /> WebUI-BIN herunterladen
+            <AppIcon name="download" /> {{ t('webuiUpdate.downloadButton') }}
           </a>
           <a
             v-if="release.releaseUrl"
@@ -91,10 +91,10 @@
             target="_blank"
             rel="noopener noreferrer"
           >
-            <AppIcon name="externalLink" /> Release auf GitHub
+            <AppIcon name="externalLink" /> {{ t('webuiUpdate.releaseLink') }}
           </a>
           <BButton variant="outline-secondary" :disabled="loading" @click="refreshCachedStatus">
-            <AppIcon name="refresh" /> Gespeicherten Status neu laden
+            <AppIcon name="refresh" /> {{ t('webuiUpdate.reloadStatusButton') }}
           </BButton>
         </div>
       </section>
@@ -102,37 +102,37 @@
       <section class="panel update-card">
         <div class="card-heading">
           <div>
-            <span class="kicker">Manuelle Installation</span>
-            <h2>WWW-Image hochladen</h2>
-            <p>Hier ausschließlich <code>webui_*.bin</code> oder <code>spiffs.bin</code> mit exakt {{ formatBytes(status.partitionSize) }} verwenden.</p>
+            <span class="kicker">{{ t('webuiUpdate.manualKicker') }}</span>
+            <h2>{{ t('webuiUpdate.uploadHeading') }}</h2>
+            <p>{{ t('webuiUpdate.uploadHelp', { size: formatBytes(status.partitionSize) }) }}</p>
           </div>
         </div>
 
         <label class="file-drop" :class="{ disabled: busy, invalid: !!fileError }">
           <input type="file" accept=".bin,application/octet-stream" :disabled="busy" @change="selectFile">
           <AppIcon name="upload" />
-          <span>{{ selectedFile ? selectedFile.name : 'WebUI-BIN auswählen' }}</span>
+          <span>{{ selectedFile ? selectedFile.name : t('webuiUpdate.chooseFile') }}</span>
           <small v-if="selectedFile">{{ formatBytes(selectedFile.size) }}</small>
         </label>
 
         <BAlert v-if="fileError" variant="danger" :model-value="true">{{ fileError }}</BAlert>
 
         <div v-if="busy" class="progress-panel">
-          <div class="progress-copy"><span>WebUI wird übertragen …</span><strong>{{ progress }}%</strong></div>
+          <div class="progress-copy"><span>{{ t('webuiUpdate.uploadInProgress') }}</span><strong>{{ progress }}%</strong></div>
           <div class="track"><span :style="{ width: progress + '%' }"></span></div>
         </div>
 
         <BAlert variant="info" :model-value="true">
-          Das Gerät prüft Partitionsgröße, internes Manifest und optional SHA-256. Ist das Image ungültig oder unvollständig, bleibt das eingebettete New Design als Fallback aktiv.
+          {{ t('webuiUpdate.uploadExplainer') }}
         </BAlert>
 
         <div class="actions">
           <BButton variant="primary" :disabled="busy || !selectedFile || !!fileError" @click="installManual">
             <span v-if="busy" class="spinner-border spinner-border-sm me-2"></span>
-            <AppIcon v-else name="upload" /> {{ busy ? 'WebUI wird installiert …' : 'WebUI installieren' }}
+            <AppIcon v-else name="upload" /> {{ busy ? t('webuiUpdate.installingButton') : t('webuiUpdate.installButton') }}
           </BButton>
           <BButton v-if="selectedFile" variant="outline-secondary" :disabled="busy" @click="clearFile">
-            <AppIcon name="close" /> Auswahl entfernen
+            <AppIcon name="close" /> {{ t('webuiUpdate.clearSelectionButton') }}
           </BButton>
         </div>
       </section>
@@ -143,10 +143,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 import { useUiStore, useUpdateStore } from './stores.js'
 
+const { t } = useI18n()
+
 const WEBUI_API_VERSION = 1
-const EMBEDDED_WEBUI_VERSION = typeof __WEBUI_VERSION__ !== 'undefined' ? __WEBUI_VERSION__ : 'unbekannt'
+const EMBEDDED_WEBUI_VERSION = typeof __WEBUI_VERSION__ !== 'undefined' ? __WEBUI_VERSION__ : ''
 
 const uiStore = useUiStore()
 const updateStore = useUpdateStore()
@@ -160,11 +163,11 @@ const selectedFile = ref(null)
 const release = ref({})
 const firmwareVersion = ref('')
 const updateFetchedAt = ref(null)
-// Manual update search (Korrekturauftrag §6.2/§6.3). This page does not use
-// vue-i18n (German-only like the rest of the file); the labels stay local.
+// Manual update search (Korrekturauftrag §6.2/§6.3). Labels reuse the shared
+// updates.* keys so this tab stays in sync with the Firmware tab.
 const checkNowBusy = ref(false)
-const checkNowIdleLabel = 'Jetzt nach Updates suchen'
-const checkNowLabel = 'Suche läuft …'
+const checkNowIdleLabel = computed(() => t('updates.checkNow'))
+const checkNowLabel = computed(() => t('updates.checkingNow'))
 const status = ref({
   partitionFound: false,
   mounted: false,
@@ -180,13 +183,13 @@ const status = ref({
   lastError: ''
 })
 
-const installedVersion = computed(() => status.value.effectiveVersion || status.value.version || EMBEDDED_WEBUI_VERSION)
+const installedVersion = computed(() => status.value.effectiveVersion || status.value.version || EMBEDDED_WEBUI_VERSION || t('webuiUpdate.unknownVersion'))
 const storagePercent = computed(() => {
   const total = status.value.totalBytes || status.value.partitionSize || 0
   return total ? Math.min(100, Math.round((status.value.usedBytes || 0) * 100 / total)) : 0
 })
 const updateAvailable = computed(() => !!release.value.version && compareVersions(installedVersion.value, release.value.version) < 0)
-const lastCheckText = computed(() => updateFetchedAt.value ? new Date(Number(updateFetchedAt.value)).toLocaleString() : 'Noch nicht geprüft')
+const lastCheckText = computed(() => updateFetchedAt.value ? new Date(Number(updateFetchedAt.value)).toLocaleString() : t('webuiUpdate.neverChecked'))
 
 const formatBytes = bytes => {
   const value = Number(bytes) || 0
@@ -225,7 +228,7 @@ const loadStatus = async () => {
     // Network drop, device mid-reboot, 500 — degrade gracefully instead of
     // rejecting through onMounted. Show a retry banner; partitionSize stays
     // at its previous value so install validation can't trip on a bogus 0.
-    statusError.value = err.response?.data?.message || err.message || 'Gerätestatus konnte nicht geladen werden.'
+    statusError.value = err.response?.data?.message || err.message || t('webuiUpdate.statusLoadError')
   }
 }
 
@@ -237,23 +240,23 @@ const loadCachedRelease = async () => {
     updateFetchedAt.value = response.data?.fetchedAt || null
     const item = response.data?.webui
     if (!item) {
-      manifestError.value = 'Im gespeicherten Update-Manifest ist noch keine separate WebUI-Datei enthalten.'
+      manifestError.value = t('webuiUpdate.manifestNoWebui')
       return
     }
     if (item.design !== 'newdesign') {
-      manifestError.value = 'Das bereitgestellte WebUI-Image gehört nicht zum New Design.'
+      manifestError.value = t('webuiUpdate.manifestWrongDesign')
       return
     }
     release.value = item
     if (Number(item.size) !== Number(status.value.partitionSize)) {
-      manifestError.value = `Die angebotene WebUI hat eine falsche Größe. Erwartet werden ${formatBytes(status.value.partitionSize)}.`
+      manifestError.value = t('webuiUpdate.manifestWrongSize', { expected: formatBytes(status.value.partitionSize) })
     } else if (Number(item.apiVersion) !== WEBUI_API_VERSION) {
-      manifestError.value = 'Diese WebUI benötigt eine andere Firmware-API.'
+      manifestError.value = t('webuiUpdate.manifestWrongApi')
     } else if (compareVersions(firmwareVersion.value, item.minFirmwareVersion) < 0) {
-      manifestError.value = `Die Firmware ist zu alt. Benötigt wird mindestens ${item.minFirmwareVersion}.`
+      manifestError.value = t('webuiUpdate.manifestFirmwareTooOld', { min: item.minFirmwareVersion })
     }
   } catch (error) {
-    manifestError.value = error.response?.data?.message || error.message || 'Gespeicherter Update-Status konnte nicht geladen werden.'
+    manifestError.value = error.response?.data?.message || error.message || t('webuiUpdate.manifestLoadError')
   }
 }
 
@@ -268,13 +271,15 @@ const onCheckNow = async () => {
     const outcome = await updateStore.checkNow(firmwareVersion.value)
     await loadCachedRelease()
     if (outcome === 'updated' && updateAvailable.value) {
-      uiStore.pushToast({ type: 'success', title: 'Update verfügbar', message: `WebUI-Version ${release.value.version} ist verfügbar.`, duration: 5000 })
+      uiStore.pushToast({ type: 'success', title: t('webuiUpdate.updateAvailableTitle'), message: t('webuiUpdate.updateAvailableMessage', { version: release.value.version }), duration: 5000 })
+    } else if (outcome === 'skipped') {
+      uiStore.pushToast({ type: 'warning', title: t('webuiUpdate.skippedTitle'), message: updateStore.lastSkipReason || t('webuiUpdate.skippedMessage'), duration: 8000 })
     } else if (outcome === 'no-update' || outcome === 'updated') {
-      uiStore.pushToast({ type: 'info', title: 'Alles aktuell', message: 'Es ist keine neuere WebUI vorhanden.', duration: 4000 })
+      uiStore.pushToast({ type: 'info', title: t('webuiUpdate.upToDateTitle'), message: t('webuiUpdate.upToDateMessage'), duration: 4000 })
     } else if (outcome === 'cooldown') {
-      uiStore.pushToast({ type: 'info', title: 'Kurz gewartet', message: 'Es läuft bereits eine Prüfung oder die 60-Sekunden-Sperre ist noch aktiv.', duration: 4000 })
+      uiStore.pushToast({ type: 'info', title: t('webuiUpdate.cooldownTitle'), message: t('webuiUpdate.cooldownMessage'), duration: 4000 })
     } else {
-      uiStore.pushToast({ type: 'error', title: 'Prüfung fehlgeschlagen', message: updateStore.checkError || 'Die Update-Prüfung konnte nicht durchgeführt werden.', duration: 6000 })
+      uiStore.pushToast({ type: 'error', title: t('webuiUpdate.checkFailedTitle'), message: updateStore.checkError || t('webuiUpdate.checkFailedMessage'), duration: 6000 })
     }
   } finally {
     checkNowBusy.value = false
@@ -303,15 +308,15 @@ const selectFile = event => {
 
   const name = String(selectedFile.value.name || '').toLowerCase()
   if (!name.endsWith('.bin')) {
-    fileError.value = 'Ungültige Datei: Es wird ein WebUI-Image mit der Endung .bin benötigt.'
+    fileError.value = t('webuiUpdate.fileInvalidExtension')
   } else if (name.startsWith('firmware_')) {
-    fileError.value = 'Falsche Datei: Das ist eine Firmware-Datei. Bitte unter System → Firmware installieren.'
+    fileError.value = t('webuiUpdate.fileIsFirmware')
   } else if (!status.value.partitionSize) {
     // Status load failed earlier — can't validate size. Tell the user instead
     // of every file failing with "expected 0 bytes".
-    fileError.value = 'Gerätestatus nicht verfügbar. Bitte zuerst „Gespeicherten Status neu laden“ und erneut versuchen.'
+    fileError.value = t('webuiUpdate.fileStatusMissing')
   } else if (Number(selectedFile.value.size) !== Number(status.value.partitionSize)) {
-    fileError.value = `Falsche Image-Größe: Erwartet werden exakt ${formatBytes(status.value.partitionSize)} (${status.value.partitionSize} Byte).`
+    fileError.value = t('webuiUpdate.fileWrongSize', { expected: formatBytes(status.value.partitionSize), bytes: status.value.partitionSize })
   }
 }
 
@@ -329,13 +334,13 @@ const installManual = async () => {
     })
     progress.value = 100
     await loadStatus()
-    uiStore.pushToast({ type: 'success', title: 'WebUI installiert', message: `Aktive WebUI-Version: ${installedVersion.value}`, duration: 3500 })
+    uiStore.pushToast({ type: 'success', title: t('webuiUpdate.installSuccessTitle'), message: t('webuiUpdate.installSuccessMessage', { version: installedVersion.value }), duration: 3500 })
     window.setTimeout(() => window.location.reload(), 1200)
   } catch (error) {
     const message = typeof error.response?.data === 'string'
       ? error.response.data
-      : (error.response?.data?.message || error.message || 'WebUI-Upload fehlgeschlagen.')
-    uiStore.pushToast({ type: 'error', title: 'WebUI-Upload fehlgeschlagen', message, duration: 7000 })
+      : (error.response?.data?.message || error.message || t('webuiUpdate.uploadFailedMessage'))
+    uiStore.pushToast({ type: 'error', title: t('webuiUpdate.uploadFailedTitle'), message, duration: 7000 })
   } finally {
     busy.value = false
     progress.value = 0
