@@ -71,7 +71,19 @@ export default defineConfig({
       }
     },
     cssCodeSplit: false,
-    minify: 'esbuild',
+    minify: 'terser',
+    terserOptions: {
+      // Aggressive but safe: drop console.debug in production (keeps warn/error),
+      // collapse redundant property accesses, eliminate dead branches.
+      compress: {
+        drop_console: false,
+        passes: 2,
+        pure_funcs: ['console.debug']
+      },
+      format: {
+        comments: false
+      }
+    },
     target: 'es2020',
     chunkSizeWarningLimit: 1000
   },
