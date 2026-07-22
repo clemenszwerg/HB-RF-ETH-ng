@@ -134,20 +134,11 @@ jobs:
 
       - name: Generate WebUI release notes
         run: |
-          cat > release/RELEASE_NOTES.md <<EOF
-          # HB-RF-ETH-ng WebUI v${{ steps.webui.outputs.VERSION }}
-
-          This is a **WebUI-only release**. It does not contain or update the firmware.
-
-          - Design: New Design
-          - WebUI API: ${{ inputs.api_version }}
-          - Minimum firmware: ${{ inputs.min_firmware_version }}
-          - Image size: 327680 bytes
-
-          The online updater checks API and minimum firmware before downloading.
-          The ESP32 verifies image size, SHA-256, product, design and required assets
-          before activating the separate WWW partition.
-          EOF
+          python generate_webui_release_notes.py \
+            "${{ steps.webui.outputs.VERSION }}" \
+            "${{ inputs.min_firmware_version }}" \
+            "${{ inputs.api_version }}" \
+            release/RELEASE_NOTES.md
 
       - name: Commit WebUI metadata and create tag
         run: |
