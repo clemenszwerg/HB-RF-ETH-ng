@@ -1,7 +1,7 @@
 export default {
   // Common
   common: {
-    enabled: 'Aktiv',
+    enabled: 'Aktiviert',
     disabled: 'Deaktiviert',
     save: 'Speichern',
     cancel: 'Abbrechen',
@@ -110,7 +110,7 @@ export default {
     ledProgramError: 'Fehler',
     ledProgramBooting: 'Startvorgang',
     ledProgramUpdateInProgress: 'Update läuft',
-    unsavedLeave: 'Du hast ungespeicherte Änderungen. Seite trotzdem verlassen?',
+    unsavedLeave: 'Sie haben ungespeicherte Änderungen. Seite trotzdem verlassen?',
     unsavedChanges: 'Ungespeicherte Änderungen',
     allSaved: 'Gespeichert',
     selected: 'Ausgewählt: {name}',
@@ -274,7 +274,7 @@ export default {
     version: 'Version',
     latestVersion: 'Neueste Version',
     memory: 'Speichernutzung',
-    cpu: 'CPU Auslastung',
+    cpu: 'CPU-Auslastung',
     temperature: 'Temperatur',
     voltage: 'Versorgungsspannung',
     ethernet: 'Ethernet',
@@ -297,7 +297,7 @@ export default {
     monitoringSummary: 'MQTT, CheckMK, Prometheus, Syslog & Benachrichtigungen',
     updateAvailableShort: 'Update {version}',
     lan: 'LAN',
-    boardSenseHint: 'Roh-Wert des ADC vom Board-Rev-Sense-Pin. Vergleich mit den vier nominalen Spannungsteiler-Werten liefert die Board-Revision: Rev 1.10/1.11 PUB ≈ 550 mV, Rev 1.8 SK ≈ 1650 mV, Rev 1.8 PUB ≈ 2750 mV, Rev 1.10/1.11 SK ≈ 3050 mV.'
+    boardSenseHint: 'Roh-Wert des ADC vom Board-Rev-Sense-Pin. Vergleich mit den vier nominalen Spannungsteiler-Werten liefert folgende Board-Revisionen: Rev 1.10/1.11 PUB ≈ 550 mV, Rev 1.8 SK ≈ 1650 mV, Rev 1.8 PUB ≈ 2750 mV, Rev 1.10/1.11 SK ≈ 3050 mV.'
   },
 
   // Updates page (merged Firmware + WebUI entry, Korrekturauftrag §6)
@@ -321,7 +321,7 @@ export default {
     checkResultCooldownTitle: 'Kurz gewartet',
     checkResultCooldown: 'Es läuft bereits eine Prüfung oder die 60-Sekunden-Sperre ist noch aktiv.',
     checkResultSkippedTitle: 'Prüfung übersprungen',
-    checkResultSkipped: 'Das Gerät hat die Prüfung wegen zu wenig freiem Arbeitsspeicher übersprungen. Das geschieht in der Regel, während eine CCU-Sitzung aktiv ist — bitte später erneut versuchen.'
+    checkResultSkipped: 'Das Gerät hat die Prüfung aufgrund zu wenig freiem Arbeitsspeicher übersprungen. Das geschieht in der Regel, während eine CCU-Sitzung aktiv ist — bitte später erneut versuchen.'
   },
 
   // WebUI Update page (separate WebUI tab, Korrekturauftrag §6)
@@ -449,7 +449,7 @@ export default {
     showReleaseNotes: 'Release Notes anzeigen',
     releaseNotesTitle: 'Release Notes für v{version}',
     releaseNotesError: 'Release Notes konnten nicht von GitHub geladen werden.',
-    updateFile: 'Firmware Datei',
+    updateFile: 'Firmware-Datei',
     noFileChosen: 'Keine Datei ausgewählt',
     browse: 'Datei auswählen',
     selectFile: 'Datei auswählen oder hierher ziehen',
@@ -479,17 +479,17 @@ export default {
     archiveBeta: 'Beta',
     archiveAll: 'Alle',
     archiveLoading: 'Releases werden geladen...',
-    archiveWarning: 'Vor dem Firmware-Wechsel bitte ein Backup erstellen. Ältere Versionen verstehen neuere Einstellungen eventuell nicht vollständig.',
+    archiveWarning: 'Bitte vor dem Firmware-Wechsel ein Backup erstellen. Ältere Versionen verstehen neuere Einstellungen eventuell nicht vollständig.',
     archiveLoadError: 'Firmware-Archiv konnte nicht geladen werden',
     archiveEmpty: 'Keine passenden Firmware-Releases gefunden.',
     archiveCurrent: 'Installiert',
     archiveInstalled: 'Installiert',
     archiveInstall: 'Installieren',
-    archiveInstallConfirm: 'Firmware-Version {version} installieren? Das Gerät lädt sie online herunter und startet danach automatisch neu. Bitte vorher ein Backup erstellen.',
+    archiveInstallConfirm: 'Firmware-Version {version} installieren? Das Gerät lädt sie online herunter und startet anschließend automatisch neu. Bitte vorher ein Backup erstellen.',
     archiveReleaseNotes: 'Changelog / Release Notes',
     otaFailed: 'OTA-Update fehlgeschlagen',
     lostConnection: 'Verbindung zum Gerät während des Updates verloren',
-    restartFlashPauseHint: 'Neustart-Sync ist aktiv — die Ethernet-Verbindung wird für ca. 35 s getrennt, bevor das Gerät nach dem Neustart wieder verfügbar ist. Das Neuladen der Seite dauert also etwas länger als sonst.'
+    restartFlashPauseHint: 'Neustart-Sync ist aktiv — die Ethernet-Verbindung wird für ca. 40 s getrennt, bevor das Gerät nach dem Neustart wieder verfügbar ist. Das Neuladen der Seite dauert also etwas länger als sonst.'
   },
 
   // Monitoring
@@ -528,11 +528,11 @@ export default {
       port: 'Port',
       portHelp: 'Standard: 1883 (8883 bei TLS/SSL)',
       user: 'Benutzer',
-      userHelp: 'Optional: MQTT Benutzername',
+      userHelp: 'Optional: MQTT-Benutzername',
       password: 'Passwort',
       passwordHelp: 'Optional: MQTT Passwort',
       topicPrefix: 'Topic Präfix',
-      topicPrefixHelp: 'Wurzel aller vom Gerät veröffentlichten/abonnierten MQTT-Topics. Standard: hb-rf-eth-ng. Beispiele: „präfix/status/uptime“, „präfix/status/version“, „präfix/command/update“. Sichtbar im MQTT-Broker (z. B. MQTT Explorer), nicht im WebUI.',
+      topicPrefixHelp: 'Wurzel aller vom Gerät veröffentlichten bzw. abonnierten MQTT-Topics. Standard: hb-rf-eth-ng. Beispiele: „präfix/status/uptime“, „präfix/status/version“, „präfix/command/update“. Sichtbar im MQTT-Broker (z. B. MQTT Explorer), nicht im WebUI.',
       haDiscoveryEnabled: 'Home Assistant Discovery',
       haDiscoveryPrefix: 'Discovery Präfix',
       haDiscoveryPrefixHelp: 'Standard: homeassistant',
@@ -573,7 +573,7 @@ export default {
         binaryFormatError: 'Binärformat (DER) erkannt – bitte vorher in PEM konvertieren: openssl x509 -inform DER -in cert.der -out cert.pem',
         pkcs12Error: 'PKCS#12-Container (.p12/.pfx) wird nicht unterstützt. Bitte extrahieren: openssl pkcs12 -in bundle.p12 -nodes -out cert.pem',
         invalidBase64: 'PEM-Body enthält ungültige Zeichen.',
-        mtlsRequiresBoth: 'Für mTLS müssen sowohl Zertifikat als auch Schlüssel angegeben werden.'
+        mtlsRequiresBoth: 'Für mTLS müssen sowohl das Zertifikat als auch der Schlüssel angegeben werden.'
       }
     },
     enable: 'Aktivieren',
@@ -802,7 +802,7 @@ export default {
     active: 'Supporter',
     badgeLabel: 'Support-Lizenz',
     intro: 'Unterstütze dieses Projekt mit einem kleinen Beitrag (z. B. einem Kaffee) und erhalte einen persönlichen Supporter-Key. Das Badge ist rein kosmetisch — keine Funktion wird gesperrt.',
-    thanksTitle: 'Danke für deine Unterstützung!',
+    thanksTitle: 'Danke für Ihre Unterstützung!',
     thanksBody: 'Dein Supporter-Status ist gültig bis zum {date}.',
     remove: 'Key entfernen',
     placeholder: 'XXXX-XXXX-XXXX-XXXX',
@@ -811,7 +811,7 @@ export default {
     activateFailed: 'Supporter-Key konnte nicht aktiviert werden.',
     removed: 'Supporter-Key entfernt.',
     revokedTitle: 'Dieser Key wurde widerrufen',
-    revokedBody: 'Der Key wurde auf meinen Widerrufungsliste gesetzt und ist nicht mehr gültig. Falls das ein Fehler ist, melde dich bitte bei mir.',
+    revokedBody: 'Der Key wurde auf meine Widerrufungsliste gesetzt und ist nicht mehr gültig. Falls das ein Fehler ist, melden Sie sich bitte bei mir.',
     invalid: 'Ungültiger Key — bitte prüfe die Eingabe.',
     expired: 'Dieser Key ist am {date} abgelaufen.',
     validHint: 'Gültig — läuft am {date} ab.',
@@ -823,6 +823,6 @@ export default {
     expiredPromptTitle: 'Dein Supporter-Key ist abgelaufen',
     expiredPromptSupport: 'Jetzt erneut unterstützen',
     expiredPromptLater: 'Vielleicht später',
-    expiredPromptBody: 'Die Gültigkeit deines Supporter-Keys ist leider abgelaufen. Mit einem kleinen Beitrag (z. B. einem Kaffee) unterstützt du die Weiterentwicklung dieses Projekts und erhältst als Dankeschön einen frischen Supporter-Key. Danke! ❤'
+    expiredPromptBody: 'Die Gültigkeit deines Supporter-Keys ist leider abgelaufen. Mit einem kleinen Beitrag (z. B. einem Kaffee) unterstützen Sie die Weiterentwicklung dieses Projekts und erhältst als Dankeschön einen frischen Supporter-Key. Danke! ❤'
   }
 }
