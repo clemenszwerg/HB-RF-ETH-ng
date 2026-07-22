@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.5-Beta.9] - 2026-07-22
+
+### Changes
+- chore: update WebUI manifest for webui-v1.0.0-Beta.7
+
 ### Changes
 - fix(firmware): Updatesuche — Heap-Grenze von 72 KB auf 56 KB gesenkt (mDNS ist in Beta.8 weggefallen, ~30 KB zusätzlicher Spielraum). Bisher wurde die manuelle „Jetzt nach Updates suchen“-Anfrage bei aktiver CCU-Sitzung still verworfen, sobald der freie Heap unter 72 KB fiel — das Gerät zeigte dann fälschlich „kein Update“ statt „übersprungen“. Jetzt: niedrigere Grenze macht die Suche zuverlässiger, UND wenn der Heap trotzdem zu niedrig ist, bekommt die WebUI über ein neues `lastSkipReason`-Feld in `GET /api/check_update` den Grund gemeldet und zeigt einen klaren Toast („Prüfung übersprungen — zu wenig freier Arbeitsspeicher, meist bei aktiver CCU-Sitzung, später erneut versuchen“). Kommt ins nächste Firmware-Release.
 - fix(webui): Schriftgrößenmix beseitigt. `.hero-title` (bisher raw `clamp(1.6rem,4vw,2.5rem)` → auf Token-Skala gebunden), `.metric-value` (raw clamp → Tokens), `theme.vue .card-heading h2` (fs-xl → fs-lg, angleichen an die anderen Seiten), `login-btn`/`monitoring save-btn` (fs-lg → fs-sm, angleichen an den globalen `.btn`), `ChangelogModal code` (0.875em → fs-sm). Sichtbare Drifts zwischen Seiten und zwischen Glass-/NewDesign-Theme beim Hero-Titel sind damit verschwunden.
