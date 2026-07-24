@@ -4,7 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import axios from 'axios'
 import { useLoginStore, useThemeStore, useUiStore } from './stores.js'
 
-import 'bootstrap/dist/css/bootstrap.css'
+import './styles/bootstrap.scss'
 
 // Current New Design system
 import './styles/main.css'

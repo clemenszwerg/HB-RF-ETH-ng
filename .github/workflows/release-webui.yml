@@ -96,7 +96,7 @@ jobs:
       - name: Build New Design WebUI
         run: |
           cd webui
-          npm ci
+          npm install
           npm run build
 
       - name: Prepare standalone WebUI assets

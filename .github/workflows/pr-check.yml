@@ -68,7 +68,7 @@ jobs:
       - name: Install WebUI dependencies
         run: |
           cd webui
-          npm ci
+          npm install
       - name: Check WebUI build
         run: |
           cd webui
@@ -104,7 +104,7 @@ jobs:
       - name: Build WebUI
         run: |
           cd webui
-          npm ci
+          npm install
           npm run build
       - name: Rename WebUI files
         run: python3 rename_webui_files.py

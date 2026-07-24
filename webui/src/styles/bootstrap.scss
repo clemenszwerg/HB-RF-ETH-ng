@@ -1,0 +1,49 @@
+// Custom Bootstrap 5.3 build for the HB-RF-ETH-ng WebUI.
+//
+// Includes only the modules the UI actually uses. Unused components are
+// omitted so the bundled main.css fits the 320 KiB SPIFFS partition.
+// Re-enable a module here if a new screen needs it, then check the
+// resulting image size (rename_webui_files.py enforces the SPIFFS budget).
+//
+// Dropped (verified unused in src/): navbar, accordion, breadcrumb,
+// pagination, list-group, popover, carousel, offcanvas, button-group.
+
+// Required foundation
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/variables-dark";
+@import "bootstrap/scss/maps";
+@import "bootstrap/scss/mixins";
+@import "bootstrap/scss/utilities";
+
+// Base layout & content
+@import "bootstrap/scss/root";
+@import "bootstrap/scss/reboot";
+@import "bootstrap/scss/type";
+@import "bootstrap/scss/images";
+@import "bootstrap/scss/containers";
+@import "bootstrap/scss/grid";
+@import "bootstrap/scss/tables";
+
+// Components (used by the WebUI)
+@import "bootstrap/scss/forms";
+@import "bootstrap/scss/buttons";
+@import "bootstrap/scss/transitions";
+@import "bootstrap/scss/dropdown";
+@import "bootstrap/scss/nav";
+@import "bootstrap/scss/card";
+@import "bootstrap/scss/badge";
+@import "bootstrap/scss/alert";
+@import "bootstrap/scss/progress";
+@import "bootstrap/scss/close";
+@import "bootstrap/scss/toasts";
+@import "bootstrap/scss/modal";
+@import "bootstrap/scss/tooltip";
+@import "bootstrap/scss/spinners";
+@import "bootstrap/scss/placeholders";
+
+// Helpers (ratio, clearfix, colored-links, ...)
+@import "bootstrap/scss/helpers";
+
+// Utilities API — must be last; generates the utility classes
+@import "bootstrap/scss/utilities/api";
