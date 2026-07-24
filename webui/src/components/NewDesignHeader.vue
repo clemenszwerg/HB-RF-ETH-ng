@@ -8,13 +8,13 @@
             {{ t('update.available') }}
           </span>
           <strong>v{{ updateStore.latestVersion }}</strong>
-          <span>{{ t('update.updateNow') }}</span>
+          <span>{{ t('update.manualInstallHint') }}</span>
         </div>
         <div class="update-banner-actions">
-          <BButton size="sm" variant="primary" to="/updates/firmware" @click="mobileMenuOpen = false">
-            <AppIcon name="download" />
-            {{ t('update.updateNow') }}
-          </BButton>
+          <router-link class="btn btn-primary btn-sm" to="/updates/firmware" @click="mobileMenuOpen = false">
+            <AppIcon name="arrowRight" />
+            {{ t('update.viewUpdate') }}
+          </router-link>
           <button class="icon-button" @click="dismissUpdate">
             <AppIcon name="close" />
           </button>

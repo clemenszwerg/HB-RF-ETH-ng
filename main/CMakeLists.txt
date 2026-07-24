@@ -31,10 +31,25 @@ idf_component_register(SRCS ${app_sources}
                            spiffs
                            )
 
-# Keep the WebUI version independent from the firmware version.
+# Keep the WebUI version independent from the firmware version. The supported
+# API is firmware-owned; the WebUI requirement is release-owned. A full
+# firmware build must embed a fallback WebUI that uses exactly the API the
+# firmware implements.
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../webui/package.json" WEBUI_PACKAGE_JSON)
 string(JSON HB_WEBUI_VERSION GET "${WEBUI_PACKAGE_JSON}" version)
-target_compile_definitions(${COMPONENT_LIB} PRIVATE HB_WEBUI_VERSION=\"${HB_WEBUI_VERSION}\")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/webui_api_contract.json" FIRMWARE_WEBUI_CONTRACT_JSON)
+string(JSON HB_SUPPORTED_WEBUI_API_VERSION GET "${FIRMWARE_WEBUI_CONTRACT_JSON}" supportedApiVersion)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../webui/compatibility.json" WEBUI_COMPATIBILITY_JSON)
+string(JSON HB_REQUIRED_WEBUI_API_VERSION GET "${WEBUI_COMPATIBILITY_JSON}" apiVersion)
+if(NOT "${HB_SUPPORTED_WEBUI_API_VERSION}" STREQUAL "${HB_REQUIRED_WEBUI_API_VERSION}")
+    message(FATAL_ERROR
+        "Embedded WebUI requires API ${HB_REQUIRED_WEBUI_API_VERSION}, "
+        "but firmware implements API ${HB_SUPPORTED_WEBUI_API_VERSION}. "
+        "Update the compatibility contract and both components together.")
+endif()
+target_compile_definitions(${COMPONENT_LIB} PRIVATE
+    HB_WEBUI_VERSION=\"${HB_WEBUI_VERSION}\"
+    HB_SUPPORTED_WEBUI_API_VERSION=${HB_SUPPORTED_WEBUI_API_VERSION})
 
 # Transition firmware: keep the New Design embedded as a guaranteed fallback
 # while the same New Design can also be served and updated independently from

@@ -243,7 +243,8 @@ export default {
   // Update
   update: {
     available: 'Update verfügbar',
-    updateNow: 'Jetzt aktualisieren'
+    manualInstallHint: 'Download und manuelle Installation',
+    viewUpdate: 'Update ansehen'
   },
 
   // System Info
@@ -340,6 +341,11 @@ export default {
     firmwareChip: 'Firmware',
     separateActive: 'Separate WebUI aktiv',
     embeddedFallback: 'Eingebetteter Fallback aktiv',
+    compatibilityWarningTitle: 'WebUI-Kompatibilitätsproblem',
+    compatibilityWarningApi: 'Die installierte WebUI v{version} benötigt API {required}; diese Firmware unterstützt API {supported}. Zur Sicherheit ist die eingebettete WebUI aktiv.',
+    compatibilityWarningFirmware: 'Die installierte WebUI v{version} benötigt mindestens Firmware {minimum}; installiert ist {current}. Zur Sicherheit ist die eingebettete WebUI aktiv.',
+    compatibilityWarningInvalid: 'Die externe WebUI ist unvollständig oder enthält keinen gültigen Kompatibilitätsvertrag. Zur Sicherheit ist die eingebettete WebUI aktiv.',
+    compatibilityWarningAction: 'WebUI reparieren',
     installedLabel: 'Installierte WebUI-Version',
     separateSource: 'Aus der separaten WWW-Partition',
     embeddedSource: 'In der Firmware eingebettet',
@@ -443,6 +449,13 @@ export default {
     factoryResetWarning: 'Alle gespeicherten Einstellungen gehen verloren. Das Gerät startet danach automatisch neu.',
     factoryResetConfirm: 'Auf Werkseinstellungen zurücksetzen',
     factoryResetError: 'Zurücksetzen auf Werkseinstellungen fehlgeschlagen.',
+    factoryResetChallengeHelp: 'Geben Sie den folgenden 8-stelligen Sicherheitscode exakt ein. Groß-/Kleinschreibung wird beachtet; Kopieren und Einfügen sind gesperrt.',
+    factoryResetChallengeLabel: 'Sicherheitscode',
+    factoryResetChallengeDisplayLabel: 'Sicherheitscode: {code}',
+    factoryResetChallengeInputLabel: 'Sicherheitscode bestätigen',
+    factoryResetChallengePlaceholder: 'Code exakt eingeben',
+    factoryResetChallengeMismatch: 'Der eingegebene Code stimmt nicht exakt überein.',
+    factoryResetChallengeReady: 'Code bestätigt. Der Werksreset ist jetzt freigegeben.',
     otaProgress: 'Firmware-Update wird heruntergeladen...',
     otaSuccess: 'Download erfolgreich. Installation...',
     currentVersion: 'Aktuelle Version',

@@ -116,13 +116,20 @@ jobs:
 
           package = json.loads(Path('webui/package.json').read_text(encoding='utf-8'))
           compatibility = json.loads(Path('webui/compatibility.json').read_text(encoding='utf-8'))
+          firmware_contract = json.loads(Path('main/webui_api_contract.json').read_text(encoding='utf-8'))
           version = package['version']
           api_version = compatibility['apiVersion']
+          supported_api_version = firmware_contract['supportedApiVersion']
           minimum = compatibility['minFirmwareVersion']
           firmware = os.environ['FIRMWARE_VERSION']
           semver(version)
           if not isinstance(api_version, int) or api_version < 1:
               raise SystemExit(f'Invalid WebUI API version: {api_version}')
+          if api_version != supported_api_version:
+              raise SystemExit(
+                  f'WebUI requires API {api_version}, but firmware implements '
+                  f'API {supported_api_version}'
+              )
           if semver(firmware) < semver(minimum):
               raise SystemExit(f'WebUI requires firmware >= {minimum}, full release is {firmware}')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:

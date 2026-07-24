@@ -13,6 +13,24 @@
     <div v-else class="app-container">
       <NewDesignHeader />
       <main class="main-content">
+        <BAlert
+          v-if="webUiCompatibilityWarning"
+          variant="danger"
+          :model-value="true"
+          class="webui-compatibility-warning"
+          data-testid="webui-compatibility-warning"
+        >
+          <div class="compatibility-warning-content">
+            <AppIcon name="shield" />
+            <div class="compatibility-warning-copy">
+              <strong>{{ t('webuiUpdate.compatibilityWarningTitle') }}</strong>
+              <span>{{ webUiCompatibilityWarning }}</span>
+            </div>
+            <RouterLink class="btn btn-danger compatibility-warning-action" to="/updates/webui">
+              {{ t('webuiUpdate.compatibilityWarningAction') }}
+            </RouterLink>
+          </div>
+        </BAlert>
         <RouterView v-slot="{ Component }">
           <Transition name="page" mode="out-in">
             <component :is="Component" />
@@ -125,6 +143,15 @@ const showUpdateSuccess = ref(false)
 const showSupporterExpiredPrompt = ref(false)
 const otaUpdateVersion = ref('')
 const webUiVersion = ref(typeof __WEBUI_VERSION__ !== 'undefined' ? __WEBUI_VERSION__ : 'unbekannt')
+const webUiStatus = ref({
+  version: '',
+  effectiveVersion: '',
+  compatibilityStatus: 'unknown',
+  apiVersion: 0,
+  supportedApiVersion: 0,
+  minFirmwareVersion: '',
+  firmwareVersion: ''
+})
 let updateSuccessTimer = null
 const pageTitle = computed(() => `${sysInfoStore.hostname || 'HB-RF-ETH-ng'} - HB-RF-ETH-ng`)
 // Routes flagged meta.bareLayout (currently /login) render without the app
@@ -148,6 +175,55 @@ const restartCountdownProgress = computed(() => {
   const duration = Math.max(restartUiStore.phaseDuration, 1)
   return Math.min(100, Math.max(0, ((duration - restartUiStore.countdown) / duration) * 100))
 })
+const webUiCompatibilityWarning = computed(() => {
+  const status = webUiStatus.value || {}
+  switch (status.compatibilityStatus) {
+    case 'api_mismatch':
+      return t('webuiUpdate.compatibilityWarningApi', {
+        version: status.version || t('webuiUpdate.unknownVersion'),
+        required: status.apiVersion || '—',
+        supported: status.supportedApiVersion || '—'
+      })
+    case 'firmware_too_old':
+      return t('webuiUpdate.compatibilityWarningFirmware', {
+        version: status.version || t('webuiUpdate.unknownVersion'),
+        minimum: status.minFirmwareVersion || '—',
+        current: status.firmwareVersion || sysInfoStore.currentVersion || '—'
+      })
+    case 'manifest_invalid':
+    case 'invalid_metadata':
+    case 'image_invalid':
+      return t('webuiUpdate.compatibilityWarningInvalid')
+    default:
+      return ''
+  }
+})
+
+const loadWebUiStatus = async () => {
+  if (!loginStore.isLoggedIn) return
+  try {
+    const response = await axios.get('/api/webui/status', {
+      timeout: 5000,
+      silent: true,
+      params: { t: Date.now() }
+    })
+    applyWebUiStatus(response.data)
+  } catch {
+    // The compatibility banner is diagnostic, not a reason to interrupt
+    // normal navigation when the device is rebooting or temporarily busy.
+  }
+}
+
+const applyWebUiStatus = (nextStatus) => {
+  if (!nextStatus || typeof nextStatus !== 'object') return
+  webUiStatus.value = { ...webUiStatus.value, ...nextStatus }
+  webUiVersion.value =
+    nextStatus.effectiveVersion || nextStatus.version || webUiVersion.value
+}
+
+const handleWebUiStatusChanged = (event) => {
+  applyWebUiStatus(event.detail)
+}
 
 // Remind a returning supporter whose key has expired to renew — shown once
 // per browser session, right after login / first sysinfo load. A gentle
@@ -175,6 +251,10 @@ watch(pageTitle, (title) => {
   document.title = title
 }, { immediate: true })
 
+watch(() => loginStore.isLoggedIn, (loggedIn) => {
+  if (loggedIn) loadWebUiStatus()
+}, { immediate: true })
+
 // Note: the `newdesign-active` body class is owned exclusively by the
 // experimental store (useExperimentalStore.applyDesignClass) + an inline
 // script in index.html for FOUC prevention. Do NOT toggle it here — a
@@ -182,13 +262,11 @@ watch(pageTitle, (title) => {
 // holds the class (<html> vs <body>) and caused the toggle to feel flaky.
 
 onMounted(() => {
+  window.addEventListener('webui-status-changed', handleWebUiStatusChanged)
+
   sysInfoStore.update().catch((error) => {
     console.warn('Failed to load system info on app mount:', error)
   })
-
-  axios.get('/api/webui/status', { timeout: 5000, silent: true })
-    .then(response => { webUiVersion.value = response.data?.effectiveVersion || response.data?.version || webUiVersion.value })
-    .catch(() => {})
 
   // Check if we just came back from an OTA update
   const pendingVersion = safeLocal.get('otaUpdateVersion')
@@ -204,6 +282,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('webui-status-changed', handleWebUiStatusChanged)
   if (updateSuccessTimer) {
     clearTimeout(updateSuccessTimer)
   }
@@ -245,6 +324,51 @@ onUnmounted(() => {
   max-width: none;
   margin: 0;
   padding: 0;
+}
+
+.webui-compatibility-warning {
+  margin-bottom: var(--space-4);
+  border-width: 2px;
+}
+
+.compatibility-warning-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.compatibility-warning-content > svg {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+.compatibility-warning-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compatibility-warning-action {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .compatibility-warning-content {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .compatibility-warning-copy {
+    flex-basis: calc(100% - 40px);
+  }
+
+  .compatibility-warning-action {
+    width: 100%;
+  }
 }
 
 @media (min-width: 768px) {

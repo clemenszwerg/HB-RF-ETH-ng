@@ -160,6 +160,76 @@ test('firmware update page follows the selected language completely', async ({ p
   await expect(page.locator('.firmware-page')).toContainText('Firmware manuell installieren')
 })
 
+test('language picker exposes only supported locales and migrates a retired selection', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('locale', 'es'))
+  await page.goto(`${BASE_URL}/`)
+
+  const storedLocale = await page.evaluate(() => localStorage.getItem('locale'))
+  expect(['de', 'en', 'fr', 'it']).toContain(storedLocale)
+  expect(storedLocale).not.toBe('es')
+
+  await page.locator('.locale-picker .utility-row').click()
+  const localeOptions = page.locator('.locale-picker .locale-menu-item')
+  await expect(localeOptions).toHaveCount(4)
+  await expect(page.locator('.locale-picker .locale-menu')).toContainText('Deutsch')
+  await expect(page.locator('.locale-picker .locale-menu')).toContainText('English')
+  await expect(page.locator('.locale-picker .locale-menu')).toContainText('Français')
+  await expect(page.locator('.locale-picker .locale-menu')).toContainText('Italiano')
+  await expect(page.locator('.locale-picker .locale-menu')).not.toContainText('Español')
+})
+
+test('factory reset requires the exact non-copyable case-sensitive challenge', async ({ page }) => {
+  let factoryResetRequests = 0
+  await page.route('**/api/factory-reset', route => {
+    factoryResetRequests += 1
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true })
+    })
+  })
+
+  await page.goto(`${BASE_URL}/updates/firmware`)
+  await page.locator('.action-tile.danger').click()
+
+  const dialog = page.getByRole('dialog', { name: 'Factory reset' })
+  const challenge = dialog.getByTestId('factory-reset-challenge')
+  const confirmation = dialog.getByLabel('Confirm security code')
+  const resetButton = dialog.getByRole('button', { name: 'Reset to factory defaults' })
+
+  await expect(dialog).toBeVisible()
+  await expect(challenge).toHaveText(/^[A-Za-z0-9]{8}$/)
+  await expect(resetButton).toBeDisabled()
+
+  const challengeCode = (await challenge.textContent()).trim()
+  expect(challengeCode).toMatch(/[A-Z]/)
+  expect(challengeCode).toMatch(/[a-z]/)
+  expect(challengeCode).toMatch(/[0-9]/)
+
+  const copyProtection = await challenge.evaluate(element => {
+    const copyEvent = new Event('copy', { bubbles: true, cancelable: true })
+    element.dispatchEvent(copyEvent)
+    return {
+      copyPrevented: copyEvent.defaultPrevented,
+      userSelect: getComputedStyle(element).userSelect
+    }
+  })
+  expect(copyProtection.copyPrevented).toBe(true)
+  expect(copyProtection.userSelect).toBe('none')
+
+  const wrongCaseCode = challengeCode.replace(/[A-Z]/, character => character.toLowerCase())
+  await confirmation.fill(wrongCaseCode)
+  await expect(dialog.getByText('The entered code does not match exactly.')).toBeVisible()
+  await expect(resetButton).toBeDisabled()
+  expect(factoryResetRequests).toBe(0)
+
+  await confirmation.fill(challengeCode)
+  await expect(dialog.getByText('Code confirmed. Factory reset is now unlocked.')).toBeVisible()
+  await expect(resetButton).toBeEnabled()
+
+  await resetButton.click()
+  await expect.poll(() => factoryResetRequests).toBe(1)
+})
+
 test('updates sub-navigation uses the shared design and switches child routes', async ({ page }) => {
   await page.route('**/settings.json**', route => route.fulfill({
     contentType: 'application/json',
@@ -222,6 +292,121 @@ test('updates sub-navigation uses the shared design and switches child routes', 
   })
   expect(mobileBounds.left).toBeGreaterThanOrEqual(0)
   expect(mobileBounds.right).toBeLessThanOrEqual(mobileBounds.viewportWidth)
+})
+
+test('incompatible installed WebUI is never presented as active and shows a persistent repair warning', async ({ page }) => {
+  await page.route('**/api/webui/status**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      mounted: true,
+      manifestValid: true,
+      compatible: false,
+      valid: false,
+      version: '1.1.0',
+      effectiveVersion: '1.0.0-Beta.8',
+      source: 'embedded',
+      apiVersion: 2,
+      supportedApiVersion: 1,
+      minFirmwareVersion: '2.2.5-Beta.1',
+      firmwareVersion: '2.2.5-Beta.12',
+      compatibilityStatus: 'api_mismatch',
+      partitionSize: 327680,
+      usedBytes: 260000
+    })
+  }))
+
+  await page.goto(`${BASE_URL}/`)
+
+  const warning = page.getByTestId('webui-compatibility-warning')
+  await expect(warning).toBeVisible()
+  await expect(warning).toContainText('WebUI compatibility problem')
+  await expect(warning).toContainText('requires API 2')
+  await expect(warning).toContainText('firmware supports API 1')
+  await expect(warning).toContainText('embedded WebUI is active')
+
+  await warning.getByRole('link', { name: 'Repair WebUI' }).click()
+  await expect(page).toHaveURL(`${BASE_URL}/updates/webui`)
+})
+
+test('firmware update banner does not promise a direct OTA installation', async ({ page }) => {
+  await page.route('**/api/check_update**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      latestVersion: '2.2.5-Beta.12',
+      updateAvailable: true,
+      downloadUrl: 'https://example.invalid/firmware_2.2.5-Beta.12.bin'
+    })
+  }))
+
+  await page.goto(`${BASE_URL}/`)
+
+  const banner = page.locator('.update-banner')
+  await expect(banner).toBeVisible()
+  await expect(banner).toContainText('Download and manual installation')
+  await expect(banner.getByRole('link', { name: 'View update' })).toBeVisible()
+  await expect(banner).not.toContainText('Update Now')
+})
+
+test('release-matched WebUI upload sends compatibility preflight headers', async ({ page }) => {
+  const releaseFile = 'webui_1.0.1.bin'
+  let uploadHeaders = null
+
+  await page.route('**/api/webui/status**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      mounted: true,
+      manifestValid: true,
+      compatible: true,
+      valid: true,
+      version: '1.0.0',
+      effectiveVersion: '1.0.0',
+      source: 'spiffs',
+      apiVersion: 1,
+      supportedApiVersion: 1,
+      minFirmwareVersion: '2.2.5-Beta.1',
+      firmwareVersion: '2.2.5-Beta.12',
+      compatibilityStatus: 'compatible',
+      partitionSize: 327680,
+      usedBytes: 250000
+    })
+  }))
+  await page.route('**/api/check_update**', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      latestVersion: '2.2.5-Beta.12',
+      updateAvailable: false,
+      fetchedAt: 1784750400000,
+      webui: {
+        version: '1.0.1',
+        design: 'newdesign',
+        apiVersion: 1,
+        minFirmwareVersion: '2.2.5-Beta.1',
+        size: 327680,
+        sha256: 'a'.repeat(64),
+        downloadUrl: `https://example.invalid/${releaseFile}`
+      }
+    })
+  }))
+  await page.route('**/api/webui/update', route => {
+    uploadHeaders = route.request().headers()
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, version: '1.0.1' })
+    })
+  })
+
+  await page.goto(`${BASE_URL}/updates/webui`)
+  await page.locator('input[type="file"]').setInputFiles({
+    name: releaseFile,
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.alloc(327680)
+  })
+  await page.getByRole('button', { name: 'Install WebUI' }).click()
+
+  await expect.poll(() => uploadHeaders).not.toBeNull()
+  expect(uploadHeaders['x-webui-sha256']).toBe('a'.repeat(64))
+  expect(uploadHeaders['x-webui-api-version']).toBe('1')
+  expect(uploadHeaders['x-webui-min-firmware-version']).toBe('2.2.5-Beta.1')
 })
 
 test('firmware keeps a successful no-update result visible without a release version', async ({ page }) => {

@@ -22,6 +22,27 @@ PARTITION_SIZE = 0x50000
 SPIFFS_HEADROOM = 24 * 1024
 
 
+def semver(value: str) -> tuple[int, int, int, int, tuple[tuple[int, object], ...]]:
+    match = re.fullmatch(
+        r"(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?",
+        value,
+    )
+    if not match:
+        raise RuntimeError(f"Invalid semantic version: {value}")
+
+    major, minor, patch, prerelease = match.groups()
+    if prerelease is None:
+        return int(major), int(minor), int(patch), 1, ()
+
+    identifiers: list[tuple[int, object]] = []
+    for identifier in prerelease.split("."):
+        if identifier.isdigit():
+            identifiers.append((0, int(identifier)))
+        else:
+            identifiers.append((1, identifier.lower()))
+    return int(major), int(minor), int(patch), 0, tuple(identifiers)
+
+
 def gzip_file(source: Path, target: Path) -> None:
     with source.open("rb") as source_file:
         with gzip.open(target, "wb", compresslevel=9) as target_file:
@@ -33,20 +54,33 @@ def load_release_metadata() -> tuple[str, int, str]:
     compatibility = json.loads(
         Path("webui/compatibility.json").read_text(encoding="utf-8")
     )
+    firmware_contract = json.loads(
+        Path("main/webui_api_contract.json").read_text(encoding="utf-8")
+    )
+    current_firmware = Path("version.txt").read_text(encoding="utf-8").strip()
 
     version = str(package.get("version", "")).strip()
     api_version = compatibility.get("apiVersion")
     minimum_firmware = str(compatibility.get("minFirmwareVersion", "")).strip()
+    supported_api_version = firmware_contract.get("supportedApiVersion")
 
     if not re.fullmatch(r"\d+\.\d+\.\d+(?:-[A-Za-z]+\.\d+)?", version):
         raise RuntimeError(f"Invalid WebUI version: {version}")
     if not isinstance(api_version, int) or api_version < 1:
         raise RuntimeError(f"Invalid WebUI API version: {api_version}")
-    if not re.fullmatch(
-        r"\d+\.\d+\.\d+(?:-[A-Za-z]+\.\d+)?", minimum_firmware
-    ):
+    if not isinstance(supported_api_version, int) or supported_api_version < 1:
         raise RuntimeError(
-            f"Invalid minimum firmware version: {minimum_firmware}"
+            f"Invalid firmware WebUI API version: {supported_api_version}"
+        )
+    if api_version != supported_api_version:
+        raise RuntimeError(
+            f"WebUI requires API {api_version}, but firmware implements API "
+            f"{supported_api_version}. Update both contracts together."
+        )
+    if semver(current_firmware) < semver(minimum_firmware):
+        raise RuntimeError(
+            f"WebUI requires firmware >= {minimum_firmware}, but the current "
+            f"firmware is {current_firmware}"
         )
 
     return version, api_version, minimum_firmware

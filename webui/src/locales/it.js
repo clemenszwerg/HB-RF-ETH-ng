@@ -243,7 +243,8 @@ export default {
   // Update
   update: {
     available: 'Aggiornamento disponibile',
-    updateNow: 'Aggiorna ora'
+    manualInstallHint: 'Download e installazione manuale',
+    viewUpdate: 'Visualizza aggiornamento'
    },
   
   // System Info
@@ -340,6 +341,11 @@ webuiUpdate: {
   firmwareChip: 'Firmware',
   separateActive: 'WebUI separata attiva',
   embeddedFallback: 'Fallback integrato attivo',
+  compatibilityWarningTitle: 'Problema di compatibilità WebUI',
+  compatibilityWarningApi: 'La WebUI installata v{version} richiede l’API {required}; questo firmware supporta l’API {supported}. Per sicurezza è attiva la WebUI integrata.',
+  compatibilityWarningFirmware: 'La WebUI installata v{version} richiede almeno il firmware {minimum}; è installato {current}. Per sicurezza è attiva la WebUI integrata.',
+  compatibilityWarningInvalid: 'La WebUI esterna è incompleta o non contiene un contratto di compatibilità valido. Per sicurezza è attiva la WebUI integrata.',
+  compatibilityWarningAction: 'Ripara WebUI',
   installedLabel: 'Versione WebUI installata',
   separateSource: 'Dalla partizione WWW separata',
   embeddedSource: 'Integrata nel firmware',
@@ -443,6 +449,13 @@ webuiUpdate: {
     factoryResetWarning: 'Tutte le impostazioni salvate andranno perse. Il dispositivo verrà riavviato automaticamente.',
     factoryResetConfirm: 'Ripristina impostazioni di fabbrica',
     factoryResetError: 'Ripristino delle impostazioni di fabbrica non riuscito.',
+    factoryResetChallengeHelp: 'Inserisci esattamente il seguente codice di sicurezza di 8 caratteri. Fa distinzione tra maiuscole e minuscole; copia e incolla sono disabilitati.',
+    factoryResetChallengeLabel: 'Codice di sicurezza',
+    factoryResetChallengeDisplayLabel: 'Codice di sicurezza: {code}',
+    factoryResetChallengeInputLabel: 'Conferma il codice di sicurezza',
+    factoryResetChallengePlaceholder: 'Inserisci il codice esatto',
+    factoryResetChallengeMismatch: 'Il codice inserito non corrisponde esattamente.',
+    factoryResetChallengeReady: 'Codice confermato. Il ripristino di fabbrica è ora abilitato.',
     otaProgress: 'Download dell’aggiornamento firmware in corso...',
     otaSuccess: 'Download completato. Installazione in corso…',
     currentVersion: 'Versione attuale',

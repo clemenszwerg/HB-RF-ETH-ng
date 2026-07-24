@@ -50,7 +50,7 @@ Die Firmware wurde kürzlich mit wichtigen neuen Funktionen und Verbesserungen a
   * Initiales Passwort: `admin` (muss nach dem ersten Login geändert werden)
   * Nach Updates mit bestehendem Passwort einmalig als `admin` anmelden; der Benutzername kann danach unter Einstellungen geändert werden
 * **Dark/Light Theme Toggle** für helles und dunkles Design
-* **Multi-Language Support** (10 Sprachen: Deutsch, Englisch, Spanisch, Französisch, Italienisch, Niederländisch, Norwegisch, Polnisch, Tschechisch, Schwedisch)
+* **Multi-Language Support** (4 Sprachen: Deutsch, Englisch, Französisch und Italienisch)
 * **System Log Viewer** - Live-Ansicht der Systemlogs mit 3-Sekunden-Polling, Download-Funktion, Ein/Aus-Schalter und manueller Aktualisierung (High-Contrast)
   * Aktivierung bleibt ueber Reboots erhalten; beim Deaktivieren bleibt das Log nach dem naechsten Start wieder aus
 * **Changelog Modal** - Vollständiger Changelog direkt in der WebUI mit Markdown-Rendering

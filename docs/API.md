@@ -934,6 +934,36 @@ acknowledged subscribers at once.
 Older firmware versions do not have this endpoint — clients should fall
 back to polling `GET /api/log` if the upgrade fails.
 
+### GET /api/webui/status
+
+Returns the standalone WebUI partition state and the authoritative
+firmware/WebUI compatibility result. `version` is the external image version;
+`effectiveVersion` and `source` identify what is actually served. Important
+fields are `manifestValid`, `compatible`, `apiVersion`,
+`supportedApiVersion`, `minFirmwareVersion`, `firmwareVersion`, and
+`compatibilityStatus`.
+
+An external image is served only when its API exactly matches the firmware API
+and the running firmware is at least its declared minimum. Otherwise `source`
+is `embedded`, and the embedded recovery UI displays a persistent warning.
+
+### POST /api/webui/update
+
+Uploads a raw 320-KiB SPIFFS WebUI image as `application/octet-stream`.
+Release-driven clients should send:
+
+```text
+X-WebUI-SHA256: <64 hex characters>
+X-WebUI-API-Version: <positive integer>
+X-WebUI-Min-Firmware-Version: <semantic firmware version>
+```
+
+The two compatibility headers must be supplied together. They are checked
+before flash is erased. The internal image manifest is checked again after
+writing and remains authoritative. A mismatch returns `409 Conflict`; an image
+that fails post-write validation is invalidated and the embedded WebUI remains
+active.
+
 ### GET /metrics (Prometheus exporter, separate port)
 
 Plain-text Prometheus exposition served on a dedicated HTTP listener

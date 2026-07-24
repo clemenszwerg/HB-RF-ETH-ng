@@ -89,7 +89,7 @@
 
           <div class="actions">
             <a
-              v-if="updateAvailable && release.downloadUrl"
+              v-if="updateAvailable && release.downloadUrl && !manifestError"
               class="btn btn-success action-btn"
               :href="release.downloadUrl"
               target="_blank"
@@ -165,7 +165,7 @@ import { useUiStore, useUpdateStore } from './stores.js'
 
 const { t } = useI18n()
 
-const WEBUI_API_VERSION = 1
+const WEBUI_API_VERSION = typeof __WEBUI_API_VERSION__ !== 'undefined' ? __WEBUI_API_VERSION__ : 1
 const EMBEDDED_WEBUI_VERSION = typeof __WEBUI_VERSION__ !== 'undefined' ? __WEBUI_VERSION__ : ''
 
 const uiStore = useUiStore()
@@ -188,14 +188,20 @@ const checkNowLabel = computed(() => t('updates.checkingNow'))
 const status = ref({
   partitionFound: false,
   mounted: false,
+  manifestValid: false,
+  compatible: false,
   valid: false,
   updateActive: false,
   partitionSize: 0,
   totalBytes: 0,
   usedBytes: 0,
   bytesWritten: 0,
+  apiVersion: 0,
+  supportedApiVersion: WEBUI_API_VERSION,
   version: '',
   effectiveVersion: '',
+  minFirmwareVersion: '',
+  compatibilityStatus: 'unknown',
   design: 'newdesign',
   lastError: ''
 })
@@ -284,6 +290,9 @@ const loadStatus = async () => {
       axios.get('/sysinfo.json', { timeout: 8000, silent: true })
     ])
     status.value = { ...status.value, ...storageResponse.data }
+    window.dispatchEvent(new CustomEvent('webui-status-changed', {
+      detail: status.value
+    }))
     firmwareVersion.value = systemResponse.data?.sysInfo?.currentVersion || ''
     statusError.value = ''
   } catch (err) {
@@ -312,7 +321,7 @@ const loadCachedRelease = async () => {
     release.value = item
     if (Number(item.size) !== Number(status.value.partitionSize)) {
       manifestError.value = t('webuiUpdate.manifestWrongSize', { expected: formatBytes(status.value.partitionSize) })
-    } else if (Number(item.apiVersion) !== WEBUI_API_VERSION) {
+    } else if (Number(item.apiVersion) !== Number(status.value.supportedApiVersion || WEBUI_API_VERSION)) {
       manifestError.value = t('webuiUpdate.manifestWrongApi')
     } else if (compareVersions(firmwareVersion.value, item.minFirmwareVersion) < 0) {
       manifestError.value = t('webuiUpdate.manifestFirmwareTooOld', { min: item.minFirmwareVersion })
@@ -387,9 +396,30 @@ const installManual = async () => {
   busy.value = true
   progress.value = 0
   try {
+    const headers = { 'Content-Type': 'application/octet-stream' }
+    let releaseFileName = ''
+    try {
+      releaseFileName = decodeURIComponent(
+        new URL(release.value.downloadUrl || '', window.location.href)
+          .pathname.split('/').pop() || ''
+      )
+    } catch {
+      releaseFileName = ''
+    }
+    const matchesRelease =
+      releaseFileName &&
+      selectedFile.value.name === releaseFileName &&
+      Number(selectedFile.value.size) === Number(release.value.size)
+    if (matchesRelease && release.value.sha256 &&
+        release.value.apiVersion && release.value.minFirmwareVersion) {
+      headers['X-WebUI-SHA256'] = release.value.sha256
+      headers['X-WebUI-API-Version'] = String(release.value.apiVersion)
+      headers['X-WebUI-Min-Firmware-Version'] = release.value.minFirmwareVersion
+    }
+
     await axios.post('/api/webui/update', selectedFile.value, {
       timeout: 180000,
-      headers: { 'Content-Type': 'application/octet-stream' },
+      headers,
       onUploadProgress: event => {
         if (event.total) progress.value = Math.round(event.loaded * 100 / event.total)
       }
@@ -402,6 +432,7 @@ const installManual = async () => {
     const message = typeof error.response?.data === 'string'
       ? error.response.data
       : (error.response?.data?.message || error.message || t('webuiUpdate.uploadFailedMessage'))
+    await loadStatus()
     uiStore.pushToast({ type: 'error', title: t('webuiUpdate.uploadFailedTitle'), message, duration: 7000 })
   } finally {
     busy.value = false

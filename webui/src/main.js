@@ -60,7 +60,13 @@ const router = createRouter({
 import { createI18n } from 'vue-i18n'
 import { messages, getBrowserLocale } from './locales/index.js'
 
-const storedLocale = localStorage.getItem('locale') || getBrowserLocale()
+const requestedLocale = localStorage.getItem('locale')
+const storedLocale = requestedLocale && Object.hasOwn(messages, requestedLocale)
+  ? requestedLocale
+  : getBrowserLocale()
+if (requestedLocale && requestedLocale !== storedLocale) {
+  localStorage.setItem('locale', storedLocale)
+}
 
 const i18n = createI18n({
   legacy: false,

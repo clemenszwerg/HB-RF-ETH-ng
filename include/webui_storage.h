@@ -11,13 +11,19 @@ struct WebUIStorageStatus
 {
     bool partitionFound;
     bool mounted;
+    bool manifestValid;
+    bool compatible;
     bool valid;
     bool updateActive;
     size_t partitionSize;
     size_t totalBytes;
     size_t usedBytes;
     size_t bytesWritten;
+    int apiVersion;
+    int supportedApiVersion;
     char version[32];
+    char minFirmwareVersion[32];
+    char compatibilityStatus[24];
     char lastError[96];
 };
 
@@ -35,7 +41,10 @@ esp_err_t webui_storage_init();
 /** Return a snapshot of the external WebUI storage state. */
 WebUIStorageStatus webui_storage_get_status();
 
-/** True only when the partition is mounted and the New Design manifest is valid. */
+/**
+ * True only when the partition is mounted, structurally valid and compatible
+ * with the API and version of the running firmware.
+ */
 bool webui_storage_is_valid();
 
 /** Copy the active WebUI version (external image or embedded fallback). */

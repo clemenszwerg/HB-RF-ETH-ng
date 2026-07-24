@@ -24,7 +24,13 @@ can migrate through the normal firmware OTA process without USB access.
   trailing data is rejected as oversized.
 - The image must exactly match the SPIFFS partition size.
 - `webui-manifest.json` must identify `HB-RF-ETH-ng`, format `1`, design
-  `newdesign`, and the expected Brotli encodings.
+  `newdesign`, the expected gzip encodings, its API version and its minimum
+  firmware version.
+- The image API must exactly match the API implemented by the running firmware,
+  and the running firmware must meet the image's minimum version.
+- Compatibility is checked at boot and after every upload. An incompatible
+  external image is never served; the embedded New Design becomes active and
+  shows a persistent repair warning.
 - Invalid or incomplete images have their filesystem header erased.
 - A persistent NVS transaction marker is committed before the first destructive
   flash operation. If power is lost, the next boot discards the unverified
@@ -38,8 +44,9 @@ can migrate through the normal firmware OTA process without USB access.
 ### `GET /api/webui/status`
 
 Returns partition availability, mount and validation state, active update state,
-partition usage, installed WebUI version, design, and the last storage error.
-Authentication is required.
+partition usage, external and effective WebUI versions, active source, image and
+supported API versions, minimum/running firmware versions,
+`compatibilityStatus`, and the last storage error. Authentication is required.
 
 ### `POST /api/webui/update`
 
@@ -50,10 +57,15 @@ Optional request header:
 
 ```text
 X-WebUI-SHA256: <64 hexadecimal characters>
+X-WebUI-API-Version: <positive integer>
+X-WebUI-Min-Firmware-Version: <semantic firmware version>
 ```
 
-Release-driven updates always provide this header. Manual test uploads may omit
-it, but product/design/format and filesystem validation still run on the device.
+Release-driven updates provide all three headers when the selected filename
+matches the advertised release asset. The ESP32 checks the compatibility
+headers before erasing flash, then checks the internal manifest again after the
+upload. Manual test uploads may omit them, but all structural and compatibility
+validation still runs from the internal image manifest before activation.
 
 ## Release artifacts
 

@@ -57,24 +57,55 @@ preserved at the logical JSON-field level; only the `webui` block is replaced.
 
 ## Compatibility contract
 
-`webui/compatibility.json` defines:
+Compatibility has two independent, authoritative sources:
 
-- `apiVersion`: integer firmware/WebUI API contract
-- `minFirmwareVersion`: minimum semantic firmware version
+- `main/webui_api_contract.json` defines `supportedApiVersion`, the exact WebUI
+  API implemented by the firmware.
+- `webui/compatibility.json` defines the WebUI's required `apiVersion` and
+  `minFirmwareVersion`.
 
-The same values are embedded into `webui-manifest.json` inside `spiffs.bin` and
-published in the update manifest. The normal online updater checks both values
-before downloading or erasing anything. The ESP32 then verifies image size,
-SHA-256, product, design, image format and required assets before activating the
-external WebUI.
+The contract is satisfied only when both conditions are true:
+
+1. `apiVersion == supportedApiVersion` (exact match).
+2. Running firmware `>= minFirmwareVersion` (semantic-version comparison,
+   including prerelease identifiers).
+
+`apiVersion` and `minFirmwareVersion` are embedded into
+`webui-manifest.json` inside `spiffs.bin` and published in the update manifest.
+The browser sends the release contract as preflight headers before a normal
+upload, allowing the ESP32 to reject an incompatible release without erasing
+the currently installed WebUI. The internal image manifest remains the
+authoritative value and is checked again after writing.
+
+At every boot and after every WebUI upload, the firmware validates image size,
+SHA-256 when supplied, product, design, image format, required assets, API
+version and minimum firmware. An incompatible external WebUI is never served.
+The firmware uses its embedded WebUI fallback and the fallback displays a
+persistent compatibility warning with a link to the WebUI repair page.
 
 The manual upload remains an expert/recovery path. Use only the image and
-compatibility metadata from the matching GitHub release; normal users should use
-the online updater.
+compatibility metadata from the matching GitHub release. A file that cannot be
+matched to the currently advertised release has no preflight metadata, so the
+ESP32 can validate its internal contract only after writing it. An incompatible
+manual image is invalidated and the embedded fallback stays active.
 
-Increment `apiVersion` only for an incompatible API change. Compatible API
-additions keep the existing value and may raise `minFirmwareVersion` when the
-new WebUI depends on those additions.
+### Mandatory change rules
+
+- Increment both the firmware's `supportedApiVersion` and the WebUI's
+  `apiVersion` for every incompatible REST, JSON, authentication, routing or
+  behavioral contract change. Ship such a change as a full firmware release.
+- Compatible API additions keep the current API number. Raise
+  `minFirmwareVersion` if the WebUI begins to depend on that addition.
+- A WebUI-only release must never change `apiVersion` unless support for that
+  API already exists in the released/current firmware line.
+- Never remove `apiVersion` or `minFirmwareVersion` from the standalone image
+  manifest or update manifests.
+- Never weaken the firmware-side boot and upload checks to a browser-only
+  warning. The backend is the security and recovery boundary.
+
+The WebUI packaging script, firmware CMake configuration and release workflows
+fail when the two API contracts disagree or the current firmware is older than
+the declared minimum. This is a release gate, not advisory documentation.
 
 ## Initial independent versions
 

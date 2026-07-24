@@ -326,6 +326,113 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/webui/status:
+    get:
+      tags:
+        - WebUI
+      summary: Get standalone WebUI storage and compatibility status
+      description: >
+        Reports both the external image and the effective WebUI. An external
+        image is active only when its manifest is structurally valid, its API
+        exactly matches the firmware API, and the running firmware satisfies
+        its minimum version.
+      responses:
+        '200':
+          description: WebUI storage and compatibility status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mounted:
+                    type: boolean
+                  manifestValid:
+                    type: boolean
+                  compatible:
+                    type: boolean
+                  valid:
+                    type: boolean
+                  version:
+                    type: string
+                    description: Version declared by the external image
+                  effectiveVersion:
+                    type: string
+                    description: Version currently served to the browser
+                  source:
+                    type: string
+                    enum: [spiffs, embedded]
+                  apiVersion:
+                    type: integer
+                    description: API required by the external image
+                  supportedApiVersion:
+                    type: integer
+                    description: API implemented by the running firmware
+                  minFirmwareVersion:
+                    type: string
+                  firmwareVersion:
+                    type: string
+                  compatibilityStatus:
+                    type: string
+                    enum:
+                      - compatible
+                      - not_installed
+                      - api_mismatch
+                      - firmware_too_old
+                      - invalid_metadata
+                      - manifest_invalid
+                      - image_invalid
+                  lastError:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/webui/update:
+    post:
+      tags:
+        - WebUI
+      summary: Install a raw standalone WebUI image
+      description: >
+        Streams one partition-sized SPIFFS image. Release-driven clients send
+        compatibility headers for a pre-erase check; the image's internal
+        manifest is always checked again before activation. Incompatible images
+        are never served and the embedded WebUI remains available.
+      parameters:
+        - in: header
+          name: X-WebUI-SHA256
+          required: false
+          schema:
+            type: string
+            pattern: '^[0-9A-Fa-f]{64}$'
+        - in: header
+          name: X-WebUI-API-Version
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - in: header
+          name: X-WebUI-Min-Firmware-Version
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: WebUI image installed and activated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Firmware/WebUI compatibility conflict
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   securitySchemes:
     TokenAuth:

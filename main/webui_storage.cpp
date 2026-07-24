@@ -1,6 +1,7 @@
 #include "webui_storage.h"
 
 #include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 #include <sys/stat.h>
 
 #include "cJSON.h"
+#include "esp_app_desc.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_partition.h"
@@ -20,6 +22,7 @@
 
 #include "monitoring.h"
 #include "security_headers.h"
+#include "webui_compatibility.h"
 
 // Defined in webui.cpp. Both update paths deliberately share the existing
 // constant-time admin-token validation.
@@ -27,6 +30,10 @@ extern esp_err_t validate_auth(httpd_req_t *req);
 
 #ifndef HB_WEBUI_VERSION
 #define HB_WEBUI_VERSION "unknown"
+#endif
+
+#ifndef HB_SUPPORTED_WEBUI_API_VERSION
+#define HB_SUPPORTED_WEBUI_API_VERSION 1
 #endif
 
 namespace
@@ -131,6 +138,27 @@ void set_error_locked(const char *message, esp_err_t error = ESP_OK)
     ESP_LOGE(TAG, "%s", s_status.lastError);
 }
 
+const char *current_firmware_version()
+{
+    const esp_app_desc_t *description = esp_app_get_description();
+    return description && description->version[0]
+        ? description->version
+        : "unknown";
+}
+
+void reset_manifest_metadata_locked()
+{
+    s_status.manifestValid = false;
+    s_status.compatible = false;
+    s_status.apiVersion = 0;
+    s_status.supportedApiVersion = HB_SUPPORTED_WEBUI_API_VERSION;
+    s_status.version[0] = '\0';
+    s_status.minFirmwareVersion[0] = '\0';
+    copy_safe(s_status.compatibilityStatus,
+              sizeof(s_status.compatibilityStatus),
+              "not_installed");
+}
+
 esp_err_t set_transaction_pending_locked(bool pending)
 {
     nvs_handle_t handle = 0;
@@ -175,7 +203,11 @@ bool is_regular_nonempty_file(const char *path)
 
 bool validate_manifest_locked()
 {
-    s_status.version[0] = '\0';
+    reset_manifest_metadata_locked();
+    clear_error_locked();
+    copy_safe(s_status.compatibilityStatus,
+              sizeof(s_status.compatibilityStatus),
+              "manifest_invalid");
 
     FILE *file = fopen(BASE_PATH "/webui-manifest.json", "rb");
     if (!file) return false;
@@ -197,6 +229,10 @@ bool validate_manifest_locked()
     const cJSON *product = cJSON_GetObjectItemCaseSensitive(root, "product");
     const cJSON *design = cJSON_GetObjectItemCaseSensitive(root, "design");
     const cJSON *version = cJSON_GetObjectItemCaseSensitive(root, "version");
+    const cJSON *api_version =
+        cJSON_GetObjectItemCaseSensitive(root, "apiVersion");
+    const cJSON *minimum_firmware =
+        cJSON_GetObjectItemCaseSensitive(root, "minFirmwareVersion");
     const cJSON *encodings = cJSON_GetObjectItemCaseSensitive(root, "encodings");
     const cJSON *js_encoding = encodings
         ? cJSON_GetObjectItemCaseSensitive(encodings, "main.js")
@@ -212,7 +248,14 @@ bool validate_manifest_locked()
         cJSON_IsString(design) && design->valuestring &&
         strcmp(design->valuestring, "newdesign") == 0 &&
         cJSON_IsString(version) && version->valuestring &&
-        version->valuestring[0] != '\0' &&
+        strlen(version->valuestring) < sizeof(s_status.version) &&
+        webui_is_valid_semver(version->valuestring) &&
+        cJSON_IsNumber(api_version) && api_version->valueint >= 1 &&
+        api_version->valuedouble == api_version->valueint &&
+        cJSON_IsString(minimum_firmware) && minimum_firmware->valuestring &&
+        strlen(minimum_firmware->valuestring) <
+            sizeof(s_status.minFirmwareVersion) &&
+        webui_is_valid_semver(minimum_firmware->valuestring) &&
         cJSON_IsString(js_encoding) && js_encoding->valuestring &&
         strcmp(js_encoding->valuestring, "gzip") == 0 &&
         cJSON_IsString(css_encoding) && css_encoding->valuestring &&
@@ -220,12 +263,56 @@ bool validate_manifest_locked()
 
     if (valid)
     {
+        s_status.manifestValid = true;
+        s_status.apiVersion = api_version->valueint;
         copy_json_safe(s_status.version, sizeof(s_status.version),
                        version->valuestring);
+        copy_json_safe(s_status.minFirmwareVersion,
+                       sizeof(s_status.minFirmwareVersion),
+                       minimum_firmware->valuestring);
+
+        const WebUICompatibilityResult compatibility =
+            webui_check_compatibility(
+                s_status.apiVersion,
+                s_status.minFirmwareVersion,
+                s_status.supportedApiVersion,
+                current_firmware_version());
+        s_status.compatible =
+            compatibility == WEBUI_COMPATIBILITY_COMPATIBLE;
+        copy_safe(s_status.compatibilityStatus,
+                  sizeof(s_status.compatibilityStatus),
+                  webui_compatibility_status_name(compatibility));
+
+        switch (compatibility)
+        {
+            case WEBUI_COMPATIBILITY_API_MISMATCH:
+                snprintf(s_status.lastError, sizeof(s_status.lastError),
+                         "WebUI API %d is incompatible with firmware API %d",
+                         s_status.apiVersion, s_status.supportedApiVersion);
+                break;
+            case WEBUI_COMPATIBILITY_FIRMWARE_TOO_OLD:
+                snprintf(s_status.lastError, sizeof(s_status.lastError),
+                         "WebUI requires firmware %s or newer (installed %s)",
+                         s_status.minFirmwareVersion,
+                         current_firmware_version());
+                break;
+            case WEBUI_COMPATIBILITY_INVALID_METADATA:
+                copy_safe(s_status.lastError, sizeof(s_status.lastError),
+                          "WebUI compatibility metadata is invalid");
+                break;
+            case WEBUI_COMPATIBILITY_COMPATIBLE:
+            default:
+                break;
+        }
     }
 
     cJSON_Delete(root);
-    return valid && s_status.version[0] != '\0';
+    if (!valid)
+    {
+        copy_safe(s_status.lastError, sizeof(s_status.lastError),
+                  "Invalid or incomplete WebUI manifest");
+    }
+    return valid && s_status.version[0] != '\0' && s_status.compatible;
 }
 
 bool validate_files_locked()
@@ -237,16 +324,26 @@ bool validate_files_locked()
     }
 
     // Only the New Design is accepted. All standalone assets use gzip.
-    const bool valid =
+    const bool required_files_valid =
         is_regular_nonempty_file(BASE_PATH "/index.html.gz") &&
         is_regular_nonempty_file(BASE_PATH "/main.js.gz") &&
         is_regular_nonempty_file(BASE_PATH "/main.css.gz") &&
-        is_regular_nonempty_file(BASE_PATH "/webui-manifest.json") &&
-        validate_manifest_locked();
+        is_regular_nonempty_file(BASE_PATH "/webui-manifest.json");
 
-    s_status.valid = valid;
-    if (!valid) s_status.version[0] = '\0';
-    return valid;
+    if (!required_files_valid)
+    {
+        reset_manifest_metadata_locked();
+        copy_safe(s_status.compatibilityStatus,
+                  sizeof(s_status.compatibilityStatus),
+                  "image_invalid");
+        copy_safe(s_status.lastError, sizeof(s_status.lastError),
+                  "WebUI image is missing required files");
+        s_status.valid = false;
+        return false;
+    }
+
+    s_status.valid = validate_manifest_locked();
+    return s_status.valid;
 }
 
 void update_usage_locked()
@@ -289,7 +386,7 @@ void unmount_locked()
     s_status.valid = false;
     s_status.totalBytes = 0;
     s_status.usedBytes = 0;
-    s_status.version[0] = '\0';
+    reset_manifest_metadata_locked();
 }
 
 void sha_cleanup_locked()
@@ -347,7 +444,7 @@ esp_err_t mount_locked()
     s_status.valid = false;
     s_status.totalBytes = 0;
     s_status.usedBytes = 0;
-    s_status.version[0] = '\0';
+    reset_manifest_metadata_locked();
 
     if (!s_partition)
     {
@@ -377,6 +474,9 @@ esp_err_t mount_locked()
         // transition firmware. Never auto-format during boot.
         if (result == ESP_FAIL)
         {
+            copy_safe(s_status.compatibilityStatus,
+                      sizeof(s_status.compatibilityStatus),
+                      "not_installed");
             copy_safe(s_status.lastError, sizeof(s_status.lastError),
                       "Standalone New Design not installed");
             ESP_LOGI(TAG, "%s; using embedded New Design",
@@ -396,13 +496,25 @@ esp_err_t mount_locked()
 
     if (!s_status.valid)
     {
-        copy_safe(s_status.lastError, sizeof(s_status.lastError),
-                  "No valid New Design manifest found");
+        if (!s_status.lastError[0])
+        {
+            copy_safe(s_status.lastError, sizeof(s_status.lastError),
+                      "No valid and compatible New Design manifest found");
+        }
+        ESP_LOGW(TAG,
+                 "External WebUI rejected; status=%s, error=%s. "
+                 "Using embedded fallback.",
+                 s_status.compatibilityStatus,
+                 s_status.lastError);
     }
 
     ESP_LOGI(TAG,
-             "External New Design mounted: valid=%d, used=%u/%u bytes, version=%s",
+             "External New Design mounted: valid=%d, compatible=%d, "
+             "api=%d/%d, used=%u/%u bytes, version=%s",
              s_status.valid ? 1 : 0,
+             s_status.compatible ? 1 : 0,
+             s_status.apiVersion,
+             s_status.supportedApiVersion,
              static_cast<unsigned>(s_status.usedBytes),
              static_cast<unsigned>(s_status.totalBytes),
              s_status.version[0] ? s_status.version : "unknown");
@@ -563,19 +675,36 @@ esp_err_t get_webui_status_handler(httpd_req_t *req)
     const WebUIStorageStatus status = webui_storage_get_status();
     char safe_version[sizeof(status.version)] = {};
     char effective_version[sizeof(status.version)] = {};
+    char safe_minimum_firmware[sizeof(status.minFirmwareVersion)] = {};
+    char safe_compatibility_status[sizeof(status.compatibilityStatus)] = {};
+    char safe_firmware_version[32] = {};
     char safe_error[sizeof(status.lastError)] = {};
     copy_json_safe(safe_version, sizeof(safe_version), status.version);
     webui_storage_get_effective_version(effective_version, sizeof(effective_version));
+    copy_json_safe(safe_minimum_firmware, sizeof(safe_minimum_firmware),
+                   status.minFirmwareVersion);
+    copy_json_safe(safe_compatibility_status,
+                   sizeof(safe_compatibility_status),
+                   status.compatibilityStatus);
+    copy_json_safe(safe_firmware_version, sizeof(safe_firmware_version),
+                   current_firmware_version());
     copy_json_safe(safe_error, sizeof(safe_error), status.lastError);
 
-    char response[512];
+    char response[1024];
     snprintf(response, sizeof(response),
-             "{\"partitionFound\":%s,\"mounted\":%s,\"valid\":%s,"
+             "{\"partitionFound\":%s,\"mounted\":%s,\"manifestValid\":%s,"
+             "\"compatible\":%s,\"valid\":%s,"
              "\"updateActive\":%s,\"partitionSize\":%u,\"totalBytes\":%u,"
              "\"usedBytes\":%u,\"bytesWritten\":%u,\"version\":\"%s\","
-             "\"design\":\"newdesign\",\"lastError\":\"%s\"}",
+             "\"effectiveVersion\":\"%s\",\"source\":\"%s\","
+             "\"design\":\"newdesign\",\"apiVersion\":%d,"
+             "\"supportedApiVersion\":%d,\"minFirmwareVersion\":\"%s\","
+             "\"firmwareVersion\":\"%s\",\"compatibilityStatus\":\"%s\","
+             "\"lastError\":\"%s\"}",
              status.partitionFound ? "true" : "false",
              status.mounted ? "true" : "false",
+             status.manifestValid ? "true" : "false",
+             status.compatible ? "true" : "false",
              status.valid ? "true" : "false",
              status.updateActive ? "true" : "false",
              static_cast<unsigned>(status.partitionSize),
@@ -583,6 +712,13 @@ esp_err_t get_webui_status_handler(httpd_req_t *req)
              static_cast<unsigned>(status.usedBytes),
              static_cast<unsigned>(status.bytesWritten),
              safe_version,
+             effective_version,
+             status.valid ? "spiffs" : "embedded",
+             status.apiVersion,
+             status.supportedApiVersion,
+             safe_minimum_firmware,
+             safe_firmware_version,
+             safe_compatibility_status,
              safe_error);
 
     httpd_resp_set_type(req, "application/json");
@@ -617,6 +753,67 @@ esp_err_t post_webui_update_handler(httpd_req_t *req)
     {
         return httpd_resp_send_custom_err(req, "409 Conflict",
                                           "Firmware OTA already in progress");
+    }
+
+    // Release-driven uploads provide compatibility metadata before any flash
+    // erase. Rejecting here preserves the currently installed external WebUI.
+    // Expert/manual uploads without these optional headers are still validated
+    // authoritatively from their internal manifest after streaming.
+    char api_version_header[16] = {};
+    char minimum_firmware_header[32] = {};
+    const bool has_api_version =
+        httpd_req_get_hdr_value_str(req, "X-WebUI-API-Version",
+                                    api_version_header,
+                                    sizeof(api_version_header)) == ESP_OK;
+    const bool has_minimum_firmware =
+        httpd_req_get_hdr_value_str(req, "X-WebUI-Min-Firmware-Version",
+                                    minimum_firmware_header,
+                                    sizeof(minimum_firmware_header)) == ESP_OK;
+    if (has_api_version != has_minimum_firmware)
+    {
+        return httpd_resp_send_err(
+            req, HTTPD_400_BAD_REQUEST,
+            "Incomplete WebUI compatibility headers");
+    }
+    if (has_api_version)
+    {
+        char *end = nullptr;
+        const long api_version = strtol(api_version_header, &end, 10);
+        if (!end || *end != '\0' || api_version < 1 || api_version > INT_MAX)
+        {
+            return httpd_resp_send_err(
+                req, HTTPD_400_BAD_REQUEST,
+                "Invalid WebUI API version header");
+        }
+
+        const WebUICompatibilityResult preflight =
+            webui_check_compatibility(
+                static_cast<int>(api_version),
+                minimum_firmware_header,
+                HB_SUPPORTED_WEBUI_API_VERSION,
+                current_firmware_version());
+        if (preflight != WEBUI_COMPATIBILITY_COMPATIBLE)
+        {
+            char message[160] = {};
+            if (preflight == WEBUI_COMPATIBILITY_API_MISMATCH)
+            {
+                snprintf(message, sizeof(message),
+                         "WebUI API %ld is incompatible with firmware API %d",
+                         api_version, HB_SUPPORTED_WEBUI_API_VERSION);
+            }
+            else if (preflight == WEBUI_COMPATIBILITY_FIRMWARE_TOO_OLD)
+            {
+                snprintf(message, sizeof(message),
+                         "WebUI requires firmware %s or newer (installed %s)",
+                         minimum_firmware_header, current_firmware_version());
+            }
+            else
+            {
+                snprintf(message, sizeof(message),
+                         "Invalid WebUI compatibility metadata");
+            }
+            return httpd_resp_send_custom_err(req, "409 Conflict", message);
+        }
     }
 
     bool net_locked = false;
@@ -995,12 +1192,16 @@ esp_err_t webui_storage_update_finish()
     const esp_err_t mount_result = mount_locked();
     if (mount_result != ESP_OK || !validate_files_locked())
     {
+        char validation_message[sizeof(s_status.lastError)] = {};
+        copy_safe(validation_message, sizeof(validation_message),
+                  s_status.lastError[0]
+                      ? s_status.lastError
+                      : "WWW image is not a valid and compatible "
+                        "HB-RF-ETH-ng New Design image");
         const esp_err_t validation_error = mount_result == ESP_OK
             ? ESP_ERR_INVALID_RESPONSE
             : mount_result;
-        invalidate_image_locked(
-            "WWW image is not a valid HB-RF-ETH-ng New Design image",
-            validation_error);
+        invalidate_image_locked(validation_message, validation_error);
         return validation_error;
     }
 

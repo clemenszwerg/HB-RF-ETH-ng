@@ -35,8 +35,8 @@ const walk = (directory) => fs.readdirSync(directory, { withFileTypes: true }).f
 
 const localeFiles = fs.readdirSync(localeDir).filter((name) => /^[a-z]{2}\.js$/.test(name)).sort()
 const localeKeys = Object.fromEntries(localeFiles.map((name) => [name.slice(0, 2), flatten(loadLocale(path.join(localeDir, name)))]))
-const german = localeKeys.de
-if (!german) fail('webui/src/locales/de.js is missing')
+const english = localeKeys.en
+if (!english) fail('webui/src/locales/en.js is missing')
 
 const used = new Set()
 const callPattern = /(?:^|[^\w$])(?:t|\$t|translate|i18n\.global\.t)\(\s*(['"`])([^'"`]+)\1/gm
@@ -47,30 +47,22 @@ for (const file of walk(sourceDir)) {
   }
 }
 
-if (german) {
-  const missingGerman = [...used].filter((key) => !german.has(key)).sort()
-  if (missingGerman.length) fail(`German keys missing:\n  ${missingGerman.join('\n  ')}`)
+if (english) {
+  const missingEnglish = [...used].filter((key) => !english.has(key)).sort()
+  if (missingEnglish.length) fail(`English keys missing:\n  ${missingEnglish.join('\n  ')}`)
   for (const [code, keys] of Object.entries(localeKeys)) {
-    if (code === 'de') continue
-    const absentInGerman = [...keys].filter((key) => !german.has(key)).sort()
-    if (absentInGerman.length) fail(`${code}.js has keys missing in de.js:\n  ${absentInGerman.join('\n  ')}`)
-    const missing = [...german].filter((key) => !keys.has(key))
-    if (missing.length) console.warn(`${code}.js misses ${missing.length} German reference keys; runtime fallback is German.`)
+    if (code === 'en') continue
+    const absentInEnglish = [...keys].filter((key) => !english.has(key)).sort()
+    if (absentInEnglish.length) fail(`${code}.js has keys missing in en.js:\n  ${absentInEnglish.join('\n  ')}`)
+    const missing = [...english].filter((key) => !keys.has(key))
+    if (missing.length) console.warn(`${code}.js misses ${missing.length} English reference keys; runtime fallback is English.`)
   }
 }
 
 const main = fs.readFileSync(path.join(sourceDir, 'main.js'), 'utf8')
 const index = fs.readFileSync(path.join(localeDir, 'index.js'), 'utf8')
-if (!/fallbackLocale\s*:\s*['"]de['"]/.test(main)) fail('Vue-I18n fallbackLocale must be de')
-if (/fallbackLocale\s*:\s*['"]en['"]/.test(main)) fail('English Vue-I18n fallback is forbidden')
+if (!/fallbackLocale\s*:\s*['"]en['"]/.test(main)) fail('Vue-I18n fallbackLocale must be en')
 if (!/Default to German[\s\S]*return\s+['"]de['"]/.test(index)) fail('Unknown browser locales must default to German')
 
-for (const file of walk(sourceDir)) {
-  const source = fs.readFileSync(file, 'utf8')
-  if (/(?:\|\||\?\?)\s*(?:translations|messages)\.en\b/.test(source)) {
-    fail(`English local fallback in ${path.relative(root, file)}`)
-  }
-}
-
 if (failed) process.exit(1)
-console.log(`Translation check passed: ${used.size} used keys, ${german.size} German keys, ${localeFiles.length} locales.`)
+console.log(`Translation check passed: ${used.size} used keys, ${english.size} English keys, ${localeFiles.length} locales.`)

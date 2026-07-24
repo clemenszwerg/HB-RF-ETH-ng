@@ -179,6 +179,18 @@ esp_err_t get_system_overview(httpd_req_t *req)
                                 webui_effective_version);
         cJSON_AddBoolToObject(webui_object, "valid", webui.valid);
         cJSON_AddBoolToObject(webui_object, "mounted", webui.mounted);
+        cJSON_AddBoolToObject(webui_object, "manifestValid",
+                              webui.manifestValid);
+        cJSON_AddBoolToObject(webui_object, "compatible",
+                              webui.compatible);
+        cJSON_AddStringToObject(webui_object, "compatibilityStatus",
+                                webui.compatibilityStatus);
+        cJSON_AddNumberToObject(webui_object, "apiVersion",
+                                webui.apiVersion);
+        cJSON_AddNumberToObject(webui_object, "supportedApiVersion",
+                                webui.supportedApiVersion);
+        cJSON_AddStringToObject(webui_object, "minFirmwareVersion",
+                                webui.minFirmwareVersion);
         cJSON_AddNumberToObject(webui_object, "partitionBytes",
                                 webui.partitionSize);
         cJSON_AddNumberToObject(webui_object, "usedBytes", webui.usedBytes);

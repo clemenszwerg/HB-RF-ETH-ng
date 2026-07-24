@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(build): unblock firmware build on ESP-IDF v6.1
 
 ### Changes
+- refactor(webui): Sprachpakete auf Deutsch, Englisch, Französisch und Italienisch reduziert. Gespeicherte, nicht mehr unterstützte Sprachcodes werden automatisch auf eine verfügbare Sprache migriert; dadurch bleibt ausreichend Sicherheitsreserve in der 320-KB-WebUI-Partition.
+- fix(webui): Werksreset gegen versehentliches Auslösen abgesichert. Der Reset-Dialog erzeugt bei jedem Öffnen einen kryptografisch zufälligen 8-stelligen Code aus Großbuchstaben, Kleinbuchstaben und Zahlen; erst die exakte, case-sensitive Eingabe schaltet die Reset-Aktion frei. Kopieren, Einfügen und Textauswahl des Codes sind in der Oberfläche gesperrt.
+- fix(firmware/webui): Verbindliche Kompatibilitätsprüfung für die separat installierte WebUI ergänzt. Firmware und WebUI besitzen nun getrennte API-Vertragsquellen; beim Booten und nach jedem Upload werden `apiVersion` und `minFirmwareVersion` serverseitig geprüft. Eine unpassende oder unvollständige externe WebUI wird niemals ausgeliefert: Die eingebettete Recovery-WebUI bleibt aktiv und zeigt dauerhaft einen Reparaturhinweis. Release-passende Uploads senden Kompatibilitätsmetadaten bereits vor dem Flash-Löschen, damit ein Konflikt die bisher installierte WebUI nicht zerstört.
+- fix(webui): Der globale Firmware-Hinweis verspricht keine direkte OTA-Installation mehr. „Jetzt aktualisieren“ wurde durch „Update ansehen“ sowie den klaren Hinweis auf Download und manuelle Installation ersetzt.
+- docs(release): Firmware-/WebUI-Kompatibilitätsvertrag, zwingende API-Inkrementregeln, Fallback-Verhalten, Statusfelder und Upload-Header in Release-, Update- und API-Dokumentation festgeschrieben.
 - fix(webui): Firmware- und WebUI-Update-Seiten vereinheitlicht; manuelle Prüfungen zeigen „aktuell“, Cooldown, Überspringen und Fehler dauerhaft und eindeutig an.
 - fix(webui): Firmware-Seite vollständig internationalisiert, einschließlich Status, Datumsformatierung, Datei-Validierung und Toast-Meldungen.
 - fix(webui): Lesbare Typografie appweit vereinheitlicht sowie Monitoring-Zeilen und Statuskarten pixelgenau ausgerichtet.

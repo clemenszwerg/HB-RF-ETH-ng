@@ -304,7 +304,8 @@ export default {
   // Update
   update: {
     available: 'Update Available',
-    updateNow: 'Update Now'
+    manualInstallHint: 'Download and manual installation',
+    viewUpdate: 'View update'
   },
 
   // Updates page (merged Firmware + WebUI entry, Korrekturauftrag §6)
@@ -339,6 +340,11 @@ export default {
     firmwareChip: 'Firmware',
     separateActive: 'Separate WebUI active',
     embeddedFallback: 'Embedded fallback active',
+    compatibilityWarningTitle: 'WebUI compatibility problem',
+    compatibilityWarningApi: 'Installed WebUI v{version} requires API {required}; this firmware supports API {supported}. The embedded WebUI is active for safety.',
+    compatibilityWarningFirmware: 'Installed WebUI v{version} requires firmware {minimum} or newer; {current} is installed. The embedded WebUI is active for safety.',
+    compatibilityWarningInvalid: 'The external WebUI is incomplete or has no valid compatibility contract. The embedded WebUI is active for safety.',
+    compatibilityWarningAction: 'Repair WebUI',
     installedLabel: 'Installed WebUI version',
     separateSource: 'From the separate WWW partition',
     embeddedSource: 'Embedded in the firmware',
@@ -442,6 +448,13 @@ export default {
     factoryResetWarning: 'All stored settings will be lost. The device will restart automatically afterwards.',
     factoryResetConfirm: 'Reset to factory defaults',
     factoryResetError: 'Factory reset failed.',
+    factoryResetChallengeHelp: 'Enter the following 8-character security code exactly. It is case-sensitive; copying and pasting are disabled.',
+    factoryResetChallengeLabel: 'Security code',
+    factoryResetChallengeDisplayLabel: 'Security code: {code}',
+    factoryResetChallengeInputLabel: 'Confirm security code',
+    factoryResetChallengePlaceholder: 'Enter the code exactly',
+    factoryResetChallengeMismatch: 'The entered code does not match exactly.',
+    factoryResetChallengeReady: 'Code confirmed. Factory reset is now unlocked.',
     otaProgress: 'Downloading firmware update...',
     otaSuccess: 'Download successful. Installing...',
     currentVersion: 'Current Version',

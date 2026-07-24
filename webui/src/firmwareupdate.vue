@@ -176,25 +176,83 @@
     <BModal
       v-model="showFactoryResetModal"
       :title="t('firmware.factoryResetTitle')"
+      :aria-label="t('firmware.factoryResetTitle')"
       centered
       no-close-on-backdrop
       :ok-title="t('firmware.factoryResetConfirm')"
       ok-variant="danger"
       :cancel-title="t('common.cancel')"
       @ok="onFactoryResetOk"
-      :ok-disabled="isResetting"
+      :ok-disabled="isResetting || !factoryResetChallengeMatches"
       :cancel-disabled="isResetting"
     >
       <p>{{ t('firmware.factoryResetMessage') }}</p>
-      <BAlert variant="danger" :model-value="true" fade class="mt-2 mb-0">
+      <BAlert variant="danger" :model-value="true" fade class="mt-2">
         {{ t('firmware.factoryResetWarning') }}
       </BAlert>
+
+      <div class="factory-reset-challenge">
+        <p id="factoryResetChallengeHelp" class="challenge-help">
+          {{ t('firmware.factoryResetChallengeHelp') }}
+        </p>
+        <span class="challenge-label">{{ t('firmware.factoryResetChallengeLabel') }}</span>
+        <div
+          class="challenge-code"
+          data-testid="factory-reset-challenge"
+          :aria-label="t('firmware.factoryResetChallengeDisplayLabel', { code: factoryResetChallenge })"
+          role="group"
+          tabindex="0"
+          draggable="false"
+          @copy.prevent
+          @cut.prevent
+          @contextmenu.prevent
+          @dragstart.prevent
+          @selectstart.prevent
+        >
+          {{ factoryResetChallenge }}
+        </div>
+
+        <label class="challenge-input-label" for="factoryResetConfirmation">
+          {{ t('firmware.factoryResetChallengeInputLabel') }}
+        </label>
+        <input
+          id="factoryResetConfirmation"
+          v-model="factoryResetConfirmation"
+          class="form-control challenge-input"
+          :class="{
+            'is-invalid': factoryResetConfirmation.length > 0 && !factoryResetChallengeMatches,
+            'is-valid': factoryResetChallengeMatches
+          }"
+          type="text"
+          name="factory-reset-confirmation-code"
+          maxlength="8"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          :placeholder="t('firmware.factoryResetChallengePlaceholder')"
+          :aria-describedby="factoryResetConfirmation.length > 0 ? 'factoryResetChallengeFeedback' : 'factoryResetChallengeHelp'"
+          :aria-invalid="factoryResetConfirmation.length > 0 && !factoryResetChallengeMatches"
+          @paste.prevent
+        >
+        <p
+          v-if="factoryResetConfirmation.length > 0"
+          id="factoryResetChallengeFeedback"
+          class="challenge-feedback"
+          :class="factoryResetChallengeMatches ? 'is-ready' : 'is-mismatch'"
+          :role="factoryResetChallengeMatches ? 'status' : 'alert'"
+        >
+          {{ factoryResetChallengeMatches
+            ? t('firmware.factoryResetChallengeReady')
+            : t('firmware.factoryResetChallengeMismatch') }}
+        </p>
+      </div>
     </BModal>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useFirmwareUpdateStore, useRestartUiStore, useSysInfoStore, useUiStore, useUpdateStore } from './stores.js'
@@ -218,6 +276,49 @@ const uploadProgress = ref(0)
 const betaToggleSaving = ref(false)
 const showFactoryResetModal = ref(false)
 const isResetting = ref(false)
+const factoryResetChallenge = ref('')
+const factoryResetConfirmation = ref('')
+
+const FACTORY_RESET_CHALLENGE_LENGTH = 8
+const FACTORY_RESET_CHALLENGE_GROUPS = [
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  'abcdefghijklmnopqrstuvwxyz',
+  '0123456789'
+]
+const FACTORY_RESET_CHALLENGE_CHARACTERS = FACTORY_RESET_CHALLENGE_GROUPS.join('')
+
+const secureRandomIndex = max => {
+  const randomValue = new Uint32Array(1)
+  const unbiasedLimit = Math.floor(0x100000000 / max) * max
+  do {
+    globalThis.crypto.getRandomValues(randomValue)
+  } while (randomValue[0] >= unbiasedLimit)
+  return randomValue[0] % max
+}
+
+const randomCharacter = characters => characters[secureRandomIndex(characters.length)]
+
+const generateFactoryResetChallenge = () => {
+  // One character from every group guarantees that every challenge visibly
+  // exercises case sensitivity and contains at least one number.
+  const characters = FACTORY_RESET_CHALLENGE_GROUPS.map(randomCharacter)
+  while (characters.length < FACTORY_RESET_CHALLENGE_LENGTH) {
+    characters.push(randomCharacter(FACTORY_RESET_CHALLENGE_CHARACTERS))
+  }
+
+  // Cryptographic Fisher-Yates shuffle so the required character groups do
+  // not appear at predictable positions.
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swapIndex = secureRandomIndex(index + 1)
+    ;[characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]]
+  }
+  return characters.join('')
+}
+
+const factoryResetChallengeMatches = computed(() =>
+  factoryResetChallenge.value.length === FACTORY_RESET_CHALLENGE_LENGTH &&
+  factoryResetConfirmation.value === factoryResetChallenge.value
+)
 
 const lastCheckText = computed(() => {
   const checkedAt = updateStore.lastSuccessfulManualCheckAt || updateStore.lastCheck
@@ -408,19 +509,28 @@ const restartClick = async () => {
 }
 
 const openFactoryResetModal = () => {
+  factoryResetChallenge.value = generateFactoryResetChallenge()
+  factoryResetConfirmation.value = ''
   showFactoryResetModal.value = true
 }
+
+watch(showFactoryResetModal, isOpen => {
+  if (isOpen) return
+  factoryResetChallenge.value = ''
+  factoryResetConfirmation.value = ''
+})
 
 // The BModal @ok handler receives the synthetic event from BModal.triggerOk;
 // calling event.preventDefault() keeps the modal open while the request runs.
 // On success we close it explicitly and start the restart-sync countdown.
 const onFactoryResetOk = (event) => {
   event.preventDefault()
+  if (!factoryResetChallengeMatches.value) return
   confirmFactoryReset()
 }
 
 const confirmFactoryReset = async () => {
-  if (isResetting.value) return
+  if (isResetting.value || !factoryResetChallengeMatches.value) return
   isResetting.value = true
   try {
     await axios.post('/api/factory-reset')
@@ -491,5 +601,30 @@ onMounted(async () => {
 .action-tile.warning { border-color: var(--color-warning); background: var(--color-warning-soft); }
 .action-tile.danger { border-color:var(--color-danger); background: var(--color-danger-soft); }
 .action-tile.danger h4 { color: var(--color-danger); }
+.factory-reset-challenge { display:flex; flex-direction:column; gap:var(--space-2); margin-top:var(--space-4); }
+.challenge-help { margin:0; color:var(--color-text-secondary); font-size:var(--fs-sm); }
+.challenge-label,.challenge-input-label { font-size:var(--fs-xs); font-weight:var(--font-weight-bold); }
+.challenge-code {
+  align-self:stretch;
+  padding:var(--space-3) var(--space-4);
+  border:2px dashed var(--color-danger);
+  border-radius:var(--radius-md);
+  background:var(--color-danger-soft);
+  color:var(--color-danger);
+  font-family:var(--font-mono);
+  font-size:var(--fs-xl);
+  font-weight:var(--font-weight-heavy);
+  letter-spacing:.24em;
+  text-align:center;
+  cursor:default;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
+.challenge-code:focus-visible { outline:3px solid var(--color-primary-soft); outline-offset:2px; }
+.challenge-input { font-family:var(--font-mono); letter-spacing:.12em; }
+.challenge-feedback { margin:0; font-size:var(--fs-xs); font-weight:var(--font-weight-semibold); }
+.challenge-feedback.is-mismatch { color:var(--color-danger); }
+.challenge-feedback.is-ready { color:var(--color-success); }
 @media(max-width:900px){ .content-grid,.system-actions { grid-template-columns:1fr; } }
 </style>

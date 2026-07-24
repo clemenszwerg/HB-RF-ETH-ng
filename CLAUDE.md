@@ -255,6 +255,23 @@ Note: form validation is the `@vuelidate/core` + `@vuelidate/validators` package
 
 All REST calls use `axios` with base URL `/`. Authentication uses `Authorization: Token <token>` header. The token is obtained via `POST /login.json` and stored in Pinia.
 
+### Firmware/WebUI compatibility invariant
+
+The independent WebUI is governed by the mandatory contract in
+`docs/RELEASE_VERSIONING.md`:
+
+- `main/webui_api_contract.json` is the firmware-owned supported WebUI API.
+- `webui/compatibility.json` is the WebUI-owned required API and minimum
+  firmware.
+- API versions must match exactly; the running firmware must meet the minimum.
+- `main/webui_storage.cpp` enforces the contract at boot and after upload.
+  Never replace this backend gate with a frontend-only check.
+- An incompatible external WebUI must never be served. Keep the embedded WebUI
+  fallback and its persistent repair warning working for every failure path.
+- Incompatible API changes require a coordinated full firmware release and an
+  API increment in both contract files. Compatible additions retain the API
+  number and raise `minFirmwareVersion` only when the WebUI depends on them.
+
 ---
 
 ## REST API Summary
@@ -277,6 +294,8 @@ Key endpoint categories:
 - `/api/ota_url` — start OTA from a URL
 - `/api/ota_status` — poll OTA progress/state
 - `/api/check_update` — GET cached release info / POST to trigger a GitHub Releases fetch
+- `/api/webui/status` — active/external WebUI version and compatibility state
+- `/api/webui/update` — raw standalone WebUI upload with backend compatibility validation
 - `/api/changelog` — fetch the firmware changelog (proxied from GitHub)
 - `/api/firmware_archive` — list previous firmware versions
 - `/api/log` — polled system log (text)

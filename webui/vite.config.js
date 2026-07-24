@@ -8,6 +8,9 @@ import { join } from 'path'
 const packageMetadata = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8')
 )
+const compatibilityMetadata = JSON.parse(
+  readFileSync(new URL('./compatibility.json', import.meta.url), 'utf8')
+)
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -47,7 +50,8 @@ function cacheBustingPlugin() {
 export default defineConfig({
   plugins: [vue(), cacheBustingPlugin()],
   define: {
-    __WEBUI_VERSION__: JSON.stringify(packageMetadata.version)
+    __WEBUI_VERSION__: JSON.stringify(packageMetadata.version),
+    __WEBUI_API_VERSION__: JSON.stringify(compatibilityMetadata.apiVersion)
   },
   resolve: {
     alias: {
